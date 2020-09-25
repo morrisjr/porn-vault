@@ -119,7 +119,9 @@ export async function buildImageIndex(): Promise<Gianna.Index<IImageSearchDoc>> 
   const res = await indexImages(await Image.getAll(), (percentDone) => {
     const secondsElapsed = (Date.now() - timeNow) / 1000;
     const eta =
-      percentDone === 0 ? "calculating..." : ((secondsElapsed * 100) / percentDone).toFixed(0);
+      percentDone === 0
+        ? "calculating..."
+        : ((secondsElapsed * (100 - percentDone)) / percentDone).toFixed(0);
     loader.text = `Building image index... ETA: ${eta}s`;
   });
 
