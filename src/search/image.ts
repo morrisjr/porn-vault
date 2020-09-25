@@ -81,7 +81,7 @@ export const getSlices = (size: number) => <T>(arr: T[]): T[][] => {
 
 export async function indexImages(
   images: Image[],
-  progressCb: (percentDone: number) => void
+  progressCb?: (percentDone: number) => void
 ): Promise<number> {
   if (!images.length) return 0;
   let indexedImageCount = 0;
@@ -93,8 +93,10 @@ export async function indexImages(
       if (!isBlacklisted(image.name)) docs.push(await createImageSearchDoc(image));
     });
     await addImageSearchDocs(docs);
-    indexedImageCount += slice.length;
-    progressCb((indexedImageCount / images.length) * 100);
+    if (progressCb) {
+      indexedImageCount += slice.length;
+      progressCb((indexedImageCount / images.length) * 100);
+    }
   });
 
   return images.length;
