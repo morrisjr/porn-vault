@@ -79,8 +79,12 @@ export const getSlices = (size: number) => <T>(arr: T[]): T[][] => {
   return slices;
 };
 
-export async function indexImages(images: Image[]): Promise<number> {
+export async function indexImages(
+  images: Image[],
+  progressCb: (percentDone: number) => void
+): Promise<number> {
   if (!images.length) return 0;
+  let indexedImageCount = 0;
   const slices = getSlices(2500)(images);
 
   await asyncPool(4, slices, async (slice) => {
@@ -89,6 +93,8 @@ export async function indexImages(images: Image[]): Promise<number> {
       if (!isBlacklisted(image.name)) docs.push(await createImageSearchDoc(image));
     });
     await addImageSearchDocs(docs);
+    indexedImageCount += slice.length;
+    progressCb((indexedImageCount / images.length) * 100);
   });
 
   return images.length;
@@ -106,9 +112,14 @@ export async function buildImageIndex(): Promise<Gianna.Index<IImageSearchDoc>> 
   index = await Gianna.createIndex("images", FIELDS);
 
   const timeNow = +new Date();
-  const loader = ora("Building image index...").start();
+  const loader = ora("Building image index... ETA: calculating...").start();
 
-  const res = await indexImages(await Image.getAll());
+  const res = await indexImages(await Image.getAll(), (percentDone) => {
+    const secondsElapsed = (Date.now() - timeNow) / 1000;
+    const eta =
+      percentDone === 0 ? "calculating..." : ((secondsElapsed * 100) / percentDone).toFixed(0);
+    loader.text = `Building image index... ETA: ${eta}s`;
+  });
 
   loader.succeed(`Build done in ${(Date.now() - timeNow) / 1000}s.`);
   logger.log(`Index size: ${res} items`);
