@@ -224,7 +224,7 @@ export default async (): Promise<void> => {
   });
 
   app.get("/log", (req, res) => {
-    res.json(logger.getLog());
+    res.json([...logger.getLog()].reverse());
   });
 
   mountApolloServer(app);
