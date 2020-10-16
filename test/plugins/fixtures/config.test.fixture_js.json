@@ -3,19 +3,15 @@
     "password": null
   },
   "binaries": {
-    "ffmpeg": "/usr/bin/ffmpeg",
-    "ffprobe": "/usr/bin/ffprobe",
+    "ffmpeg": "",
+    "ffprobe": "",
     "izzyPort": 8000,
     "giannaPort": 8001
   },
   "import": {
     "bulk": [],
-    "images": [
-      "/images"
-    ],
-    "videos": [
-      "/videos"
-    ]
+    "images": [],
+    "videos": []
   },
   "log": {
     "maxSize": 2500
@@ -30,7 +26,7 @@
       "enable": true,
       "maxAmount": 10
     },
-    "libraryPath": "/config"
+    "libraryPath": ""
   },
   "plugins": {
     "allowActorThumbnailOverwrite": false,
@@ -41,8 +37,29 @@
     "createMissingLabels": false,
     "createMissingMovies": false,
     "createMissingStudios": false,
-    "events": {},
-    "register": {}
+    "events": {
+      "actorCreated": ["actor_plugin_fixture_js"],
+      "actorCustom": ["actor_plugin_fixture_js"],
+      "sceneCreated": ["scene_plugin_fixture_js"],
+      "sceneCustom": ["scene_plugin_fixture_js"],
+      "movieCreated": ["movie_plugin_fixture_js"],
+      "studioCreated": ["studio_plugin_fixture_js"],
+      "studioCustom": ["studio_plugin_fixture_js"]
+    },
+    "register": {
+      "actor_plugin_fixture_js": {
+        "path": "./test/plugins/fixtures/actor_plugin.fixture.js"
+      },
+      "movie_plugin_fixture_js": {
+        "path": "./test/plugins/fixtures/movie_plugin.fixture.js"
+      },
+      "scene_plugin_fixture_js": {
+        "path": "./test/plugins/fixtures/scene_plugin.fixture.js"
+      },
+      "studio_plugin_fixture_js": {
+        "path": "./test/plugins/fixtures/studio_plugin.fixture.js"
+      }
+    }
   },
   "processing": {
     "doProcessing": true,
