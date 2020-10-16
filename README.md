@@ -1,3 +1,6 @@
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/leadwolf/porn-vault/Build%20Docker%20images?label=docker%20build)
+![Docker Pulls](https://img.shields.io/docker/pulls/leadwolf/porn-vault)
+
 This repository serves to release images from https://github.com/porn-vault/porn-vault
 
 ## Version Tags
