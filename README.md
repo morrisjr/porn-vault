@@ -1,3 +1,6 @@
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/leadwolf/porn-vault/Build%20Docker%20images?label=docker%20build)
+![Docker Pulls](https://img.shields.io/docker/pulls/leadwolf/porn-vault)
+
 This repository serves to release images from https://github.com/porn-vault/porn-vault
 
 ## Version Tags
@@ -10,7 +13,7 @@ This repository serves to release images from https://github.com/porn-vault/porn
 | edge      | The latest release (release candidates included) |
 | `version` | A specific porn-vault release                    |
 
-The images are based on Debian and Alpine images are available with the `-alpine` prefix for all tags.
+The images are based on Debian and Alpine images are available with the `-alpine` suffix for all tags.
 
 [Read the docker instructions here](https://github.com/leadwolf/porn-vault/blob/dev/doc/docker.md). This document details how to locally build an image, but the instructions for the parameters are the same when pulling an image.
 
