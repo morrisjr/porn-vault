@@ -21,7 +21,6 @@ const defaultConfig: IConfig = {
     giannaPort: 8001,
   },
   import: {
-    bulk: [],
     images: [],
     videos: [],
   },
@@ -59,6 +58,7 @@ const defaultConfig: IConfig = {
     imageCompressionSize: 720,
     readImagesOnImport: false,
     screenshotInterval: 120,
+    generateImageThumbnails: true,
   },
   scan: {
     excludeFiles: [],
