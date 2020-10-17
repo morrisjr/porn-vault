@@ -4,12 +4,20 @@ rules: # Array of rules
     upstream: porn-vault:master # Required. Must be in the same fork network.
     mergeMethod: merge # Optional, one of [none, merge, squash, rebase, hardreset], Default: none.
     mergeUnstable: false # Optional, merge pull request even when the mergeable_state is not clean. Default: false
+    assignees: # Optional
+      - leadwolf
+    reviewers: # Optional
+      - leadwolf
     conflictReviewers: # Optional, on merge conflict assign a reviewer
       - leadwolf
   - base: dev
     upstream: porn-vault:dev # Required. Can be a branch in the same forked repo.
     mergeMethod: merge # Optional, one of [none, merge, squash, rebase, hardreset], Default: none.
     mergeUnstable: false # Optional, merge pull request even when the mergeable_state is not clean. Default: false
+    assignees: # Optional
+      - leadwolf
+    reviewers: # Optional
+      - leadwolf
     conflictReviewers: # Optional, on merge conflict assign a reviewer
       - leadwolf
   - base: leadwolf-dev
@@ -22,6 +30,10 @@ rules: # Array of rules
     upstream: porn-vault:dev # Required. Can be a branch in the same forked repo.
     mergeMethod: hardreset # Optional, one of [none, merge, squash, rebase, hardreset], Default: none.
     mergeUnstable: false # Optional, merge pull request even when the mergeable_state is not clean. Default: false
+    assignees: # Optional
+      - leadwolf
+    reviewers: # Optional
+      - leadwolf
     conflictReviewers: # Optional, on merge conflict assign a reviewer
       - leadwolf
 label: ":arrow_heading_down: pull" # Optional
