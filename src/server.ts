@@ -13,7 +13,6 @@ import { getConfig, watchConfig } from "./config/index";
 import BROKEN_IMAGE from "./data/broken_image";
 import { actorCollection, imageCollection, loadStores, sceneCollection } from "./database/index";
 import { dvdRenderer } from "./dvd_renderer";
-import { checkImportFolders } from "./import/index";
 import { mountApolloServer } from "./middlewares/apollo";
 import cors from "./middlewares/cors";
 import { checkPassword, passwordHandler } from "./middlewares/password";
@@ -223,6 +222,22 @@ export default async (): Promise<void> => {
     } else res.redirect("/broken");
   });
 
+  app.get("/image/:image/thumbnail", async (req, res) => {
+    const image = await Image.getById(req.params.image);
+
+    if (image && image.thumbPath) {
+      const resolved = path.resolve(image.thumbPath);
+      if (!existsSync(resolved)) {
+        res.redirect("/broken");
+      } else res.sendFile(resolved);
+    } else if (image) {
+      logger.warn(`${req.params.image}'s thumbnail does not exist (yet)`);
+      res.redirect(`/image/${image._id}`);
+    } else {
+      res.redirect("/broken");
+    }
+  });
+
   app.get("/log", (req, res) => {
     res.json(logger.getLog());
   });
@@ -321,9 +336,6 @@ export default async (): Promise<void> => {
   } else {
     await spawnGianna();
   }
-
-  setupMessage = "Checking imports...";
-  await checkImportFolders();
 
   try {
     setupMessage = "Building search indices...";

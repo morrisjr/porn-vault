@@ -10,7 +10,6 @@ const configSchema = zod
     import: zod.object({
       videos: zod.array(zod.string()),
       images: zod.array(zod.string()),
-      bulk: zod.array(zod.string()),
     }),
     scan: zod.object({
       scanOnStartup: zod.boolean(),
@@ -24,6 +23,7 @@ const configSchema = zod
       screenshotInterval: zod.number().min(0),
       readImagesOnImport: zod.boolean(),
       imageCompressionSize: zod.number().min(60),
+      generateImageThumbnails: zod.boolean(),
     }),
     persistence: zod.object({
       libraryPath: zod.string(),
