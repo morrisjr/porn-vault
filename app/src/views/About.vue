@@ -53,6 +53,12 @@
                 <v-checkbox
                   color="primary"
                   hide-details
+                  label="Use custom video UI in fullscreen"
+                  v-model="sceneCustomUIWhenFullscreen"
+                />
+                <v-checkbox
+                  color="primary"
+                  hide-details
                   v-model="showCardLabels"
                   label="Show card labels on overview"
                 />
@@ -214,6 +220,15 @@ export default class About extends Vue {
     return contextModule.scenePreviewOnMouseHover;
   }
 
+  set sceneCustomUIWhenFullscreen(val: boolean) {
+    localStorage.setItem("pm_sceneCustomUIWhenFullscreen", val.toString());
+    contextModule.setSceneCustomUIWhenFullscreen(val);
+  }
+
+  get sceneCustomUIWhenFullscreen() {
+    return contextModule.sceneCustomUIWhenFullscreen;
+  }
+  
   toggleDarkMode() {
     // @ts-ignore
     this.$vuetify.theme.dark = !this.$vuetify.theme.dark;

@@ -251,6 +251,13 @@ export default class App extends Vue {
       contextModule.setScenePreviewOnMouseHover(scenePreviewOnMouseHoverLocalStorage == "true");
     }
 
+    const sceneCustomUIWhenFullscreenLocalStorage = localStorage.getItem(
+      "pm_sceneCustomUIWhenFullscreen"
+    );
+    if (sceneCustomUIWhenFullscreenLocalStorage) {
+      contextModule.setSceneCustomUIWhenFullscreen(sceneCustomUIWhenFullscreenLocalStorage == "true");
+    }
+
     const showCardLabelsLocalStorage = localStorage.getItem("pm_showCardLabels");
     if (showCardLabelsLocalStorage) {
       contextModule.toggleCardLabels(showCardLabelsLocalStorage == "true");

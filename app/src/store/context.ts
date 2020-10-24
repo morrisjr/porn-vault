@@ -13,6 +13,7 @@ class ContextModule extends VuexModule {
 
   showSidenav = true; // TODO: store and load from localStorage
   scenePreviewOnMouseHover = false;
+  sceneCustomUIWhenFullscreen = true;
 
   experimental = false;
 
@@ -59,6 +60,11 @@ class ContextModule extends VuexModule {
   @Mutation
   setScenePreviewOnMouseHover(val: boolean) {
     this.scenePreviewOnMouseHover = val;
+  }
+
+  @Mutation
+  setSceneCustomUIWhenFullscreen(val: boolean) {
+    this.sceneCustomUIWhenFullscreen = val;
   }
 }
 

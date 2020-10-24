@@ -140,6 +140,7 @@
         <video
           @click="togglePlay(false)"
           @dblclick="toggleFullscreen"
+          tabindex="0"
           id="video"
           class="video"
           ref="video"
@@ -160,6 +161,12 @@ import { Component, Vue, Prop } from "vue-property-decorator";
 import moment from "moment";
 import hotkeys from "hotkeys-js";
 
+type VideoElement = HTMLElement & {
+  mozRequestFullScreen?(): Promise<void>;
+  webkitRequestFullscreen?(): Promise<void>;
+  msRequestFullscreen?(): Promise<void>;
+};
+
 const IS_MUTED = "player_is_muted";
 const VOLUME = "player_volume";
 
@@ -170,6 +177,7 @@ export default class VideoPlayer extends Vue {
   @Prop({ default: null }) poster!: string | null;
   @Prop() markers!: { _id: string; name: string; time: number }[];
   @Prop({ default: null }) preview!: string | null;
+  @Prop({ default: true }) customUIWhenFullscreen!: boolean;
 
   videoNotice = "";
   noticeTimeout: null | number = null;
@@ -243,30 +251,32 @@ export default class VideoPlayer extends Vue {
     }, this.hideControlsTimeoutDuration);
   }
 
+  getFullScreenElement(): VideoElement | undefined {
+    return (this.customUIWhenFullscreen
+      ? this.$refs.videoWrapper
+      : this.$refs.video) as VideoElement | undefined;
+  }
+
   async toggleFullscreen() {
-    const videoWrapper = this.$refs.videoWrapper as HTMLElement & {
-      mozRequestFullScreen?(): Promise<void>;
-      webkitRequestFullscreen?(): Promise<void>;
-      msRequestFullscreen?(): Promise<void>;
-    };
+    const fullscreenEl = this.getFullScreenElement();
 
-    if (!videoWrapper) return;
+    if (!fullscreenEl) return;
 
-    if (document.fullscreenElement && document.fullscreenElement === videoWrapper) {
+    if (document.fullscreenElement && document.fullscreenElement === fullscreenEl) {
       document.exitFullscreen();
     } else {
       const requestFullscreen =
-        videoWrapper.requestFullscreen ||
-        videoWrapper.webkitRequestFullscreen ||
-        videoWrapper.mozRequestFullScreen ||
-        videoWrapper.msRequestFullscreen;
+        fullscreenEl.requestFullscreen ||
+        fullscreenEl.webkitRequestFullscreen ||
+        fullscreenEl.mozRequestFullScreen ||
+        fullscreenEl.msRequestFullscreen;
       if (requestFullscreen) {
         try {
           // Invoke function with element context
-          await requestFullscreen.call(videoWrapper);
-          // Focus the wrapper when in fullscreen, to allow
+          await requestFullscreen.call(fullscreenEl);
+          // Focus the element when in fullscreen, to allow
           // for focus dependant keyboard shortcuts
-          videoWrapper.focus();
+          fullscreenEl.focus();
         } catch (err) {
           // Browser refused fullscreen for some reason, do nothing
         }
@@ -408,16 +418,18 @@ export default class VideoPlayer extends Vue {
   }
 
   isVideoFocused() {
-    const videoWrapper = <Element>this.$refs.videoWrapper;
+    const fullscreenEl = this.getFullScreenElement();
     return (
-      videoWrapper &&
+      fullscreenEl &&
       document.activeElement &&
-      (document.activeElement === videoWrapper || videoWrapper.contains(document.activeElement))
+      (document.activeElement === fullscreenEl || fullscreenEl.contains(document.activeElement))
     );
   }
 
   focusedTogglePlay(ev: KeyboardEvent) {
-    if (this.isVideoFocused()) {
+    // Only toggle play, when using the custom UI, otherwise both us & the browser
+    // will toggle play, causing no change
+    if (this.customUIWhenFullscreen && this.isVideoFocused()) {
       ev.preventDefault(); // prevent page scroll
       this.togglePlay(true);
     }
@@ -508,6 +520,8 @@ export default class VideoPlayer extends Vue {
   // Make sure video does not overflow wrapper
   height: 100%;
   width: 100%;
+
+  outline: none;
 }
 
 .video-overlay {

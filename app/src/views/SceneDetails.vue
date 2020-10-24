@@ -13,6 +13,7 @@
               :markers="markers"
               :preview="currentScene.preview ? imageLink(currentScene.preview) : null"
               @play="manuallyStarted = true"
+              :customUIWhenFullscreen="sceneCustomUIWhenFullscreen"
             />
           </div>
         </div>
@@ -824,6 +825,10 @@ export default class SceneDetails extends Vue {
 
   get aspectRatio() {
     return contextModule.sceneAspectRatio;
+  }
+
+  get sceneCustomUIWhenFullscreen() {
+    return contextModule.sceneCustomUIWhenFullscreen;
   }
 
   get videoPath() {
