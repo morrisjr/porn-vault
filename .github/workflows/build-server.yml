@@ -1,0 +1,32 @@
+name: Build server
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Use Node.js 14.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.x
+      - name: Test server
+        run: |
+          npm install
+          npm run lint
+          npm run transpile
+          npm run coverage
+        env:
+          CI: true
+      - uses: codecov/codecov-action@v1
+        with:
+          file: "./coverage/coverage-final.json"
+          name: codecov
+          fail_ci_if_error: true
