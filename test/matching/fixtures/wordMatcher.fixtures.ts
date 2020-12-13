@@ -1035,6 +1035,65 @@ export const filterFixtures: {
       },
     ],
   },
+  {
+    name: "handles brackets 1",
+    options: {
+      overlappingMatchPreference: "all",
+    },
+    filterOptions: {
+      sortByLongestMatch: false,
+    },
+    inputs: ["SomeStudio", "Some Studio", "SomeActor"],
+    compares: [
+      {
+        compareStrings: ["Some fancy title (SomeActor) [SomeStudio].mp4"],
+        expected: ["SomeStudio", "Some Studio", "SomeActor"],
+      },
+    ],
+  },
+  {
+    name: "handles brackets 2",
+    options: {
+      ignoreSingleNames: false,
+      ignoreDiacritics: true,
+      enableWordGroups: true,
+      wordSeparatorFallback: true,
+      camelCaseWordGroups: true,
+      overlappingMatchPreference: "longest",
+      groupSeparators: ["[\\s',()[\\]{}*\\.0-9_\\-+#']"],
+      wordSeparators: ["[-_]"],
+      filepathSeparators: ["[/\\\\&]"],
+    },
+    filterOptions: {
+      sortByLongestMatch: false,
+    },
+    inputs: ["SomeStudio", "Some Studio", "SomeActor"],
+    compares: [
+      {
+        compareStrings: ["Some fancy title (SomeActor) [SomeStudio].mp4"],
+        // Does not match "SomeStudio" since overlappingMatchPreference: "longest"
+        expected: ["Some Studio", "SomeActor"],
+      },
+    ],
+  },
+  {
+    name: "handles brackets with extended separators",
+    options: {
+      groupSeparators: ["[\\s',()[\\]{}*\\.0-9_\\-+#']"],
+      wordSeparators: ["[-_]"],
+      filepathSeparators: ["[/\\\\&]"],
+    },
+    filterOptions: {
+      sortByLongestMatch: true,
+    },
+    inputs: ["SomeStudio"],
+    compares: [
+      {
+        compareStrings: ["Some fancy title (SomeActor) [SomeStudio].mp4"],
+        expected: ["SomeStudio"],
+      },
+    ],
+  },
 ];
 
 export const matchingActorFixtures = [
