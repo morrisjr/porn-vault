@@ -17,9 +17,7 @@ enum LogType {
   SUCCESS = "success",
   HTTP = "http",
   MESSAGE = "message",
-  SEARCH = "search",
   IZZY = "izzy",
-  GIANNA = "gianna",
 }
 
 interface ILogData {
@@ -60,7 +58,8 @@ export async function logToFile(): Promise<void> {
 function merge(...args: any[]) {
   return args
     .map((a) => {
-      const str = JSON.stringify(a, null, 2);
+      // We don't want to stringify strings, otherwise newlines will be escaped
+      const str = typeof a === "string" ? a : JSON.stringify(a, null, 2);
       if (str.startsWith('"') && str.endsWith('"')) return str.slice(1, -1);
       return str;
     })
@@ -108,12 +107,6 @@ export const izzy = (...args: any): void => {
   const text = merge(...args);
   debug("vault:izzy")(text);
   appendToLog(createItem(LogType.IZZY, text));
-};
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const gianna = (...args: any): void => {
-  const text = merge(...args);
-  debug("vault:gianna")(text);
-  appendToLog(createItem(LogType.GIANNA, text));
 };
 
 export const httpLog = (

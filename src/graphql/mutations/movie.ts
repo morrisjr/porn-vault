@@ -1,6 +1,6 @@
 import { movieCollection } from "../../database";
 import { onMovieCreate } from "../../plugins/events/movie";
-import { index as movieIndex, indexMovies, updateMovies } from "../../search/movie";
+import { indexMovies, removeMovie } from "../../search/movie";
 import LabelledItem from "../../types/labelled_item";
 import Movie from "../../types/movie";
 import MovieScene from "../../types/movie_scene";
@@ -50,8 +50,7 @@ export default {
 
       if (movie) {
         await Movie.remove(movie._id);
-        await movieIndex.remove([movie._id]);
-
+        await removeMovie(movie._id);
         await LabelledItem.removeByItem(movie._id);
         await MovieScene.removeByMovie(movie._id);
       }
@@ -123,10 +122,11 @@ export default {
         }
 
         await movieCollection.upsert(movie._id, movie);
+        updatedMovies.push(movie);
       }
     }
 
-    await updateMovies(updatedMovies);
+    await indexMovies(updatedMovies);
     return updatedMovies;
   },
 };

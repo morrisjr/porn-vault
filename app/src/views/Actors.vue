@@ -1,5 +1,6 @@
 <template>
   <v-container fluid>
+    <BindFavicon />
     <BindTitle value="Actors" />
     <v-navigation-drawer v-if="showSidenav" style="z-index: 14" v-model="drawer" clipped app>
       <v-container>
@@ -148,6 +149,17 @@
           </template>
           <span>Reshuffle</span>
         </v-tooltip>
+        <v-spacer></v-spacer>
+        <div>
+          <v-pagination
+            v-if="!fetchLoader && $vuetify.breakpoint.mdAndUp"
+            @input="loadPage"
+            v-model="page"
+            :total-visible="7"
+            :disabled="fetchLoader"
+            :length="numPages"
+          ></v-pagination>
+        </div>
       </div>
       <v-row v-if="!fetchLoader && numResults">
         <v-col
@@ -238,6 +250,7 @@
         <v-divider></v-divider>
 
         <v-card-actions>
+          <v-btn @click="createSelectedLabels = []" text class="text-none">Clear</v-btn>
           <v-spacer></v-spacer>
           <v-btn @click="labelSelectorDialog = false" text color="primary" class="text-none"
             >OK</v-btn
@@ -287,7 +300,6 @@ import ActorCard from "@/components/Cards/Actor.vue";
 import LabelSelector from "@/components/LabelSelector.vue";
 import actorFragment from "@/fragments/actor";
 import { contextModule } from "@/store/context";
-import InfiniteLoading from "vue-infinite-loading";
 import IActor from "@/types/actor";
 import ILabel from "@/types/label";
 import DrawerMixin from "@/mixins/drawer";
@@ -300,7 +312,6 @@ import countries from "@/util/countries";
   components: {
     ActorCard,
     LabelSelector,
-    InfiniteLoading,
     CustomFieldFilter,
   },
 })
@@ -422,10 +433,6 @@ export default class ActorList extends mixins(DrawerMixin) {
       value: "relevance",
     },
     {
-      text: "A-Z",
-      value: "name",
-    },
-    {
       text: "Added to collection",
       value: "addedOn",
     },
@@ -469,6 +476,7 @@ export default class ActorList extends mixins(DrawerMixin) {
               labels {
                 _id
                 name
+                color
               }
               thumbnail {
                 _id
@@ -502,6 +510,7 @@ export default class ActorList extends mixins(DrawerMixin) {
             labels {
               _id
               name
+              color
             }
             thumbnail {
               _id
@@ -540,6 +549,7 @@ export default class ActorList extends mixins(DrawerMixin) {
               _id
               name
               aliases
+              color
             }
           }
         `,
@@ -578,7 +588,7 @@ export default class ActorList extends mixins(DrawerMixin) {
 
   actorThumbnail(actor: any) {
     if (actor.thumbnail)
-      return `${serverBase}/image/${actor.thumbnail._id}?password=${localStorage.getItem(
+      return `${serverBase}/media/image/${actor.thumbnail._id}?password=${localStorage.getItem(
         "password"
       )}`;
     return "";
@@ -658,54 +668,51 @@ export default class ActorList extends mixins(DrawerMixin) {
   }
 
   async fetchPage(page: number, take = 24, random?: boolean, seed?: string) {
-    try {
-      const result = await ApolloClient.query({
-        query: gql`
-          query($query: ActorSearchQuery!, $seed: String) {
-            getActors(query: $query, seed: $seed) {
-              items {
-                ...ActorFragment
-                labels {
-                  _id
-                  name
-                }
-                thumbnail {
-                  _id
-                  color
-                }
-                altThumbnail {
-                  _id
-                }
-                numScenes
+    const result = await ApolloClient.query({
+      query: gql`
+        query($query: ActorSearchQuery!, $seed: String) {
+          getActors(query: $query, seed: $seed) {
+            items {
+              ...ActorFragment
+              labels {
+                _id
+                name
+                color
               }
-              numItems
-              numPages
+              thumbnail {
+                _id
+                color
+              }
+              altThumbnail {
+                _id
+              }
+              numScenes
             }
+            numItems
+            numPages
           }
-          ${actorFragment}
-        `,
-        variables: {
-          query: {
-            query: this.query || "",
-            include: this.selectedLabels.include,
-            exclude: this.selectedLabels.exclude,
-            nationality: this.countryFilter || null,
-            take,
-            page: page - 1,
-            sortDir: this.sortDir,
-            sortBy: random ? "$shuffle" : this.sortBy,
-            favorite: this.favoritesOnly,
-            bookmark: this.bookmarksOnly,
-            rating: this.ratingFilter,
-          },
-          seed: seed || localStorage.getItem("pm_seed") || "default",
+        }
+        ${actorFragment}
+      `,
+      variables: {
+        query: {
+          query: this.query || "",
+          include: this.selectedLabels.include,
+          exclude: this.selectedLabels.exclude,
+          nationality: this.countryFilter || null,
+          take,
+          page: page - 1,
+          sortDir: this.sortDir,
+          sortBy: random ? "$shuffle" : this.sortBy,
+          favorite: this.favoritesOnly,
+          bookmark: this.bookmarksOnly,
+          rating: this.ratingFilter,
         },
-      });
+        seed: seed || localStorage.getItem("pm_seed") || "default",
+      },
+    });
 
-      return result.data.getActors;
-    } catch (err) {
-      throw err;
-    }
+    return result.data.getActors;
   }
 
   refreshPage() {
@@ -741,10 +748,11 @@ export default class ActorList extends mixins(DrawerMixin) {
     ApolloClient.query({
       query: gql`
         {
-          getLabels(type: "actor") {
+          getLabels {
             _id
             name
             aliases
+            color
           }
           getCustomFields {
             _id

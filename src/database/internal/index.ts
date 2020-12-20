@@ -60,8 +60,12 @@ export namespace Izzy {
         return res.data as T;
       } catch (error) {
         const _err = error as AxiosError;
-        if (!_err.response) throw error;
-        if (_err.response.status === 404) return null;
+        if (!_err.response) {
+          throw error;
+        }
+        if (_err.response.status === 404) {
+          return null;
+        }
         throw _err;
       }
     }
@@ -82,15 +86,6 @@ export namespace Izzy {
       );
       return res.data.items;
     }
-
-    async times(): Promise<[number, number][]> {
-      // logger.log(`Getting times: ${this.name}...`);
-      // eslint-disable-next-line camelcase
-      const res = await Axios.get<{ query_times: [number, number][] }>(
-        `http://localhost:${getConfig().binaries.izzyPort}/collection/${this.name}/times`
-      );
-      return res.data.query_times;
-    }
   }
 
   export async function createCollection<T>(
@@ -98,10 +93,19 @@ export namespace Izzy {
     file?: string | null,
     indexes = [] as IIndexCreation[]
   ): Promise<Collection<T>> {
-    await Axios.post(`http://localhost:${getConfig().binaries.izzyPort}/collection/${name}`, {
-      file,
-      indexes,
-    });
-    return new Collection(name);
+    try {
+      await Axios.post(`http://localhost:${getConfig().binaries.izzyPort}/collection/${name}`, {
+        file,
+        indexes,
+      });
+
+      return new Collection(name);
+    } catch (error) {
+      const _err = error as AxiosError;
+      if (_err.response && _err.response.status === 409) {
+        return new Collection(name);
+      }
+      throw _err;
+    }
   }
 }

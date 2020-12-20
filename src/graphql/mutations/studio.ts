@@ -1,18 +1,20 @@
-import { sceneCollection, studioCollection } from "../../database";
-import { stripStr } from "../../extractor";
+import { getConfig } from "../../config";
+import { ApplyStudioLabelsEnum } from "../../config/schema";
+import { studioCollection } from "../../database";
 import { onStudioCreate } from "../../plugins/events/studio";
-import { updateScenes } from "../../search/scene";
-import { index as studioIndex, indexStudios, updateStudios } from "../../search/studio";
+import { indexStudios, removeStudio } from "../../search/studio";
 import Image from "../../types/image";
+import Label from "../../types/label";
 import LabelledItem from "../../types/labelled_item";
 import Movie from "../../types/movie";
 import Scene from "../../types/scene";
 import Studio from "../../types/studio";
 import * as logger from "../../utils/logger";
-// Used as interface, but typescript still complains
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { filterInvalidAliases, isArrayEq } from "../../utils/misc";
 import { Dictionary } from "../../utils/types";
 
+// Used as interface, but typescript still complains
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type IStudioUpdateOpts = Partial<{
   name: string;
   description: string;
@@ -42,44 +44,45 @@ async function runStudioPlugins(ids: string[]) {
       updatedStudios.push(studio);
     }
 
-    await updateStudios(updatedStudios);
+    await indexStudios(updatedStudios);
   }
   return updatedStudios;
 }
 
 export default {
-  async runAllStudioPlugins(): Promise<Studio[]> {
-    const ids = (await Studio.getAll()).map((studio) => studio._id);
-    return runStudioPlugins(ids);
+  async runStudioPlugins(_: unknown, { id }: { id: string }): Promise<Studio> {
+    const result = await runStudioPlugins([id]);
+    return result[0];
   },
 
-  async runStudioPlugins(_: unknown, { ids }: { ids: string[] }): Promise<Studio[]> {
-    return runStudioPlugins(ids);
-  },
-
-  async addStudio(_: unknown, { name }: { name: string }): Promise<Studio> {
-    let studio = new Studio(name);
-
-    for (const scene of await Scene.getAll()) {
-      const perms = stripStr(scene.path || scene.name);
-
-      if (scene.studio === null && perms.includes(stripStr(studio.name))) {
-        scene.studio = studio._id;
-        await sceneCollection.upsert(scene._id, scene);
-        await updateScenes([scene]);
-        logger.log(`Updated scene ${scene._id}`);
-      }
+  async addStudio(_: unknown, opts: { name: string; labels?: string[] }): Promise<Studio> {
+    const config = getConfig();
+    for (const label of opts.labels || []) {
+      const labelInDb = await Label.getById(label);
+      if (!labelInDb) throw new Error(`Label ${label} not found`);
     }
 
+    let studio = new Studio(opts.name);
+
+    const studioLabels = Array.isArray(opts.labels) ? opts.labels : [];
+
     try {
-      studio = await onStudioCreate(studio, []);
+      studio = await onStudioCreate(studio, studioLabels);
     } catch (error) {
       logger.error(error);
     }
 
+    await Studio.setLabels(studio, studioLabels);
     await studioCollection.upsert(studio._id, studio);
+
+    await Studio.findUnmatchedScenes(
+      studio,
+      config.matching.applyStudioLabels.includes(ApplyStudioLabelsEnum.enum["event:studio:create"])
+        ? studioLabels
+        : []
+    );
+
     await indexStudios([studio]);
-    await Studio.attachToExistingScenes(studio);
     return studio;
   },
 
@@ -87,18 +90,25 @@ export default {
     _: unknown,
     { ids, opts }: { ids: string[]; opts: IStudioUpdateOpts }
   ): Promise<Studio[]> {
+    const config = getConfig();
     const updatedStudios = [] as Studio[];
+
+    let didLabelsChange = false;
 
     for (const id of ids) {
       const studio = await Studio.getById(id);
 
       if (studio) {
-        if (Array.isArray(opts.aliases)) {
-          studio.aliases = [...new Set(opts.aliases)];
-        }
-
         if (typeof opts.name === "string") {
           studio.name = opts.name.trim();
+        }
+
+        if (Array.isArray(opts.aliases)) {
+          studio.aliases = [...new Set(filterInvalidAliases(opts.aliases))];
+        }
+
+        if (Array.isArray(opts.aliases)) {
+          studio.aliases = [...new Set(opts.aliases)];
         }
 
         if (typeof opts.description === "string") {
@@ -122,7 +132,18 @@ export default {
         }
 
         if (Array.isArray(opts.labels)) {
+          const oldLabels = await Studio.getLabels(studio);
           await Studio.setLabels(studio, opts.labels);
+          if (
+            !isArrayEq(
+              oldLabels,
+              opts.labels,
+              (l) => l._id,
+              (l) => l
+            )
+          ) {
+            didLabelsChange = true;
+          }
         }
 
         if (opts.customFields) {
@@ -135,11 +156,24 @@ export default {
         }
 
         await studioCollection.upsert(studio._id, studio);
+
+        if (didLabelsChange) {
+          const labelsToPush = config.matching.applyStudioLabels.includes(
+            ApplyStudioLabelsEnum.enum["event:studio:update"]
+          )
+            ? (await Studio.getLabels(studio)).map((l) => l._id)
+            : [];
+          await Studio.pushLabelsToCurrentScenes(studio, labelsToPush).catch((err) => {
+            logger.error(`Error while pushing studio "${studio.name}"'s labels to scenes`);
+            logger.error(err);
+          });
+        }
+
         updatedStudios.push(studio);
       }
     }
 
-    await updateStudios(updatedStudios);
+    await indexStudios(updatedStudios);
     return updatedStudios;
   },
 
@@ -149,7 +183,7 @@ export default {
 
       if (studio) {
         await studioCollection.remove(studio._id);
-        await studioIndex.remove([studio._id]);
+        await removeStudio(studio._id);
         await Studio.filterStudio(studio._id);
         await Scene.filterStudio(studio._id);
         await Movie.filterStudio(studio._id);
@@ -159,5 +193,33 @@ export default {
       }
     }
     return true;
+  },
+
+  async attachStudioToUnmatchedScenes(_: unknown, { id }: { id: string }): Promise<Studio | null> {
+    const config = getConfig();
+
+    const studio = await Studio.getById(id);
+    if (!studio) {
+      logger.error(`Did not find studio for id "${id}" to attach to unmatched scenes`);
+      return null;
+    }
+
+    if (studio) {
+      try {
+        const labelsToPush = config.matching.applyStudioLabels.includes(
+          ApplyStudioLabelsEnum.enum["event:studio:find-unmatched-scenes"]
+        )
+          ? (await Studio.getLabels(studio)).map((l) => l._id)
+          : [];
+
+        await Studio.findUnmatchedScenes(studio, labelsToPush);
+      } catch (err) {
+        logger.error(`Error attaching "${studio.name}" to new scenes`);
+        logger.error(err);
+        return null;
+      }
+    }
+
+    return studio;
   },
 };

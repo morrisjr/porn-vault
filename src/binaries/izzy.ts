@@ -1,16 +1,18 @@
 import Axios from "axios";
-import { ChildProcessWithoutNullStreams, spawn } from "child_process";
+import { ChildProcess, spawn } from "child_process";
 import { chmodSync, existsSync } from "fs";
 import { arch, type } from "os";
+import semver from "semver";
 
-import { getConfig } from "../config/index";
+import { getConfig } from "../config";
 import { downloadFile } from "../utils/download";
 import { unlinkAsync } from "../utils/fs/async";
 import * as logger from "../utils/logger";
+import { configPath } from "../utils/path";
 
-export let izzyProcess!: ChildProcessWithoutNullStreams;
+export let izzyProcess!: ChildProcess;
 
-export const izzyPath = type() === "Windows_NT" ? "izzy.exe" : "izzy";
+export const izzyPath = configPath(type() === "Windows_NT" ? "izzy.exe" : "izzy");
 
 export async function deleteIzzy(): Promise<void> {
   await unlinkAsync(izzyPath);
@@ -25,6 +27,20 @@ export async function resetIzzy(): Promise<void> {
     logger.log(_err.message);
     throw _err;
   }
+}
+
+export const minIzzyVersion = "0.2.0";
+
+export function exitIzzy() {
+  return Axios.post(`http://localhost:${getConfig().binaries.izzyPort}/exit`);
+}
+
+export async function izzyHasMinVersion(): Promise<boolean> {
+  const version = await izzyVersion();
+  if (!version) {
+    return false;
+  }
+  return semver.gte(version, minIzzyVersion);
 }
 
 export async function izzyVersion(): Promise<string | null> {
@@ -66,15 +82,13 @@ async function downloadIzzy() {
   }[type()] as string;
 
   if (arch() !== "x64") {
-    logger.error("Unsupported architecture " + arch());
-    process.exit(1);
+    throw new Error(`Unsupported architecture ${arch()}`);
   }
 
   const asset = assets.find((as) => as.name === downloadName);
 
   if (!asset) {
-    logger.error("Izzy release not found: " + downloadName + " for " + type());
-    process.exit(1);
+    throw new Error(`Izzy release not found: ${downloadName} for ${type()}`);
   }
 
   // eslint-disable-next-line camelcase
@@ -97,25 +111,18 @@ export function spawnIzzy(): Promise<void> {
     logger.log("CHMOD Izzy...");
     chmodSync(izzyPath, "111");
 
-    logger.log("Spawning Izzy");
-
     const port = getConfig().binaries.izzyPort;
 
-    izzyProcess = spawn("./" + izzyPath, ["--port", port.toString()]);
-    let responded = false;
+    logger.log(`Spawning Izzy on port ${port}`);
+
+    izzyProcess = spawn(izzyPath, ["--port", port.toString()], {
+      detached: true,
+      stdio: "ignore",
+    });
     izzyProcess.on("error", (err: Error) => {
       reject(err);
     });
-    izzyProcess.stdout.on("data", async () => {
-      if (!responded) {
-        logger.log(`Izzy ready on port ${port}`);
-        responded = true;
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        resolve();
-      }
-    });
-    izzyProcess.stderr.on("data", (data: Buffer) => {
-      logger.izzy(data.toString());
-    });
+    izzyProcess.unref();
+    setTimeout(resolve, 2500);
   });
 }

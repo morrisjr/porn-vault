@@ -3,6 +3,7 @@
 Manage your ever-growing porn collection
 
 ![Testing](https://github.com/porn-vault/porn-vault/workflows/Push%20dev/badge.svg)
+[![codecov](https://codecov.io/gh/porn-vault/porn-vault/branch/dev/graph/badge.svg?token=33C0ELH6GI)](https://codecov.io/gh/porn-vault/porn-vault)
 ![Contributors](https://img.shields.io/github/contributors/porn-vault/porn-vault)
 ![GitHub last commit (branch)](https://img.shields.io/github/last-commit/porn-vault/porn-vault/dev)
 ![Discord](https://img.shields.io/discord/652499331265331245)
@@ -14,8 +15,9 @@ There's a Discord channel! Join in to the discussion: [Discord](https://discord.
 1. [Support](#support)
 2. [Contribute](#contribute)
 3. [Features](#features)
-4. [Guides](#guides)
+4. [Guides](https://github.com/porn-vault/porn-vault/blob/dev/doc/guides.md)
 5. [Demo images](#demo-images)
+6. [FAQ](https://github.com/porn-vault/porn-vault/wiki/Frequently-Asked-Questions)
 
 ## Support
 
@@ -51,10 +53,6 @@ There's a Discord channel! Join in to the discussion: [Discord](https://discord.
   - Extend actor info with any kind of data (hair color, retired, etc.)
 - Automatic thumbnail generation on scene import
 - Optional password protection in LAN
-
-## Guides
-
-See https://github.com/porn-vault/porn-vault/blob/dev/doc/guides.md
 
 ## Demo images
 

@@ -9,7 +9,7 @@ import Image from "../types/image";
 import Scene from "../types/scene";
 import { statAsync, walk } from "../utils/fs/async";
 import * as logger from "../utils/logger";
-import { libraryPath } from "../utils/misc";
+import { libraryPath } from "../utils/path";
 import ora = require("ora");
 
 export async function checkVideoFolders(): Promise<void> {
@@ -54,7 +54,7 @@ export async function checkVideoFolders(): Promise<void> {
     } catch (error) {
       const _err = error as Error;
       logger.log(_err.stack);
-      logger.error("Error when importing " + videoPath);
+      logger.error(`Error when importing ${videoPath}`);
       logger.warn(_err.message);
     }
   }
@@ -85,7 +85,6 @@ async function processImage(imagePath: string, readImage = true, generateThumb =
     const extractedScenes = await extractScenes(imagePath);
     logger.log(`Found ${extractedScenes.length} scenes in image path.`);
     image.scene = extractedScenes[0] || null;
-
     // Extract actors
     const extractedActors = await extractActors(imagePath);
     logger.log(`Found ${extractedActors.length} actors in image path.`);
@@ -111,7 +110,6 @@ async function processImage(imagePath: string, readImage = true, generateThumb =
       await jimpImage.writeAsync(image.thumbPath);
     }
 
-    // await database.insert(database.store.images, image);
     await imageCollection.upsert(image._id, image);
     await indexImages([image]);
     logger.success(`Image '${imageName}' done.`);
@@ -189,20 +187,19 @@ export async function checkPreviews(): Promise<void> {
         const preview = await Scene.generatePreview(scene);
 
         if (preview) {
-          const image = new Image(scene.name + " (preview)");
+          const image = new Image(`${scene.name} (preview)`);
           const stats = await statAsync(preview);
           image.path = preview;
           image.scene = scene._id;
           image.meta.size = stats.size;
 
           await imageCollection.upsert(image._id, image);
-          // await database.insert(database.store.images, image);
           await indexImages([image]);
 
           scene.thumbnail = image._id;
           await sceneCollection.upsert(scene._id, scene);
 
-          loader.succeed("Generated preview for " + scene._id);
+          loader.succeed(`Generated preview for ${scene._id}`);
         } else {
           loader.fail(`Error generating preview.`);
         }

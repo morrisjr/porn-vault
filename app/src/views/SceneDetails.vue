@@ -1,5 +1,7 @@
 <template>
   <v-container fluid>
+    <BindFavicon />
+
     <div v-if="currentScene">
       <BindTitle :value="currentScene.name" />
       <div class="d-flex pb-2">
@@ -20,12 +22,17 @@
         <v-divider vertical v-if="$vuetify.breakpoint.mdAndUp" />
         <div class="py-2" v-if="$vuetify.breakpoint.mdAndUp" style="width: 400px; max-width: 400px">
           <div class="text-center">
-            <v-btn class="text-none" color="primary" text @click="openMarkerDialog">Create marker</v-btn>
+            <v-btn class="text-none" color="primary" text @click="openMarkerDialog"
+              >Create marker</v-btn
+            >
           </div>
           <div class="mt-3">
             <MarkerItem
               style="width: 100%"
-              @jump="$refs.player.seek(marker.time, marker.name); $refs.player.play()"
+              @jump="
+                $refs.player.seek(marker.time, marker.name);
+                $refs.player.play();
+              "
               @delete="removeMarker(marker._id)"
               :marker="marker"
               v-for="marker in markers"
@@ -38,7 +45,9 @@
       <v-row v-if="!$vuetify.breakpoint.mdAndUp">
         <v-col cols="12" sm="12" md="4" lg="2" xl="1">
           <div class="text-center">
-            <v-btn class="text-none" color="primary" text @click="openMarkerDialog">Create marker</v-btn>
+            <v-btn class="text-none" color="primary" text @click="openMarkerDialog"
+              >Create marker</v-btn
+            >
           </div>
           <div class="mt-3">
             <MarkerItem
@@ -66,9 +75,9 @@
               <v-icon>mdi-calendar</v-icon>
               <v-subheader>Release Date</v-subheader>
             </div>
-            <div
-              class="med--text pa-2"
-            >{{ new Date(currentScene.releaseDate).toDateString(undefined, { timeZone: "UTC" }) }}</div>
+            <div class="med--text pa-2">
+              {{ new Date(currentScene.releaseDate).toDateString(undefined, { timeZone: "UTC" }) }}
+            </div>
           </div>
 
           <div v-if="currentScene.description">
@@ -76,10 +85,9 @@
               <v-icon>mdi-text</v-icon>
               <v-subheader>Description</v-subheader>
             </div>
-            <div
-              class="pa-2 med--text"
-              v-if="currentScene.description"
-            >{{ currentScene.description }}</div>
+            <div class="pa-2 med--text" v-if="currentScene.description">
+              {{ currentScene.description }}
+            </div>
           </div>
 
           <div class="d-flex align-center">
@@ -92,31 +100,27 @@
             <v-subheader>Labels</v-subheader>
           </div>
           <div class="pa-2">
-            <v-chip
-              label
-              class="mr-1 mb-1"
-              small
-              outlined
-              v-for="label in labelNames"
-              :key="label"
-            >{{ label }}</v-chip>
-
-            <v-chip
-              label
-              color="primary"
-              v-ripple
-              @click="openLabelSelector"
-              small
-              :class="`mr-1 mb-1 hover ${$vuetify.theme.dark ? 'black--text' : 'white--text'}`"
-            >+ Add</v-chip>
+            <label-group
+              :limit="999"
+              :item="currentScene._id"
+              :value="currentScene.labels"
+              @input="updateSceneLabels"
+            >
+              <v-chip
+                label
+                color="primary"
+                v-ripple
+                @click="openLabelSelector"
+                small
+                :class="`mr-1 mb-1 hover ${$vuetify.theme.dark ? 'black--text' : 'white--text'}`"
+                >+ Add</v-chip
+              >
+            </label-group>
           </div>
           <v-divider />
-          <v-btn
-            text
-            class="mt-2 text-none"
-            color="primary"
-            @click="openThumbnailDialog"
-          >Change thumbnail</v-btn>
+          <v-btn text class="mt-2 text-none" color="primary" @click="openThumbnailDialog"
+            >Change thumbnail</v-btn
+          >
           <br />
           <v-btn
             text
@@ -124,7 +128,8 @@
             color="primary"
             @click="createScreenshot"
             :loading="screenshotLoader"
-          >Use current frame as thumbnail</v-btn>
+            >Use current frame as thumbnail</v-btn
+          >
         </v-col>
 
         <v-col class="d-flex" cols="12" sm="6" md="8">
@@ -151,7 +156,7 @@
               class="px-2 d-flex align-center"
             >
               <v-subheader style="min-width: 150px">Filesystem path</v-subheader>
-              {{ currentScene.path}}
+              {{ currentScene.path }}
             </div>
             <div v-if="currentScene.meta.dimensions.width" class="px-2 d-flex align-center">
               <v-subheader style="min-width: 150px">Video dimensions</v-subheader>
@@ -203,7 +208,8 @@
                   text
                   @click="updateCustomFields"
                   :disabled="!hasUpdatedFields"
-                >Update</v-btn>
+                  >Update</v-btn
+                >
               </div>
               <CustomFieldSelector
                 :cols="12"
@@ -224,7 +230,8 @@
                 text
                 class="text-none"
                 @click="runPlugins"
-              >Run plugins</v-btn>
+                >Run plugins</v-btn
+              >
             </div>
           </div>
         </v-col>
@@ -275,13 +282,13 @@
 
       <div class="d-flex align-center">
         <v-spacer></v-spacer>
-        <h1 class="font-weight-light mr-3">{{ images.length }} Images</h1>
-        <v-btn @click="openUploadDialog" icon>
+        <h1 v-if="numImages >= 0" class="font-weight-light mr-3">{{ numImages }} images</h1>
+        <v-btn v-if="numImages >= 0" @click="openUploadDialog" icon>
           <v-icon>mdi-upload</v-icon>
         </v-btn>
         <v-spacer></v-spacer>
       </div>
-      <div v-if="images.length">
+      <div>
         <v-container fluid>
           <v-row>
             <v-col
@@ -303,7 +310,7 @@
                         @click.native.stop="setAsThumbnail(image._id)"
                         class="elevation-2 mb-2"
                         icon
-                        style="background: #fafafa;"
+                        style="background: #fafafa"
                         light
                       >
                         <v-icon>mdi-image</v-icon>
@@ -315,6 +322,17 @@
               </ImageCard>
             </v-col>
           </v-row>
+
+          <div class="text-center">
+            <v-btn
+              class="mt-3 text-none"
+              color="primary"
+              text
+              @click="loadImagePage"
+              v-if="moreImages"
+              >Load more</v-btn
+            >
+          </div>
 
           <transition name="fade">
             <Lightbox
@@ -356,6 +374,7 @@
         <v-divider></v-divider>
 
         <v-card-actions>
+          <v-btn @click="selectedLabels = []" text class="text-none">Clear</v-btn>
           <v-spacer></v-spacer>
           <v-btn @click="editLabels" text color="primary" class="text-none">Edit</v-btn>
         </v-card-actions>
@@ -385,33 +404,14 @@
         <v-divider></v-divider>
 
         <v-card-actions>
+          <v-btn @click="selectedMarkerLabels = []" text class="text-none">Clear</v-btn>
           <v-spacer></v-spacer>
-          <v-btn
-            @click="markerLabelSelectorDialog = false"
-            text
-            color="primary"
-            class="text-none"
-          >OK</v-btn>
+          <v-btn @click="markerLabelSelectorDialog = false" text color="primary" class="text-none"
+            >OK</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
-
-    <infinite-loading v-if="currentScene" :identifier="infiniteId" @infinite="infiniteHandler">
-      <div slot="no-results">
-        <v-icon large>mdi-close</v-icon>
-        <div>Nothing found!</div>
-      </div>
-
-      <div slot="spinner">
-        <v-progress-circular indeterminate></v-progress-circular>
-        <div>Loading...</div>
-      </div>
-
-      <div slot="no-more">
-        <v-icon large>mdi-emoticon-wink</v-icon>
-        <div>That's all!</div>
-      </div>
-    </infinite-loading>
 
     <v-dialog
       v-if="currentScene"
@@ -421,9 +421,9 @@
       max-width="400px"
     >
       <ImageUploader
-        :labels="currentScene.labels.map(l => l._id)"
+        :labels="currentScene.labels.map((l) => l._id)"
         :name="currentScene.name"
-        :actors="currentScene.actors.map(a => a._id)"
+        :actors="currentScene.actors.map((a) => a._id)"
         :scene="currentScene._id"
         @update-state="isUploading = $event"
         @uploaded="images.unshift($event)"
@@ -459,7 +459,8 @@
             color="primary"
             text
             @click="uploadThumbnail"
-          >Upload</v-btn>
+            >Upload</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -470,7 +471,7 @@
         <v-card-text>
           <v-combobox
             clearable
-            :items="allLabels.map(l => l.name)"
+            :items="allLabels.map((l) => l.name)"
             placeholder="Marker title"
             color="primary"
             v-model="markerName"
@@ -481,11 +482,28 @@
             text
             color="primary"
             class="text-none mb-2"
-          >{{ selectedMarkerLabels.length ? `Selected ${selectedMarkerLabels.length} ${selectedMarkerLabels.length == 1 ? 'label' : 'labels'}` : 'Select labels' }}</v-btn>
+            >{{
+              selectedMarkerLabels.length
+                ? `Selected ${selectedMarkerLabels.length} ${
+                    selectedMarkerLabels.length == 1 ? "label" : "labels"
+                  }`
+                : "Select labels"
+            }}</v-btn
+          >
 
           <Rating @input="markerRating = $event" class="px-2" :value="markerRating" />
-          <v-checkbox hide-details color="primary" v-model="markerFavorite" label="Favorite?"></v-checkbox>
-          <v-checkbox hide-details color="primary" v-model="markerBookmark" label="Bookmark?"></v-checkbox>
+          <v-checkbox
+            hide-details
+            color="primary"
+            v-model="markerFavorite"
+            label="Favorite?"
+          ></v-checkbox>
+          <v-checkbox
+            hide-details
+            color="primary"
+            v-model="markerBookmark"
+            label="Bookmark?"
+          ></v-checkbox>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -495,7 +513,8 @@
             text
             @click="createMarker"
             class="text-none"
-          >Create</v-btn>
+            >Create</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -512,15 +531,13 @@ import { sceneModule } from "../store/scene";
 import actorFragment from "../fragments/actor";
 import imageFragment from "../fragments/image";
 import movieFragment from "../fragments/movie";
-import MovieCard from "../components/MovieCard.vue";
+import MovieCard from "../components/Cards/Movie.vue";
 import moment from "moment";
 import LabelSelector from "../components/LabelSelector.vue";
 import Lightbox from "../components/Lightbox.vue";
-import ImageCard from "../components/ImageCard.vue";
-import InfiniteLoading from "vue-infinite-loading";
+import ImageCard from "../components/Cards/Image.vue";
 import { Cropper } from "vue-advanced-cropper";
 import ImageUploader from "../components/ImageUploader.vue";
-import { actorModule } from "../store/actor";
 import IActor from "../types/actor";
 import IImage from "../types/image";
 import IMovie from "../types/movie";
@@ -551,7 +568,6 @@ interface ICropResult {
     LabelSelector,
     Lightbox,
     ImageCard,
-    InfiniteLoading,
     Cropper,
     ImageUploader,
     MarkerItem,
@@ -580,8 +596,9 @@ export default class SceneDetails extends Vue {
 
   screenshotLoader = false;
 
-  infiniteId = 0;
-  page = 0;
+  imagePage = 0;
+  moreImages = true;
+  numImages = -1;
 
   thumbnailDialog = false;
   thumbnailLoader = false;
@@ -620,8 +637,8 @@ export default class SceneDetails extends Vue {
     this.pluginLoader = true;
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!) {
-          runScenePlugins(ids: $ids) {
+        mutation($id: String!) {
+          runScenePlugins(id: $id) {
             processed
             preview {
               _id
@@ -653,6 +670,7 @@ export default class SceneDetails extends Vue {
               labels {
                 _id
                 name
+                color
               }
               thumbnail {
                 _id
@@ -666,11 +684,11 @@ export default class SceneDetails extends Vue {
         ${movieFragment}
       `,
       variables: {
-        ids: [this.currentScene._id],
+        id: this.currentScene._id,
       },
     })
       .then((res) => {
-        sceneModule.setCurrent(res.data.runScenePlugins[0]);
+        sceneModule.setCurrent(res.data.runScenePlugins);
       })
       .catch((err) => {
         console.error(err);
@@ -779,6 +797,7 @@ export default class SceneDetails extends Vue {
             labels {
               _id
               name
+              color
             }
           }
         }
@@ -816,11 +835,15 @@ export default class SceneDetails extends Vue {
   }
 
   async unwatchScene() {
-    if (this.currentScene) await unwatch(this.currentScene);
+    if (this.currentScene) {
+      await unwatch(this.currentScene);
+    }
   }
 
   async watchScene() {
-    if (this.currentScene) await watch(this.currentScene);
+    if (this.currentScene) {
+      await watch(this.currentScene);
+    }
   }
 
   get aspectRatio() {
@@ -833,7 +856,7 @@ export default class SceneDetails extends Vue {
 
   get videoPath() {
     if (this.currentScene)
-      return `${serverBase}/scene/${this.currentScene._id}?password=${localStorage.getItem(
+      return `${serverBase}/media/scene/${this.currentScene._id}?password=${localStorage.getItem(
         "password"
       )}`;
   }
@@ -869,7 +892,9 @@ export default class SceneDetails extends Vue {
   }
 
   async readThumbnail(file: File) {
-    if (file) this.thumbnailDisplay = await this.readImage(file);
+    if (file) {
+      this.thumbnailDisplay = await this.readImage(file);
+    }
   }
 
   uploadThumbnail() {
@@ -927,7 +952,6 @@ export default class SceneDetails extends Vue {
     })
       .then((res) => {
         const image = res.data.uploadImage;
-        this.images.unshift(image);
         this.setAsThumbnail(image._id);
         this.thumbnailDialog = false;
         this.thumbnailDisplay = null;
@@ -973,61 +997,60 @@ export default class SceneDetails extends Vue {
     return sceneModule.current;
   }
 
-  async fetchPage() {
-    if (!this.currentScene) return;
+  async fetchImagePage() {
+    if (!this.currentScene) return [];
 
-    try {
-      const result = await ApolloClient.query({
-        query: gql`
-          query($query: ImageSearchQuery!) {
-            getImages(query: $query) {
-              items {
-                ...ImageFragment
-                labels {
+    const result = await ApolloClient.query({
+      query: gql`
+        query($query: ImageSearchQuery!) {
+          getImages(query: $query) {
+            numItems
+            items {
+              ...ImageFragment
+              actors {
+                ...ActorFragment
+                avatar {
                   _id
-                  name
+                  color
                 }
-                actors {
-                  ...ActorFragment
-                  avatar {
-                    _id
-                    color
-                  }
-                }
-                scene {
-                  _id
-                  name
-                }
+              }
+              labels {
+                _id
+                name
+                color
+              }
+              scene {
+                _id
+                name
               }
             }
           }
-          ${imageFragment}
-          ${actorFragment}
-        `,
-        variables: {
-          query: {
-            sortDir:"asc" ,
-            sortBy:"addedOn",
-            page: this.page,
-            scenes: [this.currentScene._id]
-          },
+        }
+        ${imageFragment}
+        ${actorFragment}
+      `,
+      variables: {
+        query: {
+          query: "",
+          page: this.imagePage,
+          sortDir: "asc",
+          sortBy: "addedOn",
+          scenes: [this.currentScene._id],
         },
-      });
+      },
+    });
 
-      return result.data.getImages.items;
-    } catch (err) {
-      throw err;
-    }
+    this.numImages = result.data.getImages.numItems;
+    return result.data.getImages.items;
   }
 
-  infiniteHandler($state) {
-    this.fetchPage().then((items) => {
+  loadImagePage() {
+    this.fetchImagePage().then((items) => {
       if (items.length) {
-        this.page++;
+        this.imagePage++;
         this.images.push(...items);
-        $state.loaded();
       } else {
-        $state.complete();
+        this.moreImages = false;
       }
     });
   }
@@ -1060,11 +1083,10 @@ export default class SceneDetails extends Vue {
       });
   }
 
-  editLabels() {
-    if (!this.currentScene) return;
+  updateSceneLabels(labels: ILabel[]) {
+    if (!this.currentScene) return Promise.reject();
 
-    this.labelEditLoader = true;
-    ApolloClient.mutate({
+    return ApolloClient.mutate({
       mutation: gql`
         mutation($ids: [String!]!, $opts: SceneUpdateOpts!) {
           updateScenes(ids: $ids, opts: $opts) {
@@ -1072,6 +1094,7 @@ export default class SceneDetails extends Vue {
               _id
               name
               aliases
+              color
             }
           }
         }
@@ -1079,16 +1102,25 @@ export default class SceneDetails extends Vue {
       variables: {
         ids: [this.currentScene._id],
         opts: {
-          labels: this.selectedLabels.map((i) => this.allLabels[i]).map((l) => l._id),
+          labels: labels.map((l) => l._id),
         },
       },
     })
       .then((res) => {
         sceneModule.setLabels(res.data.updateScenes[0].labels);
-        this.labelSelectorDialog = false;
       })
       .catch((err) => {
         console.error(err);
+      });
+  }
+
+  editLabels() {
+    if (!this.currentScene) return;
+
+    this.labelEditLoader = true;
+    return this.updateSceneLabels(this.selectedLabels.map((i) => this.allLabels[i]))
+      .then((res) => {
+        this.labelSelectorDialog = false;
       })
       .finally(() => {
         this.labelEditLoader = false;
@@ -1103,6 +1135,7 @@ export default class SceneDetails extends Vue {
             _id
             name
             aliases
+            color
           }
         }
       `,
@@ -1132,12 +1165,14 @@ export default class SceneDetails extends Vue {
   }
 
   get videoDuration() {
-    if (this.currentScene) return this.formatTime(this.currentScene.meta.duration);
+    if (this.currentScene) {
+      return this.formatTime(this.currentScene.meta.duration);
+    }
     return "";
   }
 
   imageLink(image: any) {
-    return `${serverBase}/image/${image._id}?password=${localStorage.getItem("password")}`;
+    return `${serverBase}/media/image/${image._id}?password=${localStorage.getItem("password")}`;
   }
 
   rate($event) {
@@ -1164,14 +1199,9 @@ export default class SceneDetails extends Vue {
     });
   }
 
-  get labelNames() {
-    if (!this.currentScene) return [];
-    return this.currentScene.labels.map((l) => l.name).sort();
-  }
-
   get thumbnail() {
     if (this.currentScene && this.currentScene.thumbnail)
-      return `${serverBase}/image/${
+      return `${serverBase}/media/image/${
         this.currentScene.thumbnail._id
       }?password=${localStorage.getItem("password")}`;
     return `${serverBase}/broken`;
@@ -1179,7 +1209,7 @@ export default class SceneDetails extends Vue {
 
   get studioLogo() {
     if (this.currentScene && this.currentScene.studio && this.currentScene.studio.thumbnail)
-      return `${serverBase}/image/${
+      return `${serverBase}/media/image/${
         this.currentScene.studio.thumbnail._id
       }?password=${localStorage.getItem("password")}`;
     return "";
@@ -1228,6 +1258,7 @@ export default class SceneDetails extends Vue {
               labels {
                 _id
                 name
+                color
               }
               thumbnail {
                 _id
@@ -1244,7 +1275,9 @@ export default class SceneDetails extends Vue {
         id: (<any>this).$route.params.id,
       },
     }).then((res) => {
-      if (!res.data.getSceneById) return this.$router.replace("/scenes");
+      if (!res.data.getSceneById) {
+        return this.$router.replace("/scenes");
+      }
 
       sceneModule.setCurrent(res.data.getSceneById);
 
@@ -1296,6 +1329,8 @@ export default class SceneDetails extends Vue {
   }
 
   mounted() {
+    const hasModifier = (ev: KeyboardEvent) => ev.ctrlKey || ev.altKey || ev.shiftKey || ev.metaKey;
+
     hotkeys("n", () => {
       this.goToNextMarker();
       return false;
@@ -1307,12 +1342,23 @@ export default class SceneDetails extends Vue {
     });
 
     hotkeys("*", (ev) => {
-      if (ev.keyCode == 37) this.$refs.player.seekRel(-5); // left
-      else if (ev.keyCode == 39) this.$refs.player.seekRel(5); // right
-      else if (ev.keyCode == 70) this.$refs.player.toggleFullscreen(); // f
-      else if (ev.keyCode == 75) this.$refs.player.togglePlay(true); // k
-      else if (ev.keyCode == 77) this.$refs.player.toggleMute(true); // m
-      else if (ev.keyCode == 145) { // scroll lock
+      if (ev.keyCode == 37 && !hasModifier(ev)) {
+        // left
+        this.$refs.player.seekRel(-5);
+      } else if (ev.keyCode == 39 && !hasModifier(ev)) {
+        // right
+        this.$refs.player.seekRel(5);
+      } else if (ev.keyCode == 70 && !hasModifier(ev)) {
+        // f
+        this.$refs.player.toggleFullscreen();
+      } else if (ev.keyCode == 75 && !hasModifier(ev)) {
+        // k
+        this.$refs.player.togglePlay(true);
+      } else if (ev.keyCode == 77 && !hasModifier(ev)) {
+        // m
+        this.$refs.player.toggleMute(true);
+      } else if (ev.keyCode == 145) {
+        // scroll lock
         this.$refs.player.panic();
       }
     });
@@ -1369,5 +1415,4 @@ export default class SceneDetails extends Vue {
 }
 </script>
 
-<style lang="scss" scoped>
-</style>
+<style lang="scss" scoped></style>
