@@ -1,245 +1,92 @@
+import Axios from "axios";
 import boxen from "boxen";
-import express from "express";
-import { existsSync, readFileSync } from "fs";
-import https from "https";
-import LRU from "lru-cache";
-import * as path from "path";
+import { readFileSync } from "fs";
 
-import { mountApolloServer } from "./apollo";
+import { createVault } from "./app";
+import argv from "./args";
 import { createBackup } from "./backup";
-import BROKEN_IMAGE from "./broken_image";
-import { getConfig, watchConfig } from "./config/index";
-import { actorCollection, imageCollection, loadStores, sceneCollection } from "./database/index";
-import { dvdRenderer } from "./dvd_renderer";
-import { giannaVersion, resetGianna, spawnGianna } from "./gianna";
-import { checkImportFolders } from "./import/index";
-import { izzyVersion, resetIzzy, spawnIzzy } from "./izzy";
-import * as logger from "./logger";
-import { httpLog } from "./logger";
-import cors from "./middlewares/cors";
-import { checkPassword, passwordHandler } from "./password";
-import queueRouter from "./queue_router";
+import {
+  exitIzzy,
+  izzyHasMinVersion,
+  izzyProcess,
+  izzyVersion,
+  minIzzyVersion,
+  spawnIzzy,
+} from "./binaries/izzy";
+import { getConfig, watchConfig } from "./config";
+import { loadStores } from "./database";
 import { tryStartProcessing } from "./queue/processing";
-import { renderHandlebars } from "./render";
-import { isScanning, nextScanTimestamp, scanFolders, scheduleNextScan } from "./scanner";
-import { buildIndices } from "./search";
-import { index as imageIndex } from "./search/image";
-import { index as sceneIndex } from "./search/scene";
-import Actor from "./types/actor";
-import Image from "./types/image";
-import Scene from "./types/scene";
-import Trailer from "./types/trailer";
-
-const cache = new LRU({
-  max: 500,
-  maxAge: 3600 * 1000,
-});
-
-let serverReady = false;
-let setupMessage = "Setting up...";
+import { scanFolders, scheduleNextScan } from "./scanner";
+import { ensureIndices } from "./search";
+import * as logger from "./utils/logger";
+import VERSION from "./version";
 
 export default async (): Promise<void> => {
   logger.message("Check https://github.com/boi123212321/porn-vault for discussion & updates");
 
-  const app = express();
-  app.use(express.json());
-  app.use(cors);
-
-  app.use(httpLog);
-
-  app.get("/label-usage/scenes", async (req, res) => {
-    const cached = cache.get("scene-label-usage");
-    if (cached) {
-      logger.log("Using cached scene label usage");
-      return res.json(cached);
-    }
-    const scores = await Scene.getLabelUsage();
-    if (scores.length) {
-      logger.log("Caching scene label usage");
-      cache.set("scene-label-usage", scores);
-    }
-    res.json(scores);
-  });
-
-  app.get("/label-usage/actors", async (req, res) => {
-    const cached = cache.get("actor-label-usage");
-    if (cached) {
-      logger.log("Using cached actor label usage");
-      return res.json(cached);
-    }
-    const scores = await Actor.getLabelUsage();
-    if (scores.length) {
-      logger.log("Caching actor label usage");
-      cache.set("actor-label-usage", scores);
-    }
-    res.json(scores);
-  });
-
-  app.get("/search/timings/scenes", async (req, res) => {
-    res.json(await sceneIndex.times());
-  });
-  app.get("/search/timings/images", async (req, res) => {
-    res.json(await imageIndex.times());
-  });
-
-  app.get("/debug/timings/scenes", async (req, res) => {
-    res.json(await sceneCollection.times());
-  });
-  app.get("/debug/timings/actors", async (req, res) => {
-    res.json(await actorCollection.times());
-  });
-  app.get("/debug/timings/images", async (req, res) => {
-    res.json(await imageCollection.times());
-  });
-
-  app.get("/setup", (req, res) => {
-    res.json({
-      serverReady,
-      setupMessage,
-    });
-  });
-
-  app.get("/", async (req, res, next) => {
-    if (serverReady) next();
-    else {
-      res.status(404).send(
-        await renderHandlebars("./views/setup.html", {
-          message: setupMessage,
-        })
-      );
-    }
-  });
-
-  app.get("/broken", (_, res) => {
-    const b64 = BROKEN_IMAGE;
-
-    const img = Buffer.from(b64, "base64");
-
-    res.writeHead(200, {
-      "Content-Type": "image/png",
-      "Content-Length": img.length,
-    });
-    res.end(img);
-  });
-
   const config = getConfig();
+  const port = config.server.port || 3000;
+  const vault = createVault();
 
-  const port = config.PORT || 3000;
+  if (config.server.https.enable) {
+    if (!config.server.https.key || !config.server.https.certificate) {
+      console.error("Missing HTTPS key or certificate");
+      process.exit(1);
+    }
 
-  if (config.ENABLE_HTTPS) {
-    https
-      .createServer(
-        {
-          key: readFileSync(config.HTTPS_KEY),
-          cert: readFileSync(config.HTTPS_CERT),
-        },
-        app
-      )
-      .listen(port, () => {
-        logger.message(`HTTPS Server running on Port ${port}`);
-      });
+    const httpsOpts = {
+      key: readFileSync(config.server.https.key),
+      cert: readFileSync(config.server.https.certificate),
+    };
+
+    await vault.startServer(port, httpsOpts);
+    logger.message(`HTTPS Server running on port ${port}`);
   } else {
-    app.listen(port, () => {
-      logger.message(`Server running on Port ${port}`);
-    });
+    await vault.startServer(port);
+    logger.message(`Server running on port ${port}`);
   }
 
-  app.use("/js", express.static("./app/dist/js"));
-  app.use("/css", express.static("./app/dist/css"));
-  app.use("/fonts", express.static("./app/dist/fonts"));
-  app.use("/previews", express.static("./library/previews"));
-  app.use("/assets", express.static("./assets"));
-  app.get("/dvd-renderer/:id", dvdRenderer);
+  if (config.persistence.backup.enable === true) {
+    vault.setupMessage = "Creating backup...";
+    await createBackup(config.persistence.backup.maxAmount || 10);
+  }
 
-  app.get("/flag/:code", (req, res) => {
-    res.redirect(`/assets/flags/${req.params.code.toLowerCase()}.svg`);
-  });
+  try {
+    vault.setupMessage = "Pinging Elasticsearch...";
+    await Axios.get(config.search.host);
+  } catch (error) {
+    const _err: Error = error;
+    logger.error(`Error pinging Elasticsearch @ ${config.search.host}: ${_err.message}`);
+    process.exit(1);
+  }
 
-  app.get("/password", checkPassword);
+  logger.message("Loading database");
+  vault.setupMessage = "Loading database...";
 
-  app.use(passwordHandler);
-
-  app.get("/", async (req, res) => {
-    const file = path.join(process.cwd(), "app/dist/index.html");
-
-    if (existsSync(file)) res.sendFile(file);
-    else {
-      return res.status(404).send(
-        await renderHandlebars("./views/error.html", {
-          code: 404,
-          message: `File <b>${file}</b> not found`,
-        })
+  async function checkIzzyVersion() {
+    if (!(await izzyHasMinVersion())) {
+      logger.error(`Izzy does not satisfy min version: ${minIzzyVersion}`);
+      logger.message(
+        "Use --update-izzy, delete izzy(.exe) and restart or download manually from https://github.com/boi123212321/izzy/releases"
       );
+      logger.log("Killing izzy...");
+      izzyProcess.kill();
+      process.exit(0);
     }
-  });
-
-  app.use("/scene/:scene", async (req, res, next) => {
-    const scene = await Scene.getById(req.params.scene);
-
-    if (scene && scene.path) {
-      const resolved = path.resolve(scene.path);
-      res.sendFile(resolved);
-    } else next(404);
-  });
-
-  app.use("/trailer/:trailer", async (req, res, next) => {
-    const trailer = await Trailer.getById(req.params.trailer);
-
-    if (trailer && trailer.path) {
-      const resolved = path.resolve(trailer.path);
-      res.sendFile(resolved);
-    } else next(404);
-  });
-
-  app.use("/image/:image", async (req, res) => {
-    const image = await Image.getById(req.params.image);
-
-    if (image && image.path) {
-      const resolved = path.resolve(image.path);
-      if (!existsSync(resolved)) res.redirect("/broken");
-      else res.sendFile(resolved);
-    } else res.redirect("/broken");
-  });
-
-  app.get("/log", (req, res) => {
-    res.json(logger.getLog());
-  });
-
-  mountApolloServer(app);
-
-  app.use("/queue", queueRouter);
-
-  app.post("/scan", (req, res) => {
-    if (isScanning) {
-      res.status(409).json("Scan already in progress");
-    } else {
-      scanFolders(config.SCAN_INTERVAL).catch((err: Error) => {
-        logger.error(err.message);
-      });
-      res.json("Started scan.");
-    }
-  });
-
-  app.get("/scan", (req, res) => {
-    res.json({
-      isScanning,
-      nextScanDate: nextScanTimestamp ? new Date(nextScanTimestamp).toLocaleString() : null,
-      nextScanTimestamp,
-    });
-  });
-
-  if (config.BACKUP_ON_STARTUP === true) {
-    setupMessage = "Creating backup...";
-    await createBackup(config.MAX_BACKUP_AMOUNT || 10);
   }
 
-  setupMessage = "Loading database...";
   if (await izzyVersion()) {
-    logger.log("Izzy already running, clearing...");
-    await resetIzzy();
+    await checkIzzyVersion();
+    logger.message(`Izzy already running (on port ${config.binaries.izzyPort})...`);
+    if (argv["reset-izzy"]) {
+      logger.warn("Resetting izzy...");
+      await exitIzzy();
+      await spawnIzzy();
+    }
   } else {
     await spawnIzzy();
   }
+  await checkIzzyVersion();
 
   try {
     await loadStores();
@@ -251,26 +98,22 @@ export default async (): Promise<void> => {
     process.exit(1);
   }
 
-  setupMessage = "Loading search engine...";
-  if (await giannaVersion()) {
-    logger.log("Gianna already running, clearing...");
-    await resetGianna();
-  } else {
-    await spawnGianna();
+  try {
+    logger.message("Loading search engine");
+    vault.setupMessage = "Loading search engine...";
+    await ensureIndices(argv.reindex || false);
+  } catch (error) {
+    const _err = <Error>error;
+    logger.error(_err);
+    process.exit(1);
   }
 
-  setupMessage = "Checking imports...";
-  await checkImportFolders();
+  vault.serverReady = true;
 
-  setupMessage = "Building search indices...";
-  await buildIndices();
-
-  serverReady = true;
-
-  const protocol = config.ENABLE_HTTPS ? "https" : "http";
+  const protocol = config.server.https.enable ? "https" : "http";
 
   console.log(
-    boxen(`PORN VAULT READY\nOpen ${protocol}://localhost:${port}/`, {
+    boxen(`PORN VAULT ${VERSION} READY\nOpen ${protocol}://localhost:${port}/`, {
       padding: 1,
       margin: 1,
     })
@@ -278,27 +121,19 @@ export default async (): Promise<void> => {
 
   watchConfig();
 
-  if (config.SCAN_ON_STARTUP) {
+  if (config.scan.scanOnStartup) {
     // Scan and auto schedule next scans
-    scanFolders(config.SCAN_INTERVAL).catch((err: Error) => {
+    scanFolders(config.scan.interval).catch((err: Error) => {
       logger.error(err.message);
     });
   } else {
     // Only schedule next scans
-    scheduleNextScan(config.SCAN_INTERVAL);
+    scheduleNextScan(config.scan.interval);
 
-    logger.warn("Scanning folders is currently disabled. Enable in config.json & restart.");
+    logger.warn("Scanning folders is currently disabled.");
     tryStartProcessing().catch((err: Error) => {
       logger.error("Couldn't start processing...");
       logger.error(err.message);
     });
   }
-
-  app.use(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    (err: number, req: express.Request, res: express.Response, next: express.NextFunction) => {
-      if (typeof err === "number") return res.sendStatus(err);
-      return res.sendStatus(500);
-    }
-  );
 };

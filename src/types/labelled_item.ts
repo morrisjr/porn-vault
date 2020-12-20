@@ -1,5 +1,5 @@
 import { labelledItemCollection } from "../database/index";
-import { generateHash } from "../hash";
+import { generateHash } from "../utils/hash";
 
 export default class LabelledItem {
   _id: string;
@@ -8,7 +8,7 @@ export default class LabelledItem {
   type: string;
 
   constructor(item: string, label: string, type: string) {
-    this._id = "li_" + generateHash();
+    this._id = `li_${generateHash()}`;
     this.item = item;
     this.label = label;
     this.type = type;
@@ -43,6 +43,13 @@ export default class LabelledItem {
 
   static async removeByItem(id: string): Promise<void> {
     for (const ref of await LabelledItem.getByItem(id)) {
+      await LabelledItem.removeById(ref._id);
+    }
+  }
+
+  static async remove(itemId: string, labelId: string): Promise<void> {
+    const ref = await LabelledItem.get(itemId, labelId);
+    if (ref) {
       await LabelledItem.removeById(ref._id);
     }
   }

@@ -1,26 +1,55 @@
-import axios from "axios";
-import boxen from "boxen";
-import cheerio from "cheerio";
+// typescript needs to be bundled with the executable
+import "typescript";
+
 import debug from "debug";
-import ffmpeg from "fluent-ffmpeg";
-import * as fs from "fs";
 import { existsSync } from "fs";
-import inquirer from "inquirer";
-import jimp from "jimp";
-import moment from "moment";
-import ora from "ora";
-import * as os from "os";
 import * as nodepath from "path";
-import readline from "readline";
-import YAML from "yaml";
+import { register } from "ts-node";
 
-import { IConfig } from "../config/index";
-import * as logger from "../logger";
-import { Dictionary, libraryPath } from "../types/utility";
+import { IConfig } from "../config/schema";
+import { getMatcher } from "../matching/matcher";
+import { walk } from "../utils/fs/async";
+import * as logger from "../utils/logger";
+import { libraryPath } from "../utils/path";
+import { Dictionary } from "../utils/types";
+import VERSION from "../version";
+import { modules } from "./context";
 
-function requireUncached(module: string): unknown {
-  delete require.cache[require.resolve(module)];
-  return <unknown>require(module);
+let didRegisterTsNode = false;
+
+function requireUncached(modulePath: string): unknown {
+  if (!didRegisterTsNode && modulePath.endsWith(".ts")) {
+    register({
+      emit: false,
+      skipProject: true, // Do not use this projects tsconfig.json
+      transpileOnly: true, // Disable type checking
+      compilerHost: true,
+      compilerOptions: {
+        allowJs: true,
+        target: "es6",
+        module: "commonjs",
+        lib: ["es6", "dom", "es2016", "es2018"],
+        sourceMap: true,
+        removeComments: false,
+        esModuleInterop: true,
+        checkJs: false,
+        isolatedModules: false,
+      },
+    });
+    didRegisterTsNode = true;
+  }
+
+  try {
+    delete require.cache[require.resolve(modulePath)];
+    return <unknown>require(modulePath);
+  } catch (err) {
+    const _err = err as Error;
+    logger.error(`Error requiring ${modulePath}:`);
+    logger.error(_err);
+    logger.error(_err.message);
+
+    throw err;
+  }
 }
 
 export async function runPluginsSerial(
@@ -29,22 +58,22 @@ export async function runPluginsSerial(
   inject?: Dictionary<unknown>
 ): Promise<Record<string, unknown>> {
   const result = {} as Dictionary<unknown>;
-  if (!config.PLUGIN_EVENTS[event]) {
+  if (!config.plugins.events[event]) {
     logger.warn(`No plugins defined for event ${event}.`);
     return result;
   }
 
   let numErrors = 0;
 
-  for (const pluginItem of config.PLUGIN_EVENTS[event]) {
-    let pluginName: string;
+  for (const pluginItem of config.plugins.events[event]) {
+    const pluginName: string = pluginItem;
     let pluginArgs: Record<string, unknown> | undefined;
 
-    if (typeof pluginItem === "string") pluginName = pluginItem;
+    /*  if (typeof pluginItem === "string") pluginName = pluginItem;
     else {
       pluginName = pluginItem[0];
       pluginArgs = pluginItem[1];
-    }
+    } */
 
     logger.message(`Running plugin ${pluginName}:`);
     try {
@@ -63,8 +92,13 @@ export async function runPluginsSerial(
     }
   }
   logger.log(`Plugin run over...`);
-  if (!numErrors) logger.success(`Ran successfully ${config.PLUGIN_EVENTS[event].length} plugins.`);
-  else logger.warn(`Ran ${config.PLUGIN_EVENTS[event].length} plugins with ${numErrors} errors.`);
+  if (!numErrors) {
+    logger.success(`Ran successfully ${config.plugins.events[event].length} plugins.`);
+  } else {
+    logger.warn(`Ran ${config.plugins.events[event].length} plugins with ${numErrors} errors.`);
+  }
+  logger.log("Plugin series result");
+  logger.log(result);
   return result;
 }
 
@@ -74,71 +108,57 @@ export async function runPlugin(
   inject?: Dictionary<unknown>,
   args?: Dictionary<unknown>
 ): Promise<unknown> {
-  const plugin = config.PLUGINS[pluginName];
+  const plugin = config.plugins.register[pluginName];
 
-  if (!plugin) throw new Error(`${pluginName}: plugin not found.`);
+  if (!plugin) {
+    throw new Error(`${pluginName}: plugin not found.`);
+  }
 
   const path = nodepath.resolve(plugin.path);
 
-  if (path) {
-    if (!existsSync(path)) throw new Error(`${pluginName}: definition not found (missing file).`);
-
-    const func = requireUncached(path);
-
-    if (typeof func !== "function") throw new Error(`${pluginName}: not a valid plugin.`);
-
-    logger.log(plugin);
-
-    try {
-      const result = (await func({
-        $pluginName: pluginName,
-        $pluginPath: path,
-        $cwd: process.cwd(),
-        $library: libraryPath(""),
-        $require: (partial: string) => {
-          if (typeof partial !== "string") {
-            throw new TypeError("$require: String required");
-          }
-
-          return requireUncached(nodepath.resolve(path, partial));
-        },
-        /* $modules: {
-          ...
-          fs: fs,
-          path: nodepath,
-          axios: axios,
-          cheerio: cheerio,
-          moment: moment
-        }, */
-        // TODO: deprecate at some point, replace with ^
-        $os: os,
-        $readline: readline,
-        $inquirer: inquirer,
-        $yaml: YAML,
-        $jimp: jimp,
-        $ffmpeg: ffmpeg,
-        $fs: fs,
-        $path: nodepath,
-        $axios: axios,
-        $cheerio: cheerio,
-        $moment: moment,
-        $log: debug("vault:plugin"),
-        $loader: ora,
-        $boxen: boxen,
-        $throw: (str: string) => {
-          throw new Error(str);
-        },
-        args: args || plugin.args || {},
-        ...inject,
-      })) as unknown;
-
-      if (typeof result !== "object") throw new Error(`${pluginName}: malformed output.`);
-
-      return result || {};
-    } catch (error) {
-      throw new Error(error);
-    }
-  } else {
-    throw new Error(`${pluginName}: path not defined.`);
+  if (!existsSync(path)) {
+    throw new Error(`${pluginName}: definition not found (missing file).`);
   }
+
+  const func = requireUncached(path);
+
+  if (typeof func !== "function") {
+    throw new Error(`${pluginName}: not a valid plugin.`);
+  }
+
+  logger.log(plugin);
+
+  const result = (await func({
+    $walk: walk,
+    $matcher: getMatcher(),
+    $version: VERSION,
+    $config: JSON.parse(JSON.stringify(config)) as IConfig,
+    $pluginName: pluginName,
+    $pluginPath: path,
+    $cwd: process.cwd(),
+    $library: libraryPath(""),
+    $require: (partial: string) => {
+      if (typeof partial !== "string") {
+        throw new TypeError("$require: String required");
+      }
+
+      return requireUncached(nodepath.resolve(path, partial));
+    },
+    $log: debug(`vault:plugin:${pluginName}:log`),
+    $throw: (str: string) => {
+      debug(`vault:plugin:${pluginName}:error`)(str);
+      throw new Error(str);
+    },
+    args: args || plugin.args || {},
+    ...inject,
+    ...modules,
+  })) as unknown;
+
+  if (typeof result !== "object") {
+    throw new Error(`${pluginName}: malformed output.`);
+  }
+
+  logger.log("Plugin result:");
+  logger.log(result);
+  return result || {};
 }

@@ -1,5 +1,6 @@
 <template>
   <v-container fluid>
+    <BindFavicon />
     <BindTitle value="Settings" />
 
     <div style="max-width: 800px" class="mx-auto">
@@ -12,8 +13,8 @@
                 <v-subheader>Scene cards aspect ratio</v-subheader>
                 <v-radio-group v-model="sceneRatio">
                   <v-radio color="primary" :value="1" label="Square"></v-radio>
-                  <v-radio color="primary" :value="16/9" label="16:9"></v-radio>
-                  <v-radio color="primary" :value="4/3" label="4:3"></v-radio>
+                  <v-radio color="primary" :value="16 / 9" label="16:9"></v-radio>
+                  <v-radio color="primary" :value="4 / 3" label="4:3"></v-radio>
                 </v-radio-group>
               </div>
 
@@ -21,8 +22,8 @@
                 <v-subheader>Actor cards aspect ratio</v-subheader>
                 <v-radio-group v-model="actorRatio">
                   <v-radio color="primary" :value="1" label="Square"></v-radio>
-                  <v-radio color="primary" :value="9/16" label="9:16"></v-radio>
-                  <v-radio color="primary" :value="3/4" label="3:4"></v-radio>
+                  <v-radio color="primary" :value="9 / 16" label="9:16"></v-radio>
+                  <v-radio color="primary" :value="3 / 4" label="3:4"></v-radio>
                 </v-radio-group>
               </div>
             </v-col>
@@ -34,7 +35,8 @@
                   dark
                   @click="toggleDarkMode"
                   class="text-none my-3"
-                >{{ this.$vuetify.theme.dark ? "Light mode" : "Dark mode" }}</v-btn>
+                  >{{ this.$vuetify.theme.dark ? "Light mode" : "Dark mode" }}</v-btn
+                >
               </div>
               <div>
                 <v-checkbox
@@ -60,6 +62,12 @@
                   hide-details
                   label="Fill actor thumbnails"
                   v-model="fillActorCards"
+                />
+                <v-checkbox
+                  color="primary"
+                  hide-details
+                  label="Show experimental (unstable) features"
+                  v-model="experimental"
                 />
               </div>
             </v-col>
@@ -119,14 +127,39 @@
 import { Component, Vue } from "vue-property-decorator";
 import CustomFieldCreator from "@/components/CustomFieldCreator.vue";
 import { contextModule } from "@/store/context";
+import Axios from "axios";
+import { serverBase } from "@/apollo";
 
 @Component({
   components: {
-    CustomFieldCreator
-  }
+    CustomFieldCreator,
+  },
 })
 export default class About extends Vue {
-  version = "0.23";
+  version = "";
+
+  set experimental(val: boolean) {
+    if (val) {
+      localStorage.setItem("pm_experimental", "true");
+    } else {
+      localStorage.removeItem("pm_experimental");
+    }
+    contextModule.toggleExperimental(val);
+  }
+
+  get experimental() {
+    return contextModule.experimental;
+  }
+
+  mounted() {
+    Axios.get(`${serverBase}/version?password=${localStorage.getItem("password")}`)
+      .then(({ data }) => {
+        this.version = data.result;
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }
 
   set fillActorCards(val: boolean) {
     localStorage.setItem("pm_fillActorCards", val.toString());

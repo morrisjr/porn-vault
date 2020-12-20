@@ -1,22 +1,45 @@
 <template>
   <v-container fluid>
+    <BindFavicon />
     <BindTitle value="Images" />
-    <v-banner app sticky v-if="selectedImages.length">
+    <v-banner app sticky class="mb-2">
       {{ selectedImages.length }} images selected
       <template v-slot:actions>
-        <v-btn text @click="selectedImages = []" class="text-none">Deselect</v-btn>
+        <v-btn v-if="selectedImages.length" text @click="selectedImages = []" class="text-none"
+          >Deselect</v-btn
+        >
         <v-btn
+          v-else-if="!selectedImages.length"
+          text
+          @click="selectedImages = images.map((im) => im._id)"
+          class="text-none"
+          >Select all</v-btn
+        >
+        <v-btn
+          v-if="selectedImages.length"
           @click="deleteSelectedImagesDialog = true"
           text
           class="text-none"
           color="error"
-        >Delete</v-btn>
+          >Delete</v-btn
+        >
       </template>
     </v-banner>
 
     <v-navigation-drawer v-if="showSidenav" style="z-index: 14" v-model="drawer" clipped app>
       <v-container>
+        <v-btn
+          :disabled="refreshed"
+          class="text-none mb-2"
+          block
+          color="primary"
+          text
+          @click="resetPagination"
+          >Refresh</v-btn
+        >
+
         <v-text-field
+          @keydown.enter="resetPagination"
           solo
           flat
           single-line
@@ -34,7 +57,7 @@
             icon
             @click="favoritesOnly = !favoritesOnly"
           >
-            <v-icon>{{ favoritesOnly ? 'mdi-heart' : 'mdi-heart-outline' }}</v-icon>
+            <v-icon>{{ favoritesOnly ? "mdi-heart" : "mdi-heart-outline" }}</v-icon>
           </v-btn>
 
           <v-btn
@@ -42,7 +65,7 @@
             icon
             @click="bookmarksOnly = !bookmarksOnly"
           >
-            <v-icon>{{ bookmarksOnly ? 'mdi-bookmark' : 'mdi-bookmark-outline' }}</v-icon>
+            <v-icon>{{ bookmarksOnly ? "mdi-bookmark" : "mdi-bookmark-outline" }}</v-icon>
           </v-btn>
 
           <v-spacer></v-spacer>
@@ -58,6 +81,10 @@
           v-model="selectedLabels"
           :items="allLabels"
         />
+
+        <Divider icon="mdi-account">Actors</Divider>
+
+        <ActorSelector v-model="selectedActors" :multiple="true" />
 
         <Divider icon="mdi-sort">Sort</Divider>
 
@@ -87,8 +114,6 @@
           placeholder="Sort direction"
           :items="sortDirItems"
         ></v-select>
-
-        <v-checkbox hide-details color="primary" v-model="largeThumbs" label="Large thumbnails"></v-checkbox>
       </v-container>
     </v-navigation-drawer>
 
@@ -118,23 +143,36 @@
           </template>
           <span>Reshuffle</span>
         </v-tooltip>
+        <v-spacer></v-spacer>
+        <div>
+          <v-pagination
+            v-if="!fetchLoader && $vuetify.breakpoint.mdAndUp"
+            @input="loadPage"
+            v-model="page"
+            :total-visible="7"
+            :disabled="fetchLoader"
+            :length="numPages"
+          ></v-pagination>
+        </div>
       </div>
       <v-row v-if="!fetchLoader && numResults">
         <v-col
           class="pa-0"
           v-for="(image, index) in images"
           :key="image._id"
-          :cols="largeThumbs ? 12 : 6"
-          :sm="largeThumbs ? 12 : 4"
-          :md="largeThumbs ? 6 : 3"
-          :lg="largeThumbs ? 6 : 3"
-          :xl="largeThumbs ? 4 : 2"
+          :cols="6"
+          :sm="4"
+          :md="3"
+          :lg="2"
+          :xl="2"
         >
           <ImageCard
-            :class="selectedImages.length && !selectedImages.includes(image._id) ? 'not-selected': ''"
+            :class="
+              selectedImages.length && !selectedImages.includes(image._id) ? 'not-selected' : ''
+            "
             width="100%"
             height="100%"
-            @open="lightboxIndex = index"
+            @click="onImageClick(image, index, $event, false)"
             :image="image"
             :contain="true"
           >
@@ -142,8 +180,8 @@
               <v-checkbox
                 color="primary"
                 :input-value="selectedImages.includes(image._id)"
-                @change="selectImage(image._id)"
-                @click.native.stop
+                readonly
+                @click.native.stop="onImageClick(image, index, $event, true)"
                 class="mt-0"
                 hide-details
                 :contain="true"
@@ -194,12 +232,11 @@
 
 <script lang="ts">
 import { Component, Vue, Watch } from "vue-property-decorator";
-import ApolloClient, { serverBase } from "@/apollo";
+import ApolloClient from "@/apollo";
 import gql from "graphql-tag";
 import LabelSelector from "@/components/LabelSelector.vue";
-import InfiniteLoading from "vue-infinite-loading";
 import { contextModule } from "@/store/context";
-import ImageCard from "@/components/ImageCard.vue";
+import ImageCard from "@/components/Cards/Image.vue";
 import Lightbox from "@/components/Lightbox.vue";
 import actorFragment from "@/fragments/actor";
 import imageFragment from "@/fragments/image";
@@ -209,15 +246,17 @@ import ILabel from "@/types/label";
 import DrawerMixin from "@/mixins/drawer";
 import { mixins } from "vue-class-component";
 import { imageModule } from "@/store/image";
+import IActor from "@/types/actor";
+import ActorSelector from "@/components/ActorSelector.vue";
 
 @Component({
   components: {
     LabelSelector,
-    InfiniteLoading,
     ImageCard,
     Lightbox,
-    ImageUploader
-  }
+    ImageUploader,
+    ActorSelector,
+  },
 })
 export default class ImageList extends mixins(DrawerMixin) {
   addNewItem(image: IImage) {
@@ -244,25 +283,34 @@ export default class ImageList extends mixins(DrawerMixin) {
   lightboxIndex = null as number | null;
 
   tryReadLabelsFromLocalStorage(key: string) {
-    return (localStorage.getItem(key) || "")
-      .split(",")
-      .filter(Boolean) as string[];
+    return (localStorage.getItem(key) || "").split(",").filter(Boolean) as string[];
   }
 
-  waiting = false;
   allLabels = [] as ILabel[];
   selectedLabels = {
     include: this.tryReadLabelsFromLocalStorage("pm_imageInclude"),
-    exclude: this.tryReadLabelsFromLocalStorage("pm_imageExclude")
+    exclude: this.tryReadLabelsFromLocalStorage("pm_imageExclude"),
   };
+
+  selectedActors = (() => {
+    const fromLocalStorage = localStorage.getItem("pm_imageActors");
+    if (fromLocalStorage) {
+      return JSON.parse(fromLocalStorage);
+    }
+    return [];
+  })() as IActor[];
+
+  get selectedActorIds() {
+    return this.selectedActors.map((ac) => ac._id);
+  }
 
   onSelectedLabelsChange(val: any) {
     localStorage.setItem("pm_imageInclude", val.include.join(","));
     localStorage.setItem("pm_imageExclude", val.exclude.join(","));
-    imageModule.resetPagination();
+    this.refreshed = false;
   }
 
-  largeThumbs = localStorage.getItem("pm_imageLargeThumbs") == "true" || false;
+  // largeThumbs = localStorage.getItem("pm_imageLargeThumbs") == "true" || false;
 
   query = localStorage.getItem("pm_imageQuery") || "";
 
@@ -286,58 +334,97 @@ export default class ImageList extends mixins(DrawerMixin) {
   sortDirItems = [
     {
       text: "Ascending",
-      value: "asc"
+      value: "asc",
     },
     {
       text: "Descending",
-      value: "desc"
-    }
+      value: "desc",
+    },
   ];
 
   sortBy = localStorage.getItem("pm_imageSortBy") || "relevance";
   sortByItems = [
     {
       text: "Relevance",
-      value: "relevance"
-    },
-    {
-      text: "A-Z",
-      value: "name"
+      value: "relevance",
     },
     {
       text: "Added to collection",
-      value: "addedOn"
+      value: "addedOn",
     },
     {
       text: "Rating",
-      value: "rating"
+      value: "rating",
     },
     {
       text: "Bookmarked",
-      value: "bookmark"
+      value: "bookmark",
     },
     {
       text: "Random",
-      value: "$shuffle"
-    }
+      value: "$shuffle",
+    },
   ];
 
   favoritesOnly = localStorage.getItem("pm_imageFavorite") == "true";
   bookmarksOnly = localStorage.getItem("pm_imageBookmark") == "true";
   ratingFilter = parseInt(localStorage.getItem("pm_imageRating") || "0");
 
-  resetTimeout = null as NodeJS.Timeout | null;
-
   uploadDialog = false;
   isUploading = false;
 
   selectedImages = [] as string[];
+  lastSelectionImageId: string | null = null;
   deleteSelectedImagesDialog = false;
 
-  selectImage(id: string) {
-    if (this.selectedImages.includes(id))
-      this.selectedImages = this.selectedImages.filter(i => i != id);
-    else this.selectedImages.push(id);
+  isImageSelected(id: string) {
+    return !!this.selectedImages.find((selectedId) => id === selectedId);
+  }
+
+  selectImage(id: string, add: boolean) {
+    this.lastSelectionImageId = id;
+    if (add && !this.isImageSelected(id)) {
+      this.selectedImages.push(id);
+    } else {
+      this.selectedImages = this.selectedImages.filter((i) => i != id);
+    }
+  }
+
+  /**
+   * @param image - the clicked image
+   * @param index - the index of the image in the array
+   * @param event - the mouse click event
+   * @param forceSelectionChange - whether to force a selection change, instead of opening the image
+   */
+  onImageClick(image: IImage, index: number, event: MouseEvent, forceSelectionChange = true) {
+    // Use the last selected image or the current one, to allow toggling
+    // even when no previous selection
+    let lastSelectionImageIndex =
+      this.lastSelectionImageId !== null
+        ? this.images.findIndex((im) => im._id === this.lastSelectionImageId)
+        : index;
+    lastSelectionImageIndex = lastSelectionImageIndex === -1 ? index : lastSelectionImageIndex;
+
+    if (event.shiftKey) {
+      // Next state is opposite of the clicked image state
+      const nextSelectionState = !this.isImageSelected(image._id);
+
+      // Use >= to include the currently clicked image, so it can be toggled
+      // if necessary
+      if (index >= lastSelectionImageIndex) {
+        for (let i = lastSelectionImageIndex + 1; i <= index; i++) {
+          this.selectImage(this.images[i]._id, nextSelectionState);
+        }
+      } else if (index < lastSelectionImageIndex) {
+        for (let i = lastSelectionImageIndex; i >= index; i--) {
+          this.selectImage(this.images[i]._id, nextSelectionState);
+        }
+      }
+    } else if (forceSelectionChange || event.ctrlKey) {
+      this.selectImage(image._id, !this.isImageSelected(image._id));
+    } else if (!forceSelectionChange) {
+      this.lightboxIndex = index;
+    }
   }
 
   deleteSelection() {
@@ -348,17 +435,17 @@ export default class ImageList extends mixins(DrawerMixin) {
         }
       `,
       variables: {
-        ids: this.selectedImages
-      }
+        ids: this.selectedImages,
+      },
     })
-      .then(res => {
+      .then((res) => {
         for (const id of this.selectedImages) {
-          this.images = this.images.filter(img => img._id != id);
+          this.images = this.images.filter((img) => img._id != id);
         }
         this.selectedImages = [];
         this.deleteSelectedImagesDialog = false;
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
       })
       .finally(() => {});
@@ -372,28 +459,20 @@ export default class ImageList extends mixins(DrawerMixin) {
         }
       `,
       variables: {
-        ids: [this.images[index]._id]
-      }
+        ids: [this.images[index]._id],
+      },
     })
-      .then(res => {
+      .then((res) => {
         this.images.splice(index, 1);
         this.lightboxIndex = null;
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
       })
       .finally(() => {});
   }
 
-  updateImage({
-    index,
-    key,
-    value
-  }: {
-    index: number;
-    key: string;
-    value: any;
-  }) {
+  updateImage({ index, key, value }: { index: number; key: string; value: any }) {
     const images = this.images[index];
     images[key] = value;
     Vue.set(this.images, index, images);
@@ -403,156 +482,140 @@ export default class ImageList extends mixins(DrawerMixin) {
     this.uploadDialog = true;
   }
 
+  refreshed = true;
+
+  resetPagination() {
+    imageModule.resetPagination();
+    this.refreshed = true;
+    this.loadPage(this.page).catch(() => {
+      this.refreshed = false;
+    });
+  }
+
   @Watch("ratingFilter", {})
   onRatingChange(newVal: number) {
     localStorage.setItem("pm_imageRating", newVal.toString());
-    imageModule.resetPagination();
-    this.loadPage(this.page);
+    this.refreshed = false;
   }
 
   @Watch("favoritesOnly")
   onFavoriteChange(newVal: boolean) {
     localStorage.setItem("pm_imageFavorite", "" + newVal);
-    imageModule.resetPagination();
-    this.loadPage(this.page);
+    this.refreshed = false;
   }
 
   @Watch("bookmarksOnly")
   onBookmarkChange(newVal: boolean) {
     localStorage.setItem("pm_imageBookmark", "" + newVal);
-    imageModule.resetPagination();
-    this.loadPage(this.page);
+    this.refreshed = false;
   }
 
   @Watch("sortDir")
   onSortDirChange(newVal: string) {
     localStorage.setItem("pm_imageSortDir", newVal);
-    imageModule.resetPagination();
-    this.loadPage(this.page);
+    this.refreshed = false;
   }
 
   @Watch("sortBy")
   onSortChange(newVal: string) {
     localStorage.setItem("pm_imageSortBy", newVal);
-    imageModule.resetPagination();
-    this.loadPage(this.page);
+    this.refreshed = false;
   }
 
   @Watch("selectedLabels")
   onLabelChange() {
-    imageModule.resetPagination();
-    this.loadPage(this.page);
+    this.refreshed = false;
   }
 
   @Watch("query")
   onQueryChange(newVal: string | null) {
-    if (this.resetTimeout) {
-      clearTimeout(this.resetTimeout);
-    }
-
     localStorage.setItem("pm_imageQuery", newVal || "");
+    this.refreshed = false;
+  }
 
-    this.waiting = true;
-    imageModule.resetPagination();
-
-    this.resetTimeout = setTimeout(() => {
-      this.waiting = false;
-      this.loadPage(this.page);
-    }, 500);
+  @Watch("selectedActorIds", { deep: true })
+  onSelectedActorsChange(newVal: string[]) {
+    localStorage.setItem("pm_sceneActors", JSON.stringify(this.selectedActors));
+    this.refreshed = false;
   }
 
   async fetchPage(page: number, take = 24, random?: boolean, seed?: string) {
-    try {
-      let include = "";
-      let exclude = "";
-
-      if (this.selectedLabels.include.length)
-        include = "include:" + this.selectedLabels.include.join(",");
-
-      if (this.selectedLabels.exclude.length)
-        exclude = "exclude:" + this.selectedLabels.exclude.join(",");
-
-      const query = `query:'${this.query ||
-        ""}' ${include} ${exclude} page:${this.page - 1} sortDir:${
-        this.sortDir
-      } take:${take} sortBy:${random ? "$shuffle" : this.sortBy} favorite:${
-        this.favoritesOnly ? "true" : "false"
-      } bookmark:${this.bookmarksOnly ? "true" : "false"} rating:${
-        this.ratingFilter
-      }`;
-
-      const result = await ApolloClient.query({
-        query: gql`
-          query($query: String, $seed: String) {
-            getImages(query: $query, seed: $seed) {
-              numItems
-              numPages
-              items {
-                ...ImageFragment
-                labels {
+    const result = await ApolloClient.query({
+      query: gql`
+        query($query: ImageSearchQuery!, $seed: String) {
+          getImages(query: $query, seed: $seed) {
+            numItems
+            numPages
+            items {
+              ...ImageFragment
+              labels {
+                _id
+                name
+                color
+              }
+              studio {
+                _id
+                name
+              }
+              actors {
+                ...ActorFragment
+                avatar {
                   _id
-                  name
+                  color
                 }
-                studio {
+              }
+              scene {
+                _id
+                name
+                thumbnail {
                   _id
-                  name
-                }
-                actors {
-                  ...ActorFragment
-                  avatar {
-                    _id
-                    color
-                  }
-                }
-                scene {
-                  _id
-                  name
                 }
               }
             }
           }
-          ${imageFragment}
-          ${actorFragment}
-        `,
-        variables: {
-          query,
-          seed: seed || localStorage.getItem("pm_seed") || "default"
         }
-      });
+        ${imageFragment}
+        ${actorFragment}
+      `,
+      variables: {
+        query: {
+          include: this.selectedLabels.include,
+          exclude: this.selectedLabels.exclude,
+          query: this.query || "",
+          take,
+          page: page - 1,
+          sortDir: this.sortDir,
+          sortBy: random ? "$shuffle" : this.sortBy,
+          favorite: this.favoritesOnly,
+          bookmark: this.bookmarksOnly,
+          rating: this.ratingFilter,
+          actors: this.selectedActorIds,
+        },
+        seed: seed || localStorage.getItem("pm_seed") || "default",
+      },
+    });
 
-      return result.data.getImages;
-    } catch (err) {
-      throw err;
-    }
-  }
-
-  imageLink(image: any) {
-    return `${serverBase}/image/${image._id}?password=${localStorage.getItem(
-      "password"
-    )}`;
+    return result.data.getImages;
   }
 
   labelAliases(label: any) {
-    return label.aliases
-      .slice()
-      .sort()
-      .join(", ");
+    return label.aliases.slice().sort().join(", ");
   }
 
   loadPage(page: number) {
     this.fetchLoader = true;
     this.selectedImages = [];
 
-    this.fetchPage(page)
-      .then(result => {
+    return this.fetchPage(page)
+      .then((result) => {
         this.fetchError = false;
         imageModule.setPagination({
           numResults: result.numItems,
-          numPages: result.numPages
+          numPages: result.numPages,
         });
         this.images = result.items;
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
         this.fetchError = true;
       })
@@ -573,21 +636,22 @@ export default class ImageList extends mixins(DrawerMixin) {
     ApolloClient.query({
       query: gql`
         {
-          getLabels(type: "image") {
+          getLabels {
             _id
             name
+            color
           }
         }
-      `
+      `,
     })
-      .then(res => {
+      .then((res) => {
         this.allLabels = res.data.getLabels;
         if (!this.allLabels.length) {
           this.selectedLabels.include = [];
           this.selectedLabels.exclude = [];
         }
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
       });
   }

@@ -1,11 +1,11 @@
 import { movieCollection } from "../../database";
-import * as logger from "../../logger";
-import { onMovieCreate } from "../../plugin_events/movie";
-import { index as movieIndex, indexMovies } from "../../search/movie";
+import { onMovieCreate } from "../../plugins/events/movie";
+import { indexMovies, removeMovie } from "../../search/movie";
 import LabelledItem from "../../types/labelled_item";
 import Movie from "../../types/movie";
 import MovieScene from "../../types/movie_scene";
-import { Dictionary } from "../../types/utility";
+import * as logger from "../../utils/logger";
+import { Dictionary } from "../../utils/types";
 
 type IMovieUpdateOpts = Partial<{
   name: string;
@@ -27,7 +27,9 @@ export default {
     let movie = new Movie(args.name);
 
     if (args.scenes) {
-      if (Array.isArray(args.scenes)) await Movie.setScenes(movie, args.scenes);
+      if (Array.isArray(args.scenes)) {
+        await Movie.setScenes(movie, args.scenes);
+      }
     }
 
     try {
@@ -48,8 +50,7 @@ export default {
 
       if (movie) {
         await Movie.remove(movie._id);
-        await movieIndex.remove([movie._id]);
-
+        await removeMovie(movie._id);
         await LabelledItem.removeByItem(movie._id);
         await MovieScene.removeByMovie(movie._id);
       }
@@ -61,34 +62,55 @@ export default {
     _: unknown,
     { ids, opts }: { ids: string[]; opts: IMovieUpdateOpts }
   ): Promise<Movie[]> {
-    const updatedScenes = [] as Movie[];
+    const updatedMovies = [] as Movie[];
 
     for (const id of ids) {
       const movie = await Movie.getById(id);
 
       if (movie) {
-        if (typeof opts.name === "string") movie.name = opts.name.trim();
+        if (typeof opts.name === "string") {
+          movie.name = opts.name.trim();
+        }
 
-        if (typeof opts.description === "string") movie.description = opts.description.trim();
+        if (typeof opts.description === "string") {
+          movie.description = opts.description.trim();
+        }
 
-        if (opts.studio !== undefined) movie.studio = opts.studio;
+        if (opts.studio !== undefined) {
+          movie.studio = opts.studio;
+        }
 
-        if (typeof opts.frontCover === "string") movie.frontCover = opts.frontCover;
+        if (typeof opts.frontCover === "string") {
+          movie.frontCover = opts.frontCover;
+        }
 
-        if (typeof opts.backCover === "string") movie.backCover = opts.backCover;
+        if (typeof opts.backCover === "string") {
+          movie.backCover = opts.backCover;
+        }
 
-        if (typeof opts.spineCover === "string") movie.spineCover = opts.spineCover;
+        if (typeof opts.spineCover === "string") {
+          movie.spineCover = opts.spineCover;
+        }
 
-        if (Array.isArray(opts.scenes)) await Movie.setScenes(movie, opts.scenes);
+        if (Array.isArray(opts.scenes)) {
+          await Movie.setScenes(movie, opts.scenes);
+        }
 
-        if (typeof opts.bookmark === "number" || opts.bookmark === null)
+        if (typeof opts.bookmark === "number" || opts.bookmark === null) {
           movie.bookmark = opts.bookmark;
+        }
 
-        if (typeof opts.favorite === "boolean") movie.favorite = opts.favorite;
+        if (typeof opts.favorite === "boolean") {
+          movie.favorite = opts.favorite;
+        }
 
-        if (typeof opts.rating === "number") movie.rating = opts.rating;
+        if (typeof opts.rating === "number") {
+          movie.rating = opts.rating;
+        }
 
-        if (opts.releaseDate !== undefined) movie.releaseDate = opts.releaseDate;
+        if (opts.releaseDate !== undefined) {
+          movie.releaseDate = opts.releaseDate;
+        }
 
         if (opts.customFields) {
           for (const key in opts.customFields) {
@@ -100,11 +122,11 @@ export default {
         }
 
         await movieCollection.upsert(movie._id, movie);
-        updatedScenes.push(movie);
-        await indexMovies([movie]);
+        updatedMovies.push(movie);
       }
     }
 
-    return updatedScenes;
+    await indexMovies(updatedMovies);
+    return updatedMovies;
   },
 };

@@ -1,12 +1,7 @@
 import { existsSync } from "fs";
-import mkdirp from "mkdirp";
 import ora from "ora";
 
 import args from "../args";
-import { convertCrossReferences } from "../compat";
-import { unlinkAsync } from "../fs/async";
-import { absolutifyPaths, bookmarksToTimestamp } from "../integrity";
-import * as logger from "../logger";
 import { ISceneProcessingItem } from "../queue/processing";
 import Actor from "../types/actor";
 import ActorReference from "../types/actor_reference";
@@ -19,13 +14,14 @@ import Movie from "../types/movie";
 import MovieScene from "../types/movie_scene";
 import Scene from "../types/scene";
 import Studio from "../types/studio";
-import Trailer from "../types/trailer";
-import { libraryPath } from "../types/utility";
 import SceneView from "../types/watch";
-import { Izzy } from "./internal/index";
+import { mkdirpSync } from "../utils/fs/async";
+import * as logger from "../utils/logger";
+import { libraryPath } from "../utils/path";
+import { Izzy } from "./internal";
 
-mkdirp.sync("backups/");
-mkdirp.sync("tmp/");
+mkdirpSync("backups/");
+mkdirpSync("tmp/");
 
 export let sceneCollection!: Izzy.Collection<Scene>;
 export let trailerCollection!: Izzy.Collection<Trailer>;
@@ -43,41 +39,40 @@ export let markerCollection!: Izzy.Collection<Marker>;
 export let studioCollection!: Izzy.Collection<Studio>;
 export let processingCollection!: Izzy.Collection<ISceneProcessingItem>;
 
+export async function loadImageStore(): Promise<void> {
+  imageCollection = await Izzy.createCollection("images", libraryPath("images.db"), [
+    {
+      name: "scene-index",
+      key: "scene",
+    },
+    {
+      name: "studio-index",
+      key: "studio",
+    },
+    {
+      name: "path-index",
+      key: "path",
+    },
+  ]);
+}
+
 export async function loadStores(): Promise<void> {
   const crossReferencePath = libraryPath("cross_references.db");
   if (existsSync(crossReferencePath)) {
-    logger.message("Making DB compatible...");
-    await convertCrossReferences();
-    await unlinkAsync(crossReferencePath);
+    throw new Error("cross_references.db found, are you using an outdated library?");
   }
 
   try {
-    mkdirp.sync(libraryPath("images/"));
-    mkdirp.sync(libraryPath("thumbnails/")); // generated screenshots
-    mkdirp.sync(libraryPath("thumbnails/markers")); // generated marker thumbnails
-    mkdirp.sync(libraryPath("previews/"));
-    mkdirp.sync(libraryPath("trailers/"));
+    logger.log("Creating folders if needed");
+    mkdirpSync(libraryPath("images/"));
+    mkdirpSync(libraryPath("thumbnails/")); // generated screenshots
+    mkdirpSync(libraryPath("thumbnails/images")); // generated image thumbnails
+    mkdirpSync(libraryPath("thumbnails/markers")); // generated marker thumbnails
+    mkdirpSync(libraryPath("previews/"));
+    mkdirpSync(libraryPath("trailers/"));
   } catch (err) {
     const _err = <Error>err;
     logger.error(_err.message);
-  }
-
-  if (!args["ignore-integrity"]) {
-    const compatLoader = ora("Making .db files compatible (if needed)").start();
-
-    await bookmarksToTimestamp(libraryPath("scenes.db"));
-    await bookmarksToTimestamp(libraryPath("actors.db"));
-    await bookmarksToTimestamp(libraryPath("images.db"));
-    await bookmarksToTimestamp(libraryPath("movies.db"));
-    await bookmarksToTimestamp(libraryPath("studios.db"));
-    await bookmarksToTimestamp(libraryPath("markers.db"));
-
-    await absolutifyPaths(libraryPath("scenes.db"));
-    await absolutifyPaths(libraryPath("images.db"));
-
-    compatLoader.succeed();
-  } else {
-    logger.message("Skipping bookmark integrity");
   }
 
   const dbLoader = ora("Loading DB...").start();
@@ -96,21 +91,6 @@ export async function loadStores(): Promise<void> {
       name: "scene-index",
     },
   ]);
-
-  /* markerReferenceCollection = await Izzy.createCollection(
-    "marker-references",
-    libraryPath("marker_references.db"),
-    [
-      {
-        name: "marker-index",
-        key: "marker",
-      },
-      {
-        name: "scene-index",
-        key: "scene",
-      },
-    ]
-  ); */
 
   actorReferenceCollection = await Izzy.createCollection(
     "actor-references",
@@ -165,20 +145,7 @@ export async function loadStores(): Promise<void> {
     ]
   );
 
-  imageCollection = await Izzy.createCollection("images", libraryPath("images.db"), [
-    {
-      name: "scene-index",
-      key: "scene",
-    },
-    {
-      name: "studio-index",
-      key: "studio",
-    },
-    {
-      name: "path-index",
-      key: "path",
-    },
-  ]);
+  await loadImageStore();
 
   sceneCollection = await Izzy.createCollection("scenes", libraryPath("scenes.db"), [
     {
@@ -240,7 +207,6 @@ export async function loadStores(): Promise<void> {
     await labelledItemCollection.compact();
     await movieSceneCollection.compact();
     await actorReferenceCollection.compact();
-    // await markerReferenceCollection.compact();
     await actorCollection.compact();
     await movieCollection.compact();
     await viewCollection.compact();
@@ -255,19 +221,4 @@ export async function loadStores(): Promise<void> {
   }
 
   dbLoader.succeed();
-
-  if (!args["ignore-integrity"]) {
-    const integrityLoader = ora("Checking database integrity. This might take a minute...").start();
-
-    await Scene.checkIntegrity();
-    await Actor.checkIntegrity();
-    await Label.checkIntegrity();
-    await Image.checkIntegrity();
-    await Studio.checkIntegrity();
-    await Movie.checkIntegrity();
-    await Marker.checkIntegrity();
-    integrityLoader.succeed("Integrity check done.");
-  } else {
-    logger.message("Skipping integrity checks");
-  }
 }

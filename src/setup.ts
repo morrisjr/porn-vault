@@ -3,9 +3,12 @@ import inquirer from "inquirer";
 import { sha512 } from "js-sha512";
 import * as path from "path";
 
-import { defaultConfig, IConfig } from "./config/index";
-import { downloadFile, getFFMpegURL, getFFProbeURL } from "./ffmpeg-download";
-import * as logger from "./logger";
+import { getFFMpegURL, getFFProbeURL } from "./binaries/ffmpeg-download";
+import defaultConfig from "./config/default";
+import { IConfig } from "./config/schema";
+import { downloadFile } from "./utils/download";
+import * as logger from "./utils/logger";
+import { configPath } from "./utils/path";
 
 export const defaultPrompts = {
   downloadFFMPEG: true,
@@ -14,7 +17,10 @@ export const defaultPrompts = {
   useImageFolders: process.env.NODE_ENV !== "test",
 };
 
-export default async (): Promise<IConfig> => {
+/**
+ * @throws
+ */
+export async function setupFunction(): Promise<IConfig> {
   const {
     downloadFFMPEG,
     usePassword,
@@ -28,20 +34,28 @@ export default async (): Promise<IConfig> => {
   const config = JSON.parse(JSON.stringify(defaultConfig)) as IConfig;
 
   if (downloadFFMPEG) {
-    const { ffmpegPath, ffprobePath } = await downloadFFLibs();
-
-    config.FFMPEG_PATH = path.resolve(ffmpegPath);
-    config.FFPROBE_PATH = path.resolve(ffprobePath);
+    try {
+      await downloadFFLibs(config);
+    } catch (err) {
+      logger.error("Error downloading ffmpeg, ffprobe");
+      throw err;
+    }
   }
 
-  if (usePassword) config.PASSWORD = sha512(password);
+  if (usePassword) {
+    config.auth.password = sha512(password);
+  }
 
-  if (useVideoFolders) config.VIDEO_PATHS = videoFolders;
+  if (useVideoFolders) {
+    config.import.videos = videoFolders;
+  }
 
-  if (useImageFolders) config.IMAGE_PATHS = imageFolders;
+  if (useImageFolders) {
+    config.import.images = imageFolders;
+  }
 
   return config;
-};
+}
 
 /**
  * Prompts the user for how to setup the config
@@ -185,24 +199,22 @@ async function promptSetup() {
 }
 
 /**
- * Downloads ffmpeg & ffprobe
+ * Downloads ffmpeg & ffprobe & sets their downloaded paths
+ * in the config
  *
+ * @param config - the config to update
  * @returns the paths where they were downloaded
+ * @throws if one of the downloads failed
  */
-async function downloadFFLibs() {
+export async function downloadFFLibs(config: IConfig): Promise<void> {
   const ffmpegURL = getFFMpegURL();
   const ffprobeURL = getFFProbeURL();
 
-  const ffmpegPath = path.basename(ffmpegURL);
-  const ffprobePath = path.basename(ffprobeURL);
+  const ffmpegPath = configPath(path.basename(ffmpegURL));
+  const ffprobePath = configPath(path.basename(ffprobeURL));
 
-  try {
-    await downloadFile(ffmpegURL, ffmpegPath);
-    await downloadFile(ffprobeURL, ffprobePath);
-  } catch (error) {
-    logger.error(error);
-    process.exit(1);
-  }
+  await downloadFile(ffmpegURL, ffmpegPath);
+  await downloadFile(ffprobeURL, ffprobePath);
 
   try {
     logger.log("CHMOD binaries...");
@@ -212,8 +224,6 @@ async function downloadFFLibs() {
     logger.error("Could not make FFMPEG binaries executable");
   }
 
-  return {
-    ffmpegPath,
-    ffprobePath,
-  };
+  config.binaries.ffmpeg = ffmpegPath;
+  config.binaries.ffprobe = ffprobePath;
 }

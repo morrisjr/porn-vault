@@ -2,33 +2,28 @@
 
 Manage your ever-growing porn collection
 
-![Testing](https://github.com/boi123212321/porn-vault/workflows/Push%20dev/badge.svg)
-![Contributors](https://img.shields.io/github/contributors/boi123212321/porn-vault)
-![GitHub last commit (branch)](https://img.shields.io/github/last-commit/boi123212321/porn-vault/dev)
+![Testing](https://github.com/porn-vault/porn-vault/workflows/Push%20dev/badge.svg)
+[![codecov](https://codecov.io/gh/porn-vault/porn-vault/branch/dev/graph/badge.svg?token=33C0ELH6GI)](https://codecov.io/gh/porn-vault/porn-vault)
+![Contributors](https://img.shields.io/github/contributors/porn-vault/porn-vault)
+![GitHub last commit (branch)](https://img.shields.io/github/last-commit/porn-vault/porn-vault/dev)
 ![Discord](https://img.shields.io/discord/652499331265331245)
 
 There's a Discord channel! Join in to the discussion: [Discord](https://discord.gg/t499hxK)
 
 # Table of Contents
+
 1. [Support](#support)
 2. [Contribute](#contribute)
 3. [Features](#features)
-4. [Config](#config)
-5. [How to run](#how-to-run)
-6. [Docker](#docker)
-7. [Enabling HTTPS](#enabling-https)
-8. [Build from source](#build-from-source)
-9. [Plugin development](#plugin-development)
-10. [Bulk import](#bulk-import)
-11. [Images](#images)
+4. [Guides](https://github.com/porn-vault/porn-vault/blob/dev/doc/guides.md)
+5. [Demo images](#demo-images)
+6. [FAQ](https://github.com/porn-vault/porn-vault/wiki/Frequently-Asked-Questions)
 
 ## Support
 
-[![Donate with Bitcoin](https://en.cryptobadges.io/badge/small/1Bw82zC5FnVtw93ZrcALQTeZBXgtVWH75n)](https://en.cryptobadges.io/donate/1Bw82zC5FnVtw93ZrcALQTeZBXgtVWH75n)
+[![Donate with Bitcoin](https://en.cryptobadges.io/badge/big/1Bw82zC5FnVtw93ZrcALQTeZBXgtVWH75n)](https://en.cryptobadges.io/donate/1Bw82zC5FnVtw93ZrcALQTeZBXgtVWH75n)
 
-Bitcoin: 1Bw82zC5FnVtw93ZrcALQTeZBXgtVWH75n
-
-![Bitcoin Link](https://raw.githubusercontent.com/boi123212321/porn-vault/dev/doc/img/btc.png)
+[![Donate with Ethereum](https://en.cryptobadges.io/badge/big/0x1138fb93fC9e3bAc3ab36949C2c806562bFDb621)](https://en.cryptobadges.io/donate/0x1138fb93fC9e3bAc3ab36949C2c806562bFDb621)
 
 ## Contribute
 
@@ -36,7 +31,7 @@ Bitcoin: 1Bw82zC5FnVtw93ZrcALQTeZBXgtVWH75n
 
 ## Features
 
-- EASY, portable (no install) setup (see. [**How to run**](https://github.com/boi123212321/porn-vault#how-to-run))
+- EASY, portable (no install) setup (see. [**How to run**](https://github.com/porn-vault/porn-vault/blob/dev/doc/guides.md#how-to-run))
 - Cross-platform (Win, Linux, Mac)
 - Works on any somewhat-modern device including tablets and smartphones
 - Self hosted, fully open source
@@ -59,84 +54,45 @@ Bitcoin: 1Bw82zC5FnVtw93ZrcALQTeZBXgtVWH75n
 - Automatic thumbnail generation on scene import
 - Optional password protection in LAN
 
-## Config
-
-See https://github.com/boi123212321/porn-vault/blob/dev/doc/config.md
-
-## How to run
-
-- Visit the [Releases](https://github.com/boi123212321/porn-vault/releases) page and download the latest version, for the platform of your choice
-- Unzip the file
-- Run the application in the terminal of your choice and follow the on-screen instructions
-- Once your app is setup you can visit it on `http://localhost:3000` (or your LAN IP equivalent) in your web browser of choice
-
-### Docker
-
-See the [docker readme](doc/docker.md)
-
-## Enabling HTTPS
-
-- If you're on Windows you first need to download openssl, you can find the executables [here](https://wiki.openssl.org/index.php/Binaries)
-- Generate a keypair using the command `openssl req -nodes -new -x509 -keyout server.key -out server.cert`
-- Set the `ENABLE_HTTPS` flag in your config to true
-- Change the `HTTPS_KEY` & `HTTPS_CERT` options to your generated key & cert file paths
-- Open `https://localhost:3000`, ignore the self-generated certificate warning and enjoy an encrypted experience
-
-## Build from source
-
-See https://github.com/boi123212321/porn-vault/blob/dev/doc/build_from_source.md
-
-## Plugin development
-
-See https://github.com/boi123212321/porn-vault/blob/dev/doc/plugins_intro.md
-
-## Bulk import
-
-See the [bulk import doc](doc/import.md)
-
-## Images
+## Demo images
 
 ### Scene collection
 
-![Scenes](https://raw.githubusercontent.com/boi123212321/porn-vault/dev/doc/img/scene_collection.jpg)
+![Scenes](https://raw.githubusercontent.com/porn-vault/porn-vault/dev/doc/img/scene_collection.jpg)
 
 ### Scene page
 
-![Scene page](https://raw.githubusercontent.com/boi123212321/porn-vault/dev/doc/img/scene_details.jpg)
+![Scene page](https://raw.githubusercontent.com/porn-vault/porn-vault/dev/doc/img/scene_details.jpg)
 
 ### Actor collection
 
-![Actors](https://raw.githubusercontent.com/boi123212321/porn-vault/dev/doc/img/actor_collection.jpg)
+![Actors](https://raw.githubusercontent.com/porn-vault/porn-vault/dev/doc/img/actor_collection.jpg)
 
 ### Actor page
 
-![Actor page](https://raw.githubusercontent.com/boi123212321/porn-vault/dev/doc/img/actor_details.jpg)
+![Actor page](https://raw.githubusercontent.com/porn-vault/porn-vault/dev/doc/img/actor_details.jpg)
 
 ### Movie collection
 
-![Movies](https://raw.githubusercontent.com/boi123212321/porn-vault/dev/doc/img/movie_collection.jpg)
+![Movies](https://raw.githubusercontent.com/porn-vault/porn-vault/dev/doc/img/movie_collection.jpg)
 
 ### Movie page
 
-![Movie page](https://raw.githubusercontent.com/boi123212321/porn-vault/dev/doc/img/movie_details.jpg)
+![Movie page](https://raw.githubusercontent.com/porn-vault/porn-vault/dev/doc/img/movie_details.jpg)
 
 ### Image collection
 
 You can do everything you can do with scenes (e.g. rate/favorite/bookmark/label) with images as well - useful if you run an image collection only.
-![Scene details](https://raw.githubusercontent.com/boi123212321/porn-vault/dev/doc/img/image_collection.jpg)
+![Images](https://raw.githubusercontent.com/porn-vault/porn-vault/dev/doc/img/image_collection.jpg)
 
 ### Image details
 
-![Image details](https://raw.githubusercontent.com/boi123212321/porn-vault/dev/doc/img/image_details.jpg)
+![Image details](https://raw.githubusercontent.com/porn-vault/porn-vault/dev/doc/img/image_details.jpg)
 
 ### Studio collection
 
-![Studios](https://raw.githubusercontent.com/boi123212321/porn-vault/dev/doc/img/studio_collection.jpg)
+![Studios](https://raw.githubusercontent.com/porn-vault/porn-vault/dev/doc/img/studio_collection.jpg)
 
 ### Parent studio
 
-![Studios](https://raw.githubusercontent.com/boi123212321/porn-vault/dev/doc/img/parent_studio.jpg)
-
-### Mobile
-
-![Dark mode](https://raw.githubusercontent.com/boi123212321/porn-vault/dev/doc/img/mobile.jpg)
+![Parent studio](https://raw.githubusercontent.com/porn-vault/porn-vault/dev/doc/img/parent_studio.jpg)

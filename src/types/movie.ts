@@ -4,13 +4,14 @@ import {
   movieSceneCollection,
   sceneCollection,
 } from "../database";
-import { generateHash } from "../hash";
-import * as logger from "../logger";
+import { mapAsync } from "../utils/async";
+import { generateHash } from "../utils/hash";
+import * as logger from "../utils/logger";
+import { arrayDiff } from "../utils/misc";
 import Actor from "./actor";
 import Label from "./label";
 import MovieScene from "./movie_scene";
 import Scene from "./scene";
-import { mapAsync } from "./utility";
 
 export default class Movie {
   _id: string;
@@ -27,9 +28,6 @@ export default class Movie {
   scenes?: string[]; // backwards compatibility
   customFields: Record<string, boolean | string | number | string[] | null> = {};
   studio: string | null = null;
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  static async checkIntegrity(): Promise<void> {}
 
   static async calculateDuration(movie: Movie): Promise<number | null> {
     const scenesWithSource = (await Movie.getScenes(movie)).filter(
@@ -58,14 +56,17 @@ export default class Movie {
     return movieCollection.get(_id);
   }
 
+  static getBulk(_ids: string[]): Promise<Movie[]> {
+    return movieCollection.getBulk(_ids);
+  }
+
   static getAll(): Promise<Movie[]> {
     return movieCollection.getAll();
   }
 
   static async getByScene(id: string): Promise<Movie[]> {
-    return (
-      await mapAsync(await MovieScene.getByScene(id), (ms) => Movie.getById(ms.movie))
-    ).filter(Boolean) as Movie[];
+    const movieScenes = await MovieScene.getByScene(id);
+    return (await Movie.getBulk(movieScenes.map((ms) => ms.movie))).filter(Boolean);
   }
 
   static getByStudio(studioId: string): Promise<Movie[]> {
@@ -77,7 +78,7 @@ export default class Movie {
     const labelIds = [
       ...new Set((await mapAsync(scenes, Scene.getLabels)).flat().map((a) => a._id)),
     ];
-    return (await mapAsync(labelIds, Label.getById)).filter(Boolean) as Label[];
+    return await Label.getBulk(labelIds);
   }
 
   static async getActors(movie: Movie): Promise<Actor[]> {
@@ -85,21 +86,25 @@ export default class Movie {
     const actorIds = [
       ...new Set((await mapAsync(scenes, Scene.getActors)).flat().map((a) => a._id)),
     ];
-    return (await actorCollection.getBulk(actorIds)).filter(Boolean);
+    return (await actorCollection.getBulk(actorIds))
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   static async setScenes(movie: Movie, sceneIds: string[]): Promise<void> {
-    const references = await MovieScene.getByMovie(movie._id);
+    const oldRefs = await MovieScene.getByMovie(movie._id);
 
-    const oldSceneReferences = references.map((r) => r._id);
+    const { removed, added } = arrayDiff(oldRefs, [...new Set(sceneIds)], "scene", (l) => l);
 
-    for (const id of oldSceneReferences) {
-      await movieSceneCollection.remove(id);
+    for (const oldRef of removed) {
+      await movieSceneCollection.remove(oldRef._id);
     }
 
-    for (const id of [...new Set(sceneIds)]) {
+    let index = 0;
+    for (const id of added) {
       const movieScene = new MovieScene(movie._id, id);
-      logger.log("Adding scene to movie: " + JSON.stringify(movieScene));
+      logger.log(`${index} Adding scene to movie: ${JSON.stringify(movieScene)}`);
+      movieScene.index = index++;
       await movieSceneCollection.upsert(movieScene._id, movieScene);
     }
   }
@@ -120,7 +125,7 @@ export default class Movie {
   }
 
   constructor(name: string) {
-    this._id = "mo_" + generateHash();
+    this._id = `mo_${generateHash()}`;
     this.name = name.trim();
   }
 }

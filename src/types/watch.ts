@@ -1,5 +1,5 @@
 import { viewCollection } from "../database/index";
-import { generateHash } from "../hash";
+import { generateHash } from "../utils/hash";
 
 export default class SceneView {
   _id: string;
@@ -21,7 +21,7 @@ export default class SceneView {
   }
 
   constructor(sceneId: string, date: number) {
-    this._id = "sc_" + generateHash();
+    this._id = `sc_${generateHash()}`;
     this.date = date;
     this.scene = sceneId;
   }

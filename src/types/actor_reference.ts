@@ -1,5 +1,5 @@
 import { actorReferenceCollection } from "../database/index";
-import { generateHash } from "../hash";
+import { generateHash } from "../utils/hash";
 
 export default class ActorReference {
   _id: string;
@@ -8,7 +8,7 @@ export default class ActorReference {
   type: string;
 
   constructor(item: string, actor: string, type: string) {
-    this._id = "ar_" + generateHash();
+    this._id = `ar_${generateHash()}`;
     this.item = item;
     this.actor = actor;
     this.type = type;

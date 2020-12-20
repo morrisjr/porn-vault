@@ -1,14 +1,12 @@
 import yargs from "yargs";
 
-import * as logger from "./logger";
-
 const argv = yargs
   .boolean("process-queue")
-  .boolean("commit-import")
-  .boolean("ignore-integrity")
   .boolean("skip-compaction")
   .boolean("update-izzy")
-  .boolean("update-gianna")
-  .number("index-slice-size").argv;
-logger.log(argv);
+  .boolean("generate-image-thumbnails")
+  .number("index-slice-size")
+  .boolean("reindex")
+  .boolean("reset-izzy").argv;
+
 export default argv;

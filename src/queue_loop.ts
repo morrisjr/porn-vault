@@ -1,16 +1,24 @@
 import Axios from "axios";
 
-import { IConfig } from "./config/index";
-import { statAsync } from "./fs/async";
-import * as logger from "./logger";
+import { IConfig } from "./config/schema";
 import Image from "./types/image";
 import Scene, { ThumbnailFile } from "./types/scene";
 import Trailer from "./types/trailer";
+import { statAsync } from "./utils/fs/async";
+import * as logger from "./utils/logger";
+
+function protocol(config: IConfig) {
+  return config.server.https.enable ? "https" : "http";
+}
 
 async function getQueueHead(config: IConfig): Promise<Scene> {
   logger.log("Getting queue head...");
   return (
-    await Axios.get<Scene>(`http://localhost:${config.PORT}/queue/head?password=${config.PASSWORD}`)
+    await Axios.get<Scene>(`${protocol(config)}://localhost:${config.server.port}/queue/head`, {
+      params: {
+        password: config.auth.password,
+      },
+    })
   ).data;
 }
 
@@ -28,11 +36,11 @@ export async function queueLoop(config: IConfig): Promise<void> {
         const thumbs = [] as Image[];
         let trailer: Trailer | null = null;
 
-        if (config.GENERATE_PREVIEWS && !queueHead.preview) {
+        if (config.processing.generatePreviews && !queueHead.preview) {
           const preview = await Scene.generatePreview(queueHead);
 
           if (preview) {
-            const image = new Image(queueHead.name + " (preview)");
+            const image = new Image(`${queueHead.name} (preview)`);
             const stats = await statAsync(preview);
             image.path = preview;
             image.scene = queueHead._id;
@@ -46,7 +54,7 @@ export async function queueLoop(config: IConfig): Promise<void> {
           logger.message("Skipping preview generation");
         }
 
-        if (config.GENERATE_SCREENSHOTS) {
+        if (config.processing.generateScreenshots) {
           let screenshots = [] as ThumbnailFile[];
           try {
             screenshots = await Scene.generateThumbnails(queueHead);
@@ -81,8 +89,13 @@ export async function queueLoop(config: IConfig): Promise<void> {
         }
 
         await Axios.post(
-          `http://localhost:${config.PORT}/queue/${queueHead._id}?password=${config.PASSWORD}`,
-          { scene: data, thumbs, images, trailer }
+          `${protocol(config)}://localhost:${config.server.port}/queue/${queueHead._id}`,
+          { scene: data, thumbs, images, trailer },
+          {
+            params: {
+              password: config.auth.password,
+            },
+          }
         );
       } catch (error) {
         const _err = error as Error;
@@ -90,7 +103,12 @@ export async function queueLoop(config: IConfig): Promise<void> {
         logger.log(_err);
         logger.error(_err.message);
         await Axios.delete(
-          `http://localhost:${config.PORT}/queue/${queueHead._id}?password=${config.PASSWORD}`
+          `${protocol(config)}://localhost:${config.server.port}/queue/${queueHead._id}`,
+          {
+            params: {
+              password: config.auth.password,
+            },
+          }
         );
       }
       queueHead = await getQueueHead(config);

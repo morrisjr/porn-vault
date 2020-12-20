@@ -1,13 +1,18 @@
 import { Router } from "express";
 
-import { imageCollection, sceneCollection, trailerCollection } from "./database/index";
-import * as logger from "./logger";
+import {
+  imageCollection,
+  processingCollection,
+  sceneCollection,
+  trailerCollection,
+} from "./database";
 import { getHead, removeSceneFromQueue } from "./queue/processing";
 import { indexImages } from "./search/image";
-import { updateScenes } from "./search/scene";
+import { indexScenes } from "./search/scene";
 import Image from "./types/image";
 import Scene from "./types/scene";
 import Trailer from "./types/trailer";
+import * as logger from "./utils/logger";
 
 const router = Router();
 
@@ -29,7 +34,7 @@ router.post("/:id", async (req, res) => {
       });
       logger.log("Merging scene data:", reqBody.scene);
       await sceneCollection.upsert(req.params.id, scene);
-      await updateScenes([scene]);
+      await indexScenes([scene]);
     }
     if (reqBody.images) {
       for (const image of <Image[]>reqBody.images) {
@@ -64,11 +69,22 @@ router.post("/:id", async (req, res) => {
 });
 
 router.get("/head", async (req, res) => {
-  const queueHead = await getHead();
-  if (!queueHead) return res.json(null);
+  let scene: Scene | null = null;
 
-  const scene = await Scene.getById(queueHead._id);
-  if (!scene) return res.json(null);
+  do {
+    const queueHead = await getHead();
+    if (!queueHead) {
+      return res.json(null);
+    }
+
+    scene = await Scene.getById(queueHead._id);
+    if (!scene) {
+      logger.warn(
+        `Scene ${queueHead._id} doesn't exist (anymore?), deleting from processing queue...`
+      );
+      await processingCollection.remove(queueHead._id);
+    }
+  } while (!scene && (await processingCollection.count()) > 0);
 
   res.json(scene);
 });
