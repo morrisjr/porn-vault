@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { existsSync } from "fs";
 import path from "path";
-import Trailer from "types/trailer";
 
 import { getConfig } from "../config";
 import Image from "../types/image";
 import Scene from "../types/scene";
+import Trailer from "../types/trailer";
 import * as logger from "../utils/logger";
 
 const router = Router();

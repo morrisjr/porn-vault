@@ -82,7 +82,8 @@ export async function queueLoop(config: IConfig): Promise<void> {
             trailer.scene = queueHead._id;
             queueHead.trailer = trailer._id;
           } catch (error) {
-            logger.error(error);
+            const _err = error as Error;
+            logger.error(`Error generating trailer for scene ${queueHead._id}:`, _err.message);
           }
         } else {
           logger.message("Skipping trailer generation");

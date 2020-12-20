@@ -1,5 +1,5 @@
 import { trailerCollection } from "../database";
-import { generateHash } from "../hash";
+import { generateHash } from "../utils/hash";
 
 export default class Trailer {
   _id: string;
@@ -16,7 +16,7 @@ export default class Trailer {
   }
 
   constructor(name: string) {
-    this._id = "tr_" + generateHash();
+    this._id = `tr_${generateHash()}`;
     this.name = name;
   }
 }

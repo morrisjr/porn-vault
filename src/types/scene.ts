@@ -678,18 +678,18 @@ export default class Scene {
   }
 
   static async generateTrailer(scene: Scene): Promise<string> {
-    return new Promise(async (resolve) => {
+    return new Promise(async (resolve, reject) => {
       if (!scene.path) {
-        logger.warn("No scene path, aborting trailer generation.");
-        return resolve();
+        return reject(new Error("No scene path, aborting trailer generation."));
       }
       if (!scene.meta.duration) {
-        logger.warn("No scene duration, aborting trailer generation.");
-        return resolve();
+        return reject(new Error("No scene duration, aborting trailer generation."));
       }
 
       const tmpFolder = path.join("tmp", scene._id);
-      if (!existsSync(tmpFolder)) mkdirp.sync(tmpFolder);
+      if (!existsSync(tmpFolder)) {
+        mkdirpSync(tmpFolder);
+      }
 
       const selectionDuration = 1.2;
       const trailerLength = 12;
@@ -702,7 +702,7 @@ export default class Scene {
 
       const selectOptions: string[] = [];
 
-      for (let step = 0; step < (trailerLength / selectionDuration); step++) {
+      for (let step = 0; step < trailerLength / selectionDuration; step++) {
         selectionOffset = startOffset + stepLength * step;
         selectOptions.push(
           `between(t\\,${selectionOffset}\\,${selectionOffset + selectionDuration})`
@@ -711,13 +711,13 @@ export default class Scene {
 
       const options = {
         file: scene.path,
-        selectOptions: selectOptions.join("+") + ",setpts=N/FRAME_RATE/TB",
+        selectOptions: `${selectOptions.join("+")},setpts=N/FRAME_RATE/TB`,
         output: path.resolve(tmpFolder, "trailer.mp4"),
       };
 
       logger.log("Creating trailer with options: ", options);
       try {
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
           ffmpeg(options.file)
             .on("end", () => {
               logger.success(`Created trailer`);
@@ -753,7 +753,7 @@ export default class Scene {
         } catch (error) {
           logger.error("Failed deleting tmp folder");
         }
-        return resolve();
+        return reject(err);
       }
 
       logger.log(`Created trailer for ${scene._id}.`);
