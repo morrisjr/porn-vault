@@ -74,7 +74,7 @@ export async function queueLoop(config: IConfig): Promise<void> {
           logger.message("Skipping screenshot generation");
         }
 
-        if (config.GENERATE_TRAILERS) {
+        if (config.processing.generateSceneTrailers) {
           try {
             const trailerPath = await Scene.generateTrailer(queueHead);
             trailer = new Trailer(`${queueHead.name} (trailer)`);

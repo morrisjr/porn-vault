@@ -116,6 +116,7 @@ const defaultConfig: IConfig = {
     readImagesOnImport: false,
     screenshotInterval: 120,
     generateImageThumbnails: true,
+    generateSceneTrailers: false,
   },
   scan: {
     excludeFiles: [],

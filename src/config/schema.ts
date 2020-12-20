@@ -107,6 +107,7 @@ const configSchema = zod
       readImagesOnImport: zod.boolean(),
       imageCompressionSize: zod.number().min(60),
       generateImageThumbnails: zod.boolean(),
+      generateSceneTrailers: zod.boolean(),
     }),
     persistence: zod.object({
       libraryPath: zod.string(),
