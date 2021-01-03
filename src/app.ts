@@ -5,7 +5,6 @@ import LRU from "lru-cache";
 import moment from "moment";
 import * as path from "path";
 
-import BROKEN_IMAGE from "./data/broken_image";
 import { sceneCollection } from "./database";
 import { mountApolloServer } from "./middlewares/apollo";
 import cors from "./middlewares/cors";
@@ -17,8 +16,7 @@ import { applyPublic } from "./static";
 import Actor from "./types/actor";
 import Scene, { runFFprobe } from "./types/scene";
 import SceneView from "./types/watch";
-import { httpLog } from "./utils/logger";
-import * as logger from "./utils/logger";
+import { httpLog, logger } from "./utils/logger";
 import { createObjectSet } from "./utils/misc";
 import { renderHandlebars } from "./utils/render";
 import VERSION from "./version";
@@ -99,12 +97,12 @@ export function createVault(): Vault {
   app.get("/label-usage/scenes", async (req, res) => {
     const cached = statCache.get("scene-label-usage");
     if (cached) {
-      logger.log("Using cached scene label usage");
+      logger.debug("Using cached scene label usage");
       return res.json(cached);
     }
     const scores = await Scene.getLabelUsage();
     if (scores.length) {
-      logger.log("Caching scene label usage");
+      logger.debug("Caching scene label usage");
       statCache.set("scene-label-usage", scores);
     }
     res.json(scores);
@@ -113,12 +111,12 @@ export function createVault(): Vault {
   app.get("/label-usage/actors", async (req, res) => {
     const cached = statCache.get("actor-label-usage");
     if (cached) {
-      logger.log("Using cached actor label usage");
+      logger.debug("Using cached actor label usage");
       return res.json(cached);
     }
     const scores = await Actor.getLabelUsage();
     if (scores.length) {
-      logger.log("Caching actor label usage");
+      logger.debug("Caching actor label usage");
       statCache.set("actor-label-usage", scores);
     }
     res.json(scores);
@@ -129,18 +127,6 @@ export function createVault(): Vault {
       serverReady: vault.serverReady,
       setupMessage: vault.setupMessage,
     });
-  });
-
-  app.get("/broken", (_, res) => {
-    const b64 = BROKEN_IMAGE;
-
-    const img = Buffer.from(b64, "base64");
-
-    res.writeHead(200, {
-      "Content-Type": "image/png",
-      "Content-Length": img.length,
-    });
-    res.end(img);
   });
 
   applyPublic(app);
@@ -164,9 +150,9 @@ export function createVault(): Vault {
 
   app.use("/media", mediaRouter);
 
-  app.get("/log", (req, res) => {
-    res.json(logger.getLog());
-  });
+  /* app.get("/log", (req, res) => {
+    res.json(getLog());
+  }); */
 
   mountApolloServer(app);
 
