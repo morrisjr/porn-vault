@@ -1,6 +1,6 @@
 {
   "name": "porn-vault",
-  "version": "0.26.0-beta.1",
+  "version": "0.26.0-beta.2",
   "description": "",
   "main": "build/index.js",
   "bin": "build/index.js",
@@ -92,7 +92,7 @@
     "@types/inquirer": "^7.3.1",
     "@types/lru-cache": "^5.1.0",
     "@types/mocha": "^8.2.0",
-    "@types/node": "^14.14.13",
+    "@types/node": "^14.14.19",
     "@types/node-fetch": "^2.5.7",
     "@types/pug": "^2.0.4",
     "@types/semver": "^7.3.4",
