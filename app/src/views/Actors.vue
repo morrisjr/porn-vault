@@ -487,6 +487,10 @@ export default class ActorList extends mixins(DrawerMixin) {
       value: "addedOn",
     },
     {
+      text: "Age",
+      value: "bornOn",
+    },
+    {
       text: "Rating",
       value: "rating",
     },
@@ -507,10 +511,6 @@ export default class ActorList extends mixins(DrawerMixin) {
       value: "numViews",
     },
     {
-      text: "Age",
-      value: "age",
-    },
-    {
       text: "Bookmarked",
       value: "bookmark",
     },
@@ -525,7 +525,7 @@ export default class ActorList extends mixins(DrawerMixin) {
   ratingFilter = parseInt(localStorage.getItem("pm_actorRating") || "0");
 
   createActorWithName(name: string) {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       ApolloClient.mutate({
         mutation: gql`
           mutation($name: String!) {
@@ -726,6 +726,13 @@ export default class ActorList extends mixins(DrawerMixin) {
   }
 
   async fetchPage(page: number, take = 24, random?: boolean, seed?: string) {
+    let sortDir = this.sortDir;
+
+    // Flip sort direction
+    if (this.sortBy === "bornOn") {
+      sortDir = sortDir === "desc" ? "asc" : "desc";
+    }
+
     const result = await ApolloClient.query({
       query: gql`
         query($query: ActorSearchQuery!, $seed: String) {
@@ -760,7 +767,7 @@ export default class ActorList extends mixins(DrawerMixin) {
           nationality: this.countryFilter || null,
           take,
           page: page - 1,
-          sortDir: this.sortDir,
+          sortDir,
           sortBy: random ? "$shuffle" : this.sortBy,
           favorite: this.favoritesOnly,
           bookmark: this.bookmarksOnly,
