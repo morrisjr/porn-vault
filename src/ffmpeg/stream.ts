@@ -56,18 +56,10 @@ function streamTranscode(
 
   // Time out the request after 2mn to prevent accumulating
   // too many ffmpeg processes. After that, the user should reload the page
-  req.setTimeout(20 * 1000);
+  req.setTimeout(2 * 60 * 1000);
 
   let command: ffmpeg.FfmpegCommand | null = null;
-
-  const { container, videoCodec, audioCodec } = scene.meta;
-  logger.verbose(
-    `For scene ${formatMessage({
-      container,
-      videoCodec,
-      audioCodec,
-    })}, transcoding with options ${formatMessage(outputOptions)}`
-  );
+  let didEnd = false;
 
   command = ffmpeg(scene.path)
     .outputOption(outputOptions)
@@ -76,14 +68,22 @@ function streamTranscode(
     })
     .on("end", () => {
       logger.verbose(`Scene "${scene.path}" has been converted successfully`);
+      didEnd = true;
     })
     .on("error", (err) => {
-      // Error or stream closed because client request closed
-      handleError(
-        `Request finished or an error happened while transcoding scene "${scene.path}"`,
-        err
-      );
+      if (!didEnd) {
+        handleError(
+          `Request finished or an error happened while transcoding scene "${scene.path}"`,
+          err
+        );
+      }
     });
+
+  res.on("close", () => {
+    logger.verbose("Stream request closed, killing transcode");
+    command?.kill("SIGKILL");
+    didEnd = true;
+  });
 
   command.pipe(res, { end: true });
 }
