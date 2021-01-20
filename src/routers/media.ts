@@ -6,7 +6,7 @@ import { getConfig } from "../config";
 import { streamDirect, StreamTypes, transcodeMkv, transcodeWebm } from "../ffmpeg/stream";
 import Image from "../types/image";
 import Scene from "../types/scene";
-import * as logger from "../utils/logger";
+import { logger } from "../utils/logger";
 
 const router = Router();
 
@@ -40,7 +40,7 @@ router.get("/image/path/:path", async (req, res) => {
 
   if (img && img.path) {
     const resolved = path.resolve(img.path);
-    if (!existsSync(resolved)) res.redirect("/broken");
+    if (!existsSync(resolved)) res.redirect("/assets/broken.png");
     else {
       res.sendFile(resolved);
     }
@@ -54,12 +54,12 @@ router.get("/image/:image", async (req, res) => {
 
   if (image && image.path) {
     const resolved = path.resolve(image.path);
-    if (!existsSync(resolved)) res.redirect("/broken");
+    if (!existsSync(resolved)) res.redirect("/assets/broken.png");
     else {
       res.sendFile(resolved);
     }
   } else {
-    res.redirect("/broken");
+    res.redirect("/assets/broken.png");
   }
 });
 
@@ -69,16 +69,16 @@ router.get("/image/:image/thumbnail", async (req, res) => {
   if (image && image.thumbPath) {
     const resolved = path.resolve(image.thumbPath);
     if (!existsSync(resolved)) {
-      res.redirect("/broken");
+      res.redirect("/assets/broken.png");
     } else {
       res.sendFile(resolved);
     }
   } else if (image) {
     const config = getConfig();
-    logger.log(`${req.params.image}'s thumbnail does not exist (yet)`);
+    logger.debug(`${req.params.image}'s thumbnail does not exist (yet)`);
     res.redirect(`/media/image/${image._id}?password=${config.auth.password}`);
   } else {
-    res.redirect("/broken");
+    res.redirect("/assets/broken.png");
   }
 });
 

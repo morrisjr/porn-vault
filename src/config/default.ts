@@ -10,7 +10,7 @@ import {
 
 export const DEFAULT_STRING_MATCHER: StringMatcherType = {
   type: "legacy",
-  options: { ignoreSingleNames: true },
+  options: { ignoreSingleNames: true, stripString: "[^a-zA-Z0-9'/\\,()[\\]{}-]" },
 };
 
 export const DEFAULT_WORD_MATCHER: WordMatcherType = {
@@ -37,6 +37,12 @@ function exeName(str: string): string {
 }
 
 const defaultConfig: IConfig = {
+  search: {
+    host: "http://localhost:9200",
+    log: false,
+    version: "7.x",
+    auth: null,
+  },
   auth: {
     password: null,
   },
@@ -44,18 +50,32 @@ const defaultConfig: IConfig = {
     ffmpeg: exeName("ffmpeg"),
     ffprobe: exeName("ffprobe"),
     izzyPort: 8000,
-    giannaPort: 8001,
   },
   import: {
     images: [],
     videos: [],
   },
   log: {
-    maxSize: 2500,
+    level: "info",
+    maxSize: "20m",
+    maxFiles: "5",
+    writeFile: [
+      {
+        level: "error",
+        prefix: "errors-",
+        silent: false,
+      },
+      {
+        level: "silly",
+        prefix: "full-",
+        silent: true,
+      },
+    ],
   },
   matching: {
     applyActorLabels: [
       ApplyActorLabelsEnum.enum["event:actor:create"],
+      ApplyActorLabelsEnum.enum["event:actor:find-unmatched-scenes"],
       ApplyActorLabelsEnum.enum["plugin:actor:create"],
       ApplyActorLabelsEnum.enum["event:scene:create"],
       ApplyActorLabelsEnum.enum["plugin:scene:create"],
@@ -64,6 +84,7 @@ const defaultConfig: IConfig = {
     applySceneLabels: true,
     applyStudioLabels: [
       ApplyStudioLabelsEnum.enum["event:studio:create"],
+      ApplyStudioLabelsEnum.enum["event:studio:find-unmatched-scenes"],
       ApplyStudioLabelsEnum.enum["plugin:studio:create"],
       ApplyStudioLabelsEnum.enum["event:scene:create"],
       ApplyStudioLabelsEnum.enum["plugin:scene:create"],
@@ -73,6 +94,9 @@ const defaultConfig: IConfig = {
     extractSceneMoviesFromFilepath: true,
     extractSceneStudiosFromFilepath: true,
     matcher: DEFAULT_WORD_MATCHER,
+    matchCreatedActors: true,
+    matchCreatedStudios: true,
+    matchCreatedLabels: true,
   },
   persistence: {
     backup: {

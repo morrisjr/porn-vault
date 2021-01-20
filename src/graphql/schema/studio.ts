@@ -36,13 +36,14 @@ export default gql`
     bookmark: Long
     customFields: Object!
     aliases: [String!]
+    rating: Int!
 
     # Resolvers
+    averageRating: Float!
     parent: Studio
     substudios: [Studio!]!
     numScenes: Int!
     thumbnail: Image
-    rating: Int # Inferred from scene ratings
     scenes: [Scene!]!
     labels: [Label!]! # Inferred from scene labels
     actors: [Actor!]! # Inferred from scene actors
@@ -59,13 +60,14 @@ export default gql`
     parent: String
     labels: [String!]
     aliases: [String!]
+    rating: Int
   }
 
   extend type Mutation {
     addStudio(name: String!, labels: [String!]): Studio!
     updateStudios(ids: [String!]!, opts: StudioUpdateOpts!): [Studio!]!
     removeStudios(ids: [String!]!): Boolean!
-    runStudioPlugins(ids: [String!]!): [Studio!]!
-    runAllStudioPlugins: [Studio!]!
+    runStudioPlugins(id: String!): Studio
+    attachStudioToUnmatchedScenes(id: String!): Studio
   }
 `;

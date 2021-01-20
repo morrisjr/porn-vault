@@ -1,23 +1,37 @@
 {
+  "search": {
+    "host": "http://localhost:9200",
+    "version": "7.x",
+    "log": false
+  },
   "auth": {
     "password": null
   },
   "binaries": {
     "ffmpeg": "/usr/bin/ffmpeg",
     "ffprobe": "/usr/bin/ffprobe",
-    "izzyPort": 8000,
-    "giannaPort": 8001
+    "izzyPort": 8000
   },
   "import": {
     "images": ["/images"],
     "videos": ["/videos"]
   },
   "log": {
-    "maxSize": 2500
+    "level": "info",
+    "maxSize": "20m",
+    "maxFiles": "5",
+    "writeFile": [
+      {
+        "level": "error",
+        "prefix": "errors-",
+        "silent": false
+      }
+    ]
   },
   "matching": {
     "applyActorLabels": [
       "event:actor:create",
+      "event:actor:find-unmatched-scenes",
       "plugin:actor:create",
       "event:scene:create",
       "plugin:scene:create",
@@ -26,6 +40,7 @@
     "applySceneLabels": true,
     "applyStudioLabels": [
       "event:studio:create",
+      "event:studio:find-unmatched-scenes",
       "plugin:studio:create",
       "event:scene:create",
       "plugin:scene:create"
@@ -47,7 +62,10 @@
         "wordSeparators": ["[-_]"],
         "filepathSeparators": ["[/\\\\&]"]
       }
-    }
+    },
+    "matchCreatedActors": true,
+    "matchCreatedStudios": true,
+    "matchCreatedLabels": true
   },
   "persistence": {
     "backup": {

@@ -1,19 +1,16 @@
-import { resolve } from "path";
-
 import { getConfig } from "../../config";
+import { ApplyStudioLabelsEnum } from "../../config/schema";
 import { imageCollection, studioCollection } from "../../database";
 import { buildFieldExtractor, extractStudios } from "../../extractor";
 import { runPluginsSerial } from "../../plugins";
 import { indexImages } from "../../search/image";
 import { indexStudios } from "../../search/studio";
-import Image from "../../types/image";
 import Movie from "../../types/movie";
 import Studio from "../../types/studio";
-import { downloadFile } from "../../utils/download";
-import * as logger from "../../utils/logger";
+import { logger } from "../../utils/logger";
 import { validRating } from "../../utils/misc";
-import { libraryPath } from "../../utils/path";
-import { extensionFromUrl } from "../../utils/string";
+import { createImage, createLocalImage } from "../context";
+import { onStudioCreate } from "./studio";
 
 // This function has side effects
 export async function onMovieCreate(
@@ -26,36 +23,17 @@ export async function onMovieCreate(
     movie: JSON.parse(JSON.stringify(movie)) as Movie,
     movieName: movie.name,
     $createLocalImage: async (path: string, name: string, thumbnail?: boolean) => {
-      path = resolve(path);
-      logger.log(`Creating image from ${path}`);
-      if (await Image.getImageByPath(path)) {
-        logger.warn(`Image ${path} already exists in library`);
-        return null;
-      }
-      const img = new Image(name);
-      if (thumbnail) {
-        img.name += " (thumbnail)";
-      }
-      img.path = path;
-      logger.log(`Created image ${img._id}`);
+      const img = await createLocalImage(path, name, thumbnail);
       await imageCollection.upsert(img._id, img);
+
       if (!thumbnail) {
         await indexImages([img]);
       }
+
       return img._id;
     },
     $createImage: async (url: string, name: string, thumbnail?: boolean) => {
-      // if (!isValidUrl(url)) throw new Error(`Invalid URL: ` + url);
-      logger.log(`Creating image from ${url}`);
-      const img = new Image(name);
-      if (thumbnail) {
-        img.name += " (thumbnail)";
-      }
-      const ext = extensionFromUrl(url);
-      const path = libraryPath(`images/${img._id}${ext}`);
-      await downloadFile(url, path);
-      img.path = path;
-      logger.log(`Created image ${img._id}`);
+      const img = await createImage(url, name, thumbnail);
       await imageCollection.upsert(img._id, img);
       if (!thumbnail) {
         await indexImages([img]);
@@ -130,11 +108,23 @@ export async function onMovieCreate(
 
     if (studioId) movie.studio = studioId;
     else if (config.plugins.createMissingStudios) {
-      const studio = new Studio(pluginResult.studio);
+      const studioLabels: string[] = [];
+      let studio = new Studio(pluginResult.studio);
       movie.studio = studio._id;
+
+      studio = await onStudioCreate(studio, studioLabels, "studioCreated");
       await studioCollection.upsert(studio._id, studio);
+      await Studio.findUnmatchedScenes(
+        studio,
+        config.matching.applyStudioLabels.includes(
+          ApplyStudioLabelsEnum.enum["event:studio:create"]
+        )
+          ? studioLabels
+          : []
+      );
       await indexStudios([studio]);
-      logger.log(`Created studio ${studio.name}`);
+
+      logger.debug(`Created studio ${studio.name}`);
     }
   }
 

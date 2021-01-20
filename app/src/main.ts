@@ -7,6 +7,7 @@ import VueTheMask from "vue-the-mask";
 
 import App from "./App.vue";
 import BindTitle from "./components/BindTitle.vue";
+import BindFavicon from "./components/BindFavicon.vue";
 import DateInput from "./components/DateInput.vue";
 import Divider from "./components/Divider.vue";
 import Flag from "./components/Flag.vue";
@@ -25,6 +26,7 @@ Vue.use(vueScrollBehavior, { router: router });
 Vue.use(VueTheMask);
 
 Vue.component("BindTitle", BindTitle);
+Vue.component("BindFavicon", BindFavicon);
 Vue.component("DateInput", DateInput);
 Vue.component("Rating", Rating);
 Vue.component("LabelFilter", LabelFilter);

@@ -2,12 +2,13 @@ import { getConfig } from "../../config";
 import { ApplyActorLabelsEnum } from "../../config/schema";
 import { actorCollection } from "../../database";
 import { onActorCreate } from "../../plugins/events/actor";
-import { index as actorIndex, indexActors, updateActors } from "../../search/actor";
+import { indexActors, removeActors } from "../../search/actor";
 import Actor from "../../types/actor";
 import ActorReference from "../../types/actor_reference";
 import { isValidCountryCode } from "../../types/countries";
 import LabelledItem from "../../types/labelled_item";
-import * as logger from "../../utils/logger";
+import { logger } from "../../utils/logger";
+import { filterInvalidAliases, isArrayEq } from "../../utils/misc";
 import { Dictionary } from "../../utils/types";
 
 type IActorUpdateOpts = Partial<{
@@ -33,7 +34,7 @@ async function runActorPlugins(ids: string[]) {
     let actor = await Actor.getById(id);
 
     if (actor) {
-      logger.message(`Running plugin action event for '${actor.name}'...`);
+      logger.info(`Running plugin action event for '${actor.name}'...`);
 
       const labels = (await Actor.getLabels(actor)).map((l) => l._id);
       actor = await onActorCreate(actor, labels, "actorCustom");
@@ -46,7 +47,7 @@ async function runActorPlugins(ids: string[]) {
       logger.warn(`Actor ${id} not found`);
     }
 
-    await updateActors(updatedActors);
+    await indexActors(updatedActors);
   }
   return updatedActors;
 }
@@ -62,7 +63,9 @@ export default {
     args: { name: string; aliases?: string[]; labels?: string[] }
   ): Promise<Actor> {
     const config = getConfig();
-    let actor = new Actor(args.name, args.aliases);
+    const aliases = filterInvalidAliases(args.aliases || []);
+
+    let actor = new Actor(args.name, aliases);
 
     let actorLabels = [] as string[];
     if (args.labels) {
@@ -78,12 +81,14 @@ export default {
     await Actor.setLabels(actor, actorLabels);
     await actorCollection.upsert(actor._id, actor);
 
-    await Actor.attachToScenes(
-      actor,
-      config.matching.applyActorLabels.includes(ApplyActorLabelsEnum.enum["event:actor:create"])
-        ? actorLabels
-        : []
-    );
+    if (config.matching.matchCreatedActors) {
+      await Actor.findUnmatchedScenes(
+        actor,
+        config.matching.applyActorLabels.includes(ApplyActorLabelsEnum.enum["event:actor:create"])
+          ? actorLabels
+          : []
+      );
+    }
 
     await indexActors([actor]);
 
@@ -97,16 +102,33 @@ export default {
     const config = getConfig();
     const updatedActors = [] as Actor[];
 
+    let didLabelsChange = false;
+
     for (const id of ids) {
       const actor = await Actor.getById(id);
 
       if (actor) {
+        if (typeof opts.name === "string") {
+          actor.name = opts.name.trim();
+        }
+
         if (Array.isArray(opts.aliases)) {
-          actor.aliases = [...new Set(opts.aliases)];
+          actor.aliases = [...new Set(filterInvalidAliases(opts.aliases))];
         }
 
         if (Array.isArray(opts.labels)) {
+          const oldLabels = await Actor.getLabels(actor);
           await Actor.setLabels(actor, opts.labels);
+          if (
+            !isArrayEq(
+              oldLabels,
+              opts.labels,
+              (l) => l._id,
+              (l) => l
+            )
+          ) {
+            didLabelsChange = true;
+          }
         }
 
         if (typeof opts.nationality !== undefined) {
@@ -123,10 +145,6 @@ export default {
 
         if (typeof opts.favorite === "boolean") {
           actor.favorite = opts.favorite;
-        }
-
-        if (typeof opts.name === "string") {
-          actor.name = opts.name.trim();
         }
 
         if (typeof opts.description === "string") {
@@ -160,7 +178,7 @@ export default {
         if (opts.customFields) {
           for (const key in opts.customFields) {
             const value = opts.customFields[key] !== undefined ? opts.customFields[key] : null;
-            logger.log(`Set actor custom.${key} to ${JSON.stringify(value)}`);
+            logger.debug(`Set actor custom.${key} to ${JSON.stringify(value)}`);
             opts.customFields[key] = value;
           }
           actor.customFields = opts.customFields;
@@ -172,15 +190,20 @@ export default {
         throw new Error(`Actor ${id} not found`);
       }
 
-      await Actor.attachToScenes(
-        actor,
-        config.matching.applyActorLabels.includes(ApplyActorLabelsEnum.enum["event:actor:update"])
+      if (didLabelsChange) {
+        const labelsToPush = config.matching.applyActorLabels.includes(
+          ApplyActorLabelsEnum.enum["event:actor:update"]
+        )
           ? (await Actor.getLabels(actor)).map((l) => l._id)
-          : []
-      );
+          : [];
+        await Actor.pushLabelsToCurrentScenes(actor, labelsToPush).catch((err) => {
+          logger.error(`Error while pushing actor "${actor.name}"'s labels to scenes`);
+          logger.error(err);
+        });
+      }
     }
 
-    await updateActors(updatedActors);
+    await indexActors(updatedActors);
     return updatedActors;
   },
 
@@ -190,11 +213,37 @@ export default {
 
       if (actor) {
         await Actor.remove(actor);
-        await actorIndex.remove([actor._id]);
+        await removeActors([actor._id]);
         await LabelledItem.removeByItem(actor._id);
         await ActorReference.removeByActor(actor._id);
       }
     }
     return true;
+  },
+
+  async attachActorToUnmatchedScenes(_: unknown, { id }: { id: string }): Promise<Actor | null> {
+    const config = getConfig();
+
+    const actor = await Actor.getById(id);
+    if (!actor) {
+      logger.error(`Did not find actor for id "${id}" to attach to unmatched scenes`);
+      return null;
+    }
+
+    try {
+      const labelsToPush = config.matching.applyActorLabels.includes(
+        ApplyActorLabelsEnum.enum["event:actor:find-unmatched-scenes"]
+      )
+        ? (await Actor.getLabels(actor)).map((l) => l._id)
+        : [];
+
+      await Actor.findUnmatchedScenes(actor, labelsToPush);
+    } catch (err) {
+      logger.error(`Error attaching "${actor.name}" to unmatched scenes`);
+      logger.error(err);
+      return null;
+    }
+
+    return actor;
   },
 };

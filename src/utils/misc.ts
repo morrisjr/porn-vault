@@ -1,7 +1,7 @@
 import { createReadStream, PathLike } from "fs";
 
 import { existsAsync } from "./fs/async";
-import * as logger from "./logger";
+import { logger } from "./logger";
 import { isNumber } from "./types";
 
 export function validRating(val: unknown): val is number {
@@ -115,7 +115,11 @@ export function mergeMissingProperties(
       }
 
       if (!Object.hasOwnProperty.call(currentTarget, prop)) {
-        if (typeof currentSource[prop] === "object" && !Array.isArray(currentSource[prop])) {
+        if (
+          currentSource[prop] &&
+          typeof currentSource[prop] === "object" &&
+          !Array.isArray(currentSource[prop])
+        ) {
           // If the target is missing a whole object, we have to make sure to ignore the paths inside
           // that object as well
           const subMergeObj = mergeMissingProperties(
@@ -153,6 +157,10 @@ export function mergeMissingProperties(
   return target;
 }
 
+export function isObject(target: unknown): target is Record<string, unknown> {
+  return !!target && typeof target === "object" && !Array.isArray(target);
+}
+
 /**
  * Removes properties from the target, that do not exist in the default
  * WARNING: Will not enter arrays.
@@ -172,10 +180,6 @@ export function removeUnknownProperties(
 
   const removalsToDo = [{ target, defaultObj, parentPath: "" }];
 
-  function isObj(target: unknown): target is Record<string, unknown> {
-    return target && typeof target === "object" && !Array.isArray(target);
-  }
-
   function removeUnknown(
     currentTarget: Record<string, unknown>,
     currentSource: Record<string, unknown>,
@@ -190,7 +194,7 @@ export function removeUnknownProperties(
 
       if (!Object.hasOwnProperty.call(currentSource, prop) && !isIgnoredPath) {
         delete currentTarget[prop];
-      } else if (isObj(currentTarget[prop]) && isObj(currentSource[prop]) && !isIgnoredPath) {
+      } else if (isObject(currentTarget[prop]) && isObject(currentSource[prop]) && !isIgnoredPath) {
         removalsToDo.push({
           target: currentTarget[prop] as Record<string, unknown>,
           defaultObj: currentSource[prop] as Record<string, unknown>,
@@ -248,6 +252,33 @@ export function arrayDiff<
     kept,
     added,
   };
+}
+
+export function isArrayEq<
+  SourceT extends Record<string, any> | string,
+  TargetT extends Record<string, any> | string
+>(
+  source: SourceT[],
+  target: TargetT[],
+  getSourceKey: (keyof SourceT & string) | ((item: SourceT) => (keyof SourceT & string) | string),
+  getTargetKey: (keyof TargetT & string) | ((item: TargetT) => (keyof TargetT & string) | string)
+): boolean {
+  if (source.length !== target.length) {
+    return false;
+  }
+
+  const sourceKey = (s: SourceT) =>
+    typeof getSourceKey === "function" ? getSourceKey(s) : s[getSourceKey];
+  const targetKey = (t: TargetT) =>
+    typeof getTargetKey === "function" ? getTargetKey(t) : t[getTargetKey];
+
+  return source.every(
+    (oldItem) => !!target.find((newItem) => sourceKey(oldItem) === targetKey(newItem))
+  );
+}
+
+export function filterInvalidAliases(aliases: string[]): string[] {
+  return aliases.filter((alias) => !!alias.trim());
 }
 
 /**
