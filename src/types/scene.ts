@@ -40,19 +40,6 @@ import SceneView from "./watch";
 export function ffprobeAsync(file: string): Promise<FfprobeData> {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(file, (err, metadata) => {
-      const { format, streams } = metadata;
-      console.log(
-        ">>>>>>>>>>>>>>>>>>",
-        JSON.stringify({
-          format_name: format.format_name,
-          formatDuration: format.duration,
-          streams: streams.map((s) => ({
-            codec_type: s.codec_type,
-            codec_name: s.codec_name,
-            duration: s.duration,
-          })),
-        })
-      );
       if (err) return reject(err);
       resolve(metadata);
     });
@@ -178,12 +165,15 @@ export default class Scene {
       format.format_name as FFProbeContainers,
       videoPath
     );
-    console.log("final container ", scene.meta.container);
+    logger.verbose(
+      `Got ffprobe metadata ${formatMessage(metadata)} with normalized container ${
+        scene.meta.container
+      }`
+    );
 
-    let foundValidVideoStream = false;
     let stream = streams.shift();
     while (stream && (!scene.meta.videoCodec || !scene.meta.audioCodec)) {
-      if (!foundValidVideoStream && stream.codec_type === "video") {
+      if (!scene.meta.videoCodec && stream.codec_type === "video") {
         scene.meta.videoCodec = (stream.codec_name as FFProbeVideoCodecs) || null;
 
         if (stream.width && stream.height) {
@@ -201,7 +191,6 @@ export default class Scene {
         }
         scene.meta.duration = parseFloat(stream.duration || "") || null;
         scene.meta.size = (await statAsync(videoPath)).size;
-        foundValidVideoStream = true;
       }
 
       if (!scene.meta.audioCodec && stream.codec_type === "audio") {
@@ -210,16 +199,14 @@ export default class Scene {
 
       stream = streams.shift();
     }
-    // MKV stores does not store duration on stream
+    // MKV stores duration in format
     scene.meta.duration = scene.meta.duration ?? (format.duration || null);
 
-    if (!foundValidVideoStream) {
-      logger.log(streams);
+    if (!scene.meta.videoCodec) {
       throw new Error("Could not get video stream...broken file?");
     }
 
     if (!scene.meta.duration) {
-      logger.log(format);
       throw new Error("Could not get video duration...broken file?");
     }
 

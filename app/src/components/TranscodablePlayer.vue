@@ -1,5 +1,5 @@
 <template>
-  <video v-on="listeners" v-bind="$attrs" id="video" class="video" ref="video">
+  <video v-on="computedListeners" v-bind="$attrs" id="video" class="video" ref="video">
     <source
       v-for="streamType in initialStreamTypes"
       :key="streamType.type"
@@ -29,9 +29,11 @@ export default class TranscodablePlayer extends Vue {
   progress = 0;
   didSetStart = false;
 
-  get listeners() {
+  get computedListeners() {
+    const { progress, buffered, ...restListeners } = this.$listeners;
+
     return {
-      ...this.$listeners,
+      ...restListeners,
       loadeddata: (...args: unknown[]) => {
         this.onLoadedMetadata();
         (this.$listeners.loadeddata as (...args: unknown[]) => void)?.(...args);
@@ -87,7 +89,7 @@ export default class TranscodablePlayer extends Vue {
       this.currentStream = this.streamTypes.find((type) => vid.currentSrc.startsWith(type.url));
     }
 
-      // Seek to initial start
+    // Seek to initial start
     if (!this.didSetStart) {
       // When transcoding and we seek, 'loadedmetadata' will be retriggered,
       // but we do NOT want to seek to the start position again
@@ -99,14 +101,6 @@ export default class TranscodablePlayer extends Vue {
   onTimeUpdate(): void {
     const vid = this.getVideo();
     if (vid) {
-      console.log(
-        "time update off",
-        this.transcodeOffset,
-        "vid time ",
-        vid.currentTime,
-        " total ",
-        vid.currentTime + this.transcodeOffset
-      );
       this.progress = this.transcodeOffset + vid.currentTime;
       this.buffered = vid.buffered;
     }
@@ -127,19 +121,14 @@ export default class TranscodablePlayer extends Vue {
       return;
     }
 
-    console.log(this.transcodeOffset, vid.currentTime, JSON.stringify(this.bufferedRanges));
-    console.log("req ", time);
-
     if (
       !this.currentStream?.transcode ||
       (this.transcodeOffset < time &&
         this.bufferedRanges.find((range) => range.start <= time && range.end >= time))
     ) {
-      console.log("no transcode or is buffered, go to ", time - this.transcodeOffset);
       vid.pause();
       vid.currentTime = time - this.transcodeOffset;
     } else {
-      console.log("is transcode, restart at ", time);
       vid.pause();
       vid.currentTime = 0;
       const src = new URL(vid.currentSrc);

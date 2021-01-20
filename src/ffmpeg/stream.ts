@@ -3,6 +3,7 @@ import ffmpeg from "fluent-ffmpeg";
 import path from "path";
 
 import Scene from "../types/scene";
+import { formatMessage, handleError, logger } from "../utils/logger";
 import {
   audioIsValidForContainer,
   FFProbeContainers,
@@ -35,11 +36,6 @@ function streamTranscode(
   outputOptions: string[],
   mimeType: string
 ): void {
-  const startQuery = (req.query as { start?: string }).start || "0";
-  const startSeconds = Number.parseFloat(startQuery);
-
-  console.log("got start ", startSeconds);
-
   res.writeHead(200, {
     "Accept-Ranges": "bytes",
     Connection: "keep-alive",
@@ -49,31 +45,44 @@ function streamTranscode(
     "Content-Type": mimeType,
   });
 
+  const startQuery = (req.query as { start?: string }).start || "0";
+  const startSeconds = Number.parseFloat(startQuery);
+  if (Number.isNaN(startSeconds)) {
+    res.status(400).send(`Could not parse start query as number: ${startQuery}`);
+    return;
+  }
+
+  outputOptions.unshift(`-ss ${startSeconds}`);
+
   // Time out the request after 2mn to prevent accumulating
   // too many ffmpeg processes. After that, the user should reload the page
   req.setTimeout(20 * 1000);
 
   let command: ffmpeg.FfmpegCommand | null = null;
 
-  console.log(scene.meta.container, scene.meta.videoCodec, scene.meta.audioCodec);
-  console.log(">>>", outputOptions);
+  const { container, videoCodec, audioCodec } = scene.meta;
+  logger.verbose(
+    `For scene ${formatMessage({
+      container,
+      videoCodec,
+      audioCodec,
+    })}, transcoding with options ${formatMessage(outputOptions)}`
+  );
 
   command = ffmpeg(scene.path)
-    .seek(startSeconds)
     .outputOption(outputOptions)
-    // setup event handlers
-    .on("start", function (commandLine: string) {
-      console.log(`Spawned Ffmpeg with command: ${commandLine}`);
+    .on("start", (commandLine: string) => {
+      logger.verbose(`Spawned Ffmpeg with command: ${commandLine}`);
     })
-    .on("progress", () => {
-      console.log("progress");
+    .on("end", () => {
+      logger.verbose(`Scene "${scene.path}" has been converted successfully`);
     })
-    .on("end", function () {
-      console.log("file has been converted successfully");
-    })
-    .on("error", function (err) {
+    .on("error", (err) => {
       // Error or stream closed because client request closed
-      console.log(`Request finished or an error happened: ${err as string}`);
+      handleError(
+        `Request finished or an error happened while transcoding scene "${scene.path}"`,
+        err
+      );
     });
 
   command.pipe(res, { end: true });
@@ -139,13 +148,10 @@ export function transcodeMkv(
     scene.meta.videoCodec && videoIsValidForContainer(FFProbeContainers.MP4, scene.meta.videoCodec);
   const isMP4AudioValid =
     scene.meta.audioCodec && audioIsValidForContainer(FFProbeContainers.MP4, scene.meta.audioCodec);
-  console.log("mkv valid ? ", isMP4VideoValid, isMP4AudioValid);
 
+  // If any of the video codecs are not valid for mp4, we don't want to transcode mp4 (use webm instead)
   if (!isMP4VideoValid) {
     return res.status(400).send(`Video codec "${scene.meta.videoCodec}" is not valid for mp4`);
-  }
-  if (!isMP4AudioValid) {
-    return res.status(400).send(`Audio codec "${scene.meta.audioCodec}" is not valid for mp4`);
   }
 
   const mp4Options = [
