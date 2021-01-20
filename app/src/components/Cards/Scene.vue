@@ -18,7 +18,18 @@
                     autoplay="true"
                     muted="muted"
                     :streamTypes="streamTypes"
+                    @waiting="buffering = true"
+                    @progress="buffering = false"
                   ></TranscodablePlayer>
+
+                  <v-fade-transition>
+                    <v-progress-circular
+                      class="buffering"
+                      indeterminate
+                      color="primary"
+                      v-if="buffering"
+                    ></v-progress-circular>
+                  </v-fade-transition>
                 </div>
               </div>
             </v-fade-transition>
@@ -124,6 +135,7 @@ export default class SceneCard extends Mixins(SceneMixin) {
   playIndex = 0;
   playInterval = null as NodeJS.Timeout | null;
   initialStartIndex = 60;
+  buffering = false;
 
   get complementary() {
     if (this.cardColor) {
@@ -239,5 +251,12 @@ export default class SceneCard extends Mixins(SceneMixin) {
   cursor: pointer;
   opacity: 0.65;
   color: #fff;
+}
+
+.buffering {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 </style>

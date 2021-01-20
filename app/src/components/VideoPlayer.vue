@@ -134,12 +134,22 @@
               </div>
             </div>
           </v-fade-transition>
+
+          <v-fade-transition>
+            <v-progress-circular
+              class="buffering"
+              indeterminate
+              color="primary"
+              v-if="buffering"
+            ></v-progress-circular>
+          </v-fade-transition>
         </div>
         <TranscodablePlayer
           @click="togglePlay(false)"
           @dblclick="toggleFullscreen"
           @progress="onProgressChange"
           @buffered="onBufferedChange"
+          @waiting="buffering = true"
           :streamTypes="streamTypes"
           id="player"
           class="video"
@@ -191,6 +201,7 @@ export default class VideoPlayer extends Vue {
   bufferedRanges: BufferedRange[] = [];
   isPlaying = false;
   showPoster = true;
+  buffering = false;
 
   isVolumeDragging = false;
   isMuted = localStorage.getItem(IS_MUTED) === "true";
@@ -397,6 +408,7 @@ export default class VideoPlayer extends Vue {
   }
 
   onProgressChange(value: number): void {
+    this.buffering = false;
     this.progress = value;
   }
 
@@ -688,6 +700,13 @@ export default class VideoPlayer extends Vue {
     left: 10px;
     top: 10px;
     border-radius: 6px;
+  }
+
+  .buffering {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
   }
 
   .poster {

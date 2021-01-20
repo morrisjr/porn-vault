@@ -126,7 +126,6 @@ export default class TranscodablePlayer extends Vue {
       (this.transcodeOffset < time &&
         this.bufferedRanges.find((range) => range.start <= time && range.end >= time))
     ) {
-      vid.pause();
       vid.currentTime = time - this.transcodeOffset;
     } else {
       vid.pause();
