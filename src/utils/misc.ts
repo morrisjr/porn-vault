@@ -1,7 +1,7 @@
 import { createReadStream, PathLike } from "fs";
 
-import { existsAsync } from "./fs/async";
-import { logger } from "./logger";
+import { statAsync } from "./fs/async";
+import { handleError, logger } from "./logger";
 import { isNumber } from "./types";
 
 export function validRating(val: unknown): val is number {
@@ -289,13 +289,14 @@ export function filterInvalidAliases(aliases: string[]): string[] {
  * @param n - how many bytes to read
  */
 export async function readFirstNBytes(filepath: PathLike, n: number): Promise<Buffer | null> {
-  if (!(await existsAsync(filepath))) {
+  try {
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of createReadStream(filepath, { start: 0, end: n })) {
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+  } catch (err) {
+    handleError(`Could not read first bytes of file ${filepath.toString()}`, err);
     return null;
   }
-
-  const chunks: Uint8Array[] = [];
-  for await (const chunk of createReadStream(filepath, { start: 0, end: n })) {
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks);
 }

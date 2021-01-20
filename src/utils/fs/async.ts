@@ -1,15 +1,4 @@
-import {
-  copyFile,
-  mkdir,
-  mkdirSync,
-  PathLike,
-  readdir,
-  readFile,
-  rmdir,
-  stat,
-  unlink,
-  writeFile,
-} from "fs";
+import { copyFile, mkdir, mkdirSync, readdir, readFile, rmdir, stat, unlink, writeFile } from "fs";
 import { basename, join, resolve } from "path";
 import { promisify } from "util";
 
@@ -17,8 +6,6 @@ import { handleError, logger } from "../logger";
 import { getExtension } from "../string";
 
 export const statAsync = promisify(stat);
-export const existsAsync = async (filepath: PathLike): Promise<boolean> =>
-  !!(await statAsync(filepath));
 export const unlinkAsync = promisify(unlink);
 export const readdirAsync = promisify(readdir);
 export const readFileAsync = promisify(readFile);
