@@ -12,9 +12,11 @@ import {
   getPageSize,
   includeFilter,
   ISearchResults,
+  normalizeQuery,
   ratingFilter,
   searchQuery,
   shuffle,
+  shuffleSwitch,
   sort,
 } from "./common";
 import { getClient, indexMap } from "./index";
@@ -45,7 +47,7 @@ export async function createMarkerSearchDoc(marker: Marker): Promise<IMarkerSear
   return {
     id: marker._id,
     addedOn: marker.addedOn,
-    name: marker.name,
+    name: normalizeQuery(marker.name),
     actors: actors.map((a) => a._id),
     actorNames: [...new Set(actors.map(getActorNames).flat())],
     labels: labels.map((l) => l._id),
@@ -118,6 +120,9 @@ export async function searchMarkers(
     };
   }
 
+  const query = searchQuery(options.query, ["name", "actorNames^1.5", "labelNames", "sceneName"]);
+  const _shuffle = shuffle(shuffleSeed, query, options.sortBy);
+
   const result = await getClient().search<IMarkerSearchDoc>({
     index: indexMap.markers,
     ...getPage(options.page, options.skip, options.take),
@@ -126,10 +131,7 @@ export async function searchMarkers(
       track_total_hits: true,
       query: {
         bool: {
-          must: [
-            ...shuffle(shuffleSeed, options.sortBy),
-            ...searchQuery(options.query, ["name", "actorNames^1.5", "labelNames", "sceneName"]),
-          ],
+          ...shuffleSwitch(query, _shuffle),
           filter: [
             ...ratingFilter(options.rating),
             ...bookmark(options.bookmark),

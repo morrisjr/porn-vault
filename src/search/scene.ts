@@ -17,9 +17,11 @@ import {
   getPageSize,
   includeFilter,
   ISearchResults,
+  normalizeQuery,
   ratingFilter,
   searchQuery,
   shuffle,
+  shuffleSwitch,
   sort,
 } from "./common";
 import { addSearchDocs, buildIndex, indexItems, ProgressCallback } from "./internal/buildIndex";
@@ -64,7 +66,7 @@ async function createSceneSearchDoc(scene: Scene): Promise<ISceneSearchDoc> {
   return {
     id: scene._id,
     addedOn: scene.addedOn,
-    name: scene.name,
+    name: normalizeQuery(scene.name),
     path: scene.path,
     labels: labels.map((l) => l._id),
     numLabels: labels.length,
@@ -150,6 +152,15 @@ export async function searchScenes(
     };
   }
 
+  const query = searchQuery(options.query, [
+    "name",
+    "actorNames^1.5",
+    "labelNames",
+    "studioName^1.25",
+    "movieNames^0.25",
+  ]);
+  const _shuffle = shuffle(shuffleSeed, query, options.sortBy);
+
   const result = await getClient().search<ISceneSearchDoc>({
     index: indexMap.scenes,
     ...getPage(options.page, options.skip, options.take),
@@ -158,16 +169,7 @@ export async function searchScenes(
       track_total_hits: true,
       query: {
         bool: {
-          must: [
-            ...shuffle(shuffleSeed, options.sortBy),
-            ...searchQuery(options.query, [
-              "name",
-              "actorNames^1.5",
-              "labelNames",
-              "studioName^1.25",
-              "movieNames^0.25",
-            ]),
-          ],
+          ...shuffleSwitch(query, _shuffle),
           filter: [
             ...ratingFilter(options.rating),
             ...bookmark(options.bookmark),
