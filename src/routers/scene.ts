@@ -162,6 +162,13 @@ function transcodeMp4(
   return streamTranscode(scene, req, res, mp4Options, getDirectPlayMimeType(FFProbeContainers.MP4));
 }
 
+export enum SceneStreamTypes {
+  DIRECT = "direct",
+  MP4 = "mp4",
+  MKV = "mkv",
+  WEBM = "webm",
+}
+
 const router = Router();
 
 router.get("/:scene", async (req, res, next) => {
