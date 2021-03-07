@@ -235,6 +235,7 @@ export default class Scene {
     scene.meta.duration = scene.meta.duration ?? (format.duration || null);
 
     if (!scene.meta.videoCodec) {
+      logger.debug(streams);
       throw new Error("Could not get video stream...broken file?");
     }
 
