@@ -1,5 +1,5 @@
 import { sceneCollection } from "../../database";
-import { FFProbeContainers, normalizeFFProbeContainer } from "../../ffmpeg/ffprobe";
+import { FFProbeContainers } from "../../ffmpeg/ffprobe";
 import { SceneStreamTypes } from "../../routers/scene";
 import Actor from "../../types/actor";
 import CustomField, { CustomFieldTarget } from "../../types/custom_field";
@@ -7,19 +7,12 @@ import Image from "../../types/image";
 import Label from "../../types/label";
 import Marker from "../../types/marker";
 import Movie from "../../types/movie";
-import Scene, { ffprobeAsync } from "../../types/scene";
+import Scene from "../../types/scene";
 import Studio from "../../types/studio";
 import SceneView from "../../types/watch";
 import { handleError, logger } from "../../utils/logger";
 import { getExtension } from "../../utils/string";
 import { videoIsValidForContainer } from "./../../ffmpeg/ffprobe";
-
-interface AvailableStreams {
-  label: string;
-  mimeType?: string;
-  streamType: SceneStreamTypes;
-  transcode: boolean;
-}
 
 interface AvailableStreams {
   label: string;
