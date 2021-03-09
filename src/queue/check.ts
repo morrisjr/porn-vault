@@ -137,7 +137,7 @@ async function processImage(imagePath: string, readImage = true, generateThumb =
 export async function checkImageFolders(): Promise<void> {
   const config = getConfig();
 
-  logger.warn("Scanning image folders...");
+  logger.info("Scanning image folders...");
 
   let numAddedImages = 0;
 
