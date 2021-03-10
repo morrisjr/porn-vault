@@ -41,6 +41,20 @@ export const ApplyStudioLabelsEnum = zod.enum([
 
 const logLevelType = zod.enum(["error", "warn", "info", "http", "verbose", "debug", "silly"]);
 
+export const HardwareAccelerationDriver = zod.enum(["qsv", "vaapi", "nvenc"]);
+
+export const H264Preset = zod.enum([
+  "ultrafast",
+  "superfast",
+  "veryfast",
+  "faster",
+  "fast",
+  "medium",
+  "slow",
+  "slower",
+  "veryslow",
+]);
+
 const configSchema = zod
   .object({
     search: zod.object({
@@ -140,6 +154,14 @@ const configSchema = zod
           silent: zod.boolean(),
         })
       ),
+    }),
+    playback: zod.object({
+      transcode: zod.object({
+        hwaDriver: HardwareAccelerationDriver.nullable(),
+        hwaArgs: zod.string().nullable(),
+        h264Preset: H264Preset,
+        h264Crf: zod.number().min(0).max(51),
+      }),
     }),
   })
   .nonstrict();

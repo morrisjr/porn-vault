@@ -108,5 +108,13 @@
       "key": ""
     },
     "port": 3000
+  },
+  "playback": {
+    "transcode": {
+      "hwaDriver": false,
+      "hwaArgs": null,
+      "h264Preset": "veryfast",
+      "h264Crf": 23
+    }
   }
 }

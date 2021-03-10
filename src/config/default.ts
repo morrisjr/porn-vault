@@ -1,7 +1,7 @@
 import { platform } from "os";
 
 import { DEFAULT_WORD_MATCHER } from "../matching/wordMatcher";
-import { ApplyActorLabelsEnum, ApplyStudioLabelsEnum, IConfig } from "./schema";
+import { ApplyActorLabelsEnum, ApplyStudioLabelsEnum, H264Preset, IConfig } from "./schema";
 
 function isWindows(): boolean {
   return platform() === "win32";
@@ -122,6 +122,14 @@ const defaultConfig: IConfig = {
       key: "",
     },
     port: 3000,
+  },
+  playback: {
+    transcode: {
+      hwaDriver: null,
+      hwaArgs: null,
+      h264Preset: H264Preset.enum.veryfast,
+      h264Crf: 23,
+    },
   },
 };
 
