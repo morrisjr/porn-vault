@@ -17,7 +17,7 @@ export const TEST_VIDEOS = {
       container: "mov,mp4,m4a,3gp,3g2,mj2",
       videoCodec: "h264",
     },
-    streamTypes: [SceneStreamTypes.DIRECT, SceneStreamTypes.WEBM],
+    streamTypes: [SceneStreamTypes.DIRECT, SceneStreamTypes.WEBM_TRANSCODE],
   },
   WEBM_VP8: {
     url: "https://test-videos.co.uk/vids/bigbuckbunny/webm/vp8/360/Big_Buck_Bunny_360_10s_1MB.webm",
@@ -34,7 +34,7 @@ export const TEST_VIDEOS = {
       container: "matroska,webm",
       videoCodec: "vp8",
     },
-    streamTypes: [SceneStreamTypes.DIRECT, SceneStreamTypes.WEBM],
+    streamTypes: [SceneStreamTypes.DIRECT, SceneStreamTypes.WEBM_TRANSCODE],
   },
   WEBM_VP9: {
     url: "https://test-videos.co.uk/vids/bigbuckbunny/webm/vp9/360/Big_Buck_Bunny_360_10s_1MB.webm",
@@ -51,7 +51,7 @@ export const TEST_VIDEOS = {
       container: "matroska,webm",
       videoCodec: "vp9",
     },
-    streamTypes: [SceneStreamTypes.DIRECT, SceneStreamTypes.WEBM],
+    streamTypes: [SceneStreamTypes.DIRECT, SceneStreamTypes.WEBM_TRANSCODE],
   },
   MKV_H264: {
     url: "http://mirrors.standaloneinstaller.com/video-sample/small.mkv",
@@ -68,7 +68,11 @@ export const TEST_VIDEOS = {
       container: "matroska",
       videoCodec: "h264",
     },
-    streamTypes: [SceneStreamTypes.DIRECT, SceneStreamTypes.MP4, SceneStreamTypes.WEBM],
+    streamTypes: [
+      SceneStreamTypes.DIRECT,
+      SceneStreamTypes.MP4_DIRECT,
+      SceneStreamTypes.WEBM_TRANSCODE,
+    ],
   },
   AVI: {
     url: "http://mirrors.standaloneinstaller.com/video-sample/small.avi",
@@ -85,7 +89,7 @@ export const TEST_VIDEOS = {
       container: "avi",
       videoCodec: "mpeg4",
     },
-    streamTypes: [SceneStreamTypes.DIRECT, SceneStreamTypes.WEBM],
+    streamTypes: [SceneStreamTypes.DIRECT, SceneStreamTypes.WEBM_TRANSCODE],
   },
   MOV: {
     url: "http://mirrors.standaloneinstaller.com/video-sample/small.mov",
@@ -102,7 +106,7 @@ export const TEST_VIDEOS = {
       container: "mov,mp4,m4a,3gp,3g2,mj2",
       videoCodec: "h264",
     },
-    streamTypes: [SceneStreamTypes.DIRECT, SceneStreamTypes.WEBM],
+    streamTypes: [SceneStreamTypes.DIRECT, SceneStreamTypes.WEBM_TRANSCODE],
   },
   WMV: {
     url: "http://mirrors.standaloneinstaller.com/video-sample/small.wmv",
@@ -119,7 +123,7 @@ export const TEST_VIDEOS = {
       container: "asf",
       videoCodec: "wmv2",
     },
-    streamTypes: [SceneStreamTypes.DIRECT, SceneStreamTypes.WEBM],
+    streamTypes: [SceneStreamTypes.DIRECT, SceneStreamTypes.WEBM_TRANSCODE],
   },
 };
 
