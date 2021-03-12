@@ -80,12 +80,10 @@ function streamTranscode(
       didEnd = true;
     })
     .on("error", (err) => {
-      if (!didEnd) {
-        handleError(
-          `Request finished or an error happened while transcoding scene "${scene.path}"`,
-          err
-        );
-      }
+      handleError(
+        `Request finished or an error happened while transcoding scene "${scene.path}"`,
+        err
+      );
     });
 
   res.on("close", () => {
@@ -182,6 +180,7 @@ function transcodeMp4(
   const transcode = config.playback.transcode;
 
   const inputOptions: string[] = [];
+  const outputOptions: string[] = [];
   let vCodec: string;
 
   if (
@@ -190,9 +189,15 @@ function transcodeMp4(
   ) {
     vCodec = "libx264";
   } else {
+    inputOptions.push(
+      `-hwaccel ${transcode.hwaDriver}`,
+      `-hwaccel_output_format ${transcode.hwaDriver}`
+    );
+
     switch (transcode.hwaDriver) {
       case HardwareAccelerationDriver.enum.vaapi:
         vCodec = "h264_vaapi";
+        outputOptions.push("-vf format=nv12|vaapi,hwupload");
         break;
       case HardwareAccelerationDriver.enum.qsv:
         vCodec = "h264_qsv";
@@ -201,18 +206,22 @@ function transcodeMp4(
         vCodec = "h264_nvenc";
         break;
     }
-    if (transcode.hwaArgs) {
-      inputOptions.push(`-hwaccel ${transcode.hwaDriver}`, transcode.hwaArgs);
+    if (transcode.hwaDevice) {
+      inputOptions.push(
+        `-init_hw_device vaapi=hwdev:${transcode.hwaDevice}`,
+        "-hwaccel_device hwdev",
+        "-filter_hw_device hwdev"
+      );
     }
   }
 
-  const outputOptions = [
+  outputOptions.push(
     "-f mp4",
     `-c:v ${vCodec}`,
     "-movflags frag_keyframe+empty_moov+faststart",
     `-preset ${transcode.h264Preset ?? "veryfast"}`,
-    `-crf ${transcode.h264Crf ?? 23}`,
-  ];
+    `-crf ${transcode.h264Crf ?? 23}`
+  );
 
   const isMP4AudioValid =
     scene.meta.audioCodec && audioIsValidForContainer(FFProbeContainers.MP4, scene.meta.audioCodec);
