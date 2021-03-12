@@ -67,7 +67,6 @@ function streamTranscode(
   req.setTimeout(2 * 60 * 1000);
 
   let command: ffmpeg.FfmpegCommand | null = null;
-  let didEnd = false;
 
   command = ffmpeg(scene.path)
     .inputOptions(options.inputOptions)
@@ -77,7 +76,6 @@ function streamTranscode(
     })
     .on("end", () => {
       logger.verbose(`Scene "${scene.path}" has been converted successfully`);
-      didEnd = true;
     })
     .on("error", (err) => {
       handleError(
@@ -89,7 +87,6 @@ function streamTranscode(
   res.on("close", () => {
     logger.verbose("Stream request closed, killing transcode");
     command?.kill("SIGKILL");
-    didEnd = true;
   });
 
   command.pipe(res, { end: true });
