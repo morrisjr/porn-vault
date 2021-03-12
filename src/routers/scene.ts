@@ -205,6 +205,12 @@ function transcodeMp4(
       case HardwareAccelerationDriver.enum.nvenc:
         vCodec = "h264_nvenc";
         break;
+      case HardwareAccelerationDriver.enum.amf:
+        vCodec = "h264_amf";
+        break;
+      case HardwareAccelerationDriver.enum.videotoolbox:
+        vCodec = "h264_videotoolbox";
+        break;
     }
     if (transcode.hwaDevice) {
       inputOptions.push(

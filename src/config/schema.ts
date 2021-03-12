@@ -41,7 +41,13 @@ export const ApplyStudioLabelsEnum = zod.enum([
 
 const logLevelType = zod.enum(["error", "warn", "info", "http", "verbose", "debug", "silly"]);
 
-export const HardwareAccelerationDriver = zod.enum(["qsv", "vaapi", "nvenc"]);
+export const HardwareAccelerationDriver = zod.enum([
+  "qsv",
+  "vaapi",
+  "nvenc",
+  "amf",
+  "videotoolbox",
+]);
 
 export const H264Preset = zod.enum([
   "ultrafast",
