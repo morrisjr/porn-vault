@@ -255,7 +255,7 @@ router.get("/:scene", async (req, res, next) => {
   }
 
   try {
-    if (!scene.meta.container || !scene.meta.videoCodec || !scene.meta.audioCodec) {
+    if (!scene.meta.container || !scene.meta.videoCodec) {
       logger.verbose(
         `Scene ${scene._id} doesn't have codec information to determine supported transcodes, running ffprobe`
       );
