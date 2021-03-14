@@ -191,9 +191,9 @@ function transcodeMp4(
         vCodec = "h264_vaapi";
         inputOptions.push(`-hwaccel vaapi`, `-hwaccel_output_format vaapi`);
 
-        if (transcode.hwaDevice) {
+        if (transcode.vaapiDevice) {
           inputOptions.push(
-            `-init_hw_device vaapi=hwdev:${transcode.hwaDevice}`,
+            `-init_hw_device vaapi=hwdev:${transcode.vaapiDevice}`,
             "-hwaccel_device hwdev",
             "-filter_hw_device hwdev"
           );

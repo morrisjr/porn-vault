@@ -126,7 +126,7 @@ const defaultConfig: IConfig = {
   playback: {
     transcode: {
       hwaDriver: null,
-      hwaDevice: null,
+      vaapiDevice: null,
       h264Preset: H264Preset.enum.veryfast,
       h264Crf: 23,
     },
