@@ -164,7 +164,7 @@ const configSchema = zod
     playback: zod.object({
       transcode: zod.object({
         hwaDriver: HardwareAccelerationDriver.nullable(),
-        hwaDevice: zod.string().nullable(),
+        vaapiDevice: zod.string().nullable(),
         h264Preset: H264Preset,
         h264Crf: zod.number().min(0).max(51),
       }),

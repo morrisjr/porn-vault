@@ -112,7 +112,7 @@
   "playback": {
     "transcode": {
       "hwaDriver": false,
-      "hwaArgs": null,
+      "vaapiDevice": null,
       "h264Preset": "veryfast",
       "h264Crf": 23
     }
