@@ -267,6 +267,7 @@ router.get("/:scene", async (req, res, next) => {
       });
     }
   } catch (err) {
+    handleError("Error getting video codecs for transcode", err);
     return res.status(500).send("Could not determine video codecs for transcoding");
   }
 
