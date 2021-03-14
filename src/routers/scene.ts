@@ -186,35 +186,43 @@ function transcodeMp4(
   ) {
     vCodec = "libx264";
   } else {
-    inputOptions.push(
-      `-hwaccel ${transcode.hwaDriver}`,
-      `-hwaccel_output_format ${transcode.hwaDriver}`
-    );
-
     switch (transcode.hwaDriver) {
       case HardwareAccelerationDriver.enum.vaapi:
         vCodec = "h264_vaapi";
-        outputOptions.push("-vf format=nv12|vaapi,hwupload");
+        inputOptions.push(`-hwaccel vaapi`, `-hwaccel_output_format vaapi`);
+
+        if (transcode.hwaDevice) {
+          inputOptions.push(
+            `-init_hw_device vaapi=hwdev:${transcode.hwaDevice}`,
+            "-hwaccel_device hwdev",
+            "-filter_hw_device hwdev"
+          );
+          outputOptions.push("-vf format=nv12|vaapi,hwupload");
+        }
+
         break;
       case HardwareAccelerationDriver.enum.qsv:
         vCodec = "h264_qsv";
+        inputOptions.push(
+          "-init_hw_device qsv=qsv:MFX_IMPL_hw_any",
+          "-hwaccel qsv",
+          "-filter_hw_device qsv"
+        );
+        outputOptions.push("-vf 'hwupload=extra_hw_frames=10,format=nv12' ");
+
         break;
       case HardwareAccelerationDriver.enum.nvenc:
         vCodec = "h264_nvenc";
+        inputOptions.push("-hwaccel nvenc", "-hwaccel_output_format cuda");
         break;
       case HardwareAccelerationDriver.enum.amf:
         vCodec = "h264_amf";
+        inputOptions.push("-hwaccel d3d11va");
         break;
       case HardwareAccelerationDriver.enum.videotoolbox:
         vCodec = "h264_videotoolbox";
+        inputOptions.push("-hwaccel videotoolbox");
         break;
-    }
-    if (transcode.hwaDevice) {
-      inputOptions.push(
-        `-init_hw_device vaapi=hwdev:${transcode.hwaDevice}`,
-        "-hwaccel_device hwdev",
-        "-filter_hw_device hwdev"
-      );
     }
   }
 
