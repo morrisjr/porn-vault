@@ -590,9 +590,10 @@ export default class Scene {
   ): Promise<ThumbnailFile> {
     return new Promise(async (resolve, reject) => {
       try {
-        const folder = libraryPath("thumbnails/");
-
         const config = getConfig();
+
+        const folder = libraryPath("thumbnails/");
+        const filename = `${id} (thumbnail).jpg`;
 
         await (() => {
           return new Promise<void>((resolve, reject) => {
@@ -609,7 +610,7 @@ export default class Scene {
               .screenshot({
                 folder,
                 count: 1,
-                filename: `${id} (thumbnail).jpg`,
+                filename,
                 timestamps: ["50%"],
                 size: `${Math.min(
                   dimensions.width || config.processing.imageCompressionSize,
@@ -621,26 +622,18 @@ export default class Scene {
 
         logger.info("Thumbnail generation done.");
 
-        const thumbnailFilenames = (await readdirAsync(folder)).filter((name) => name.includes(id));
-
-        const thumbnailFiles = await Promise.all(
-          thumbnailFilenames.map(async (name) => {
-            const filePath = libraryPath(`thumbnails/${name}`);
-            const stats = await statAsync(filePath);
-            return {
-              name,
-              path: filePath,
-              size: stats.size,
-              time: stats.mtime.getTime(),
-            };
-          })
-        );
-
-        const thumb = thumbnailFiles[0];
-        if (!thumb) {
+        const filePath = path.resolve(folder, filename);
+        const stats = await statAsync(filePath);
+        if (!stats) {
           throw new Error("Thumbnail generation failed");
         }
-        resolve(thumb);
+
+        resolve({
+          name: filename,
+          path: filePath,
+          size: stats.size,
+          time: stats.mtime.getTime(),
+        });
       } catch (err) {
         logger.error(err);
         reject(err);
@@ -701,9 +694,11 @@ export default class Scene {
         amount = 10;
       }
 
+      const filePrefix = `${scene._id}-screenshot-`;
+
       const options = {
         file: scene.path,
-        pattern: `${scene._id}-{{index}}.jpg`,
+        pattern: `${filePrefix}{{index}}.jpg`,
         count: amount,
         thumbnailPath: libraryPath("thumbnails/"),
       };
@@ -753,7 +748,7 @@ export default class Scene {
         logger.info("Thumbnail generation done.");
 
         const thumbnailFilenames = (await readdirAsync(options.thumbnailPath)).filter((name) =>
-          name.includes(scene._id)
+          name.startsWith(filePrefix)
         );
 
         const thumbnailFiles = await Promise.all(
