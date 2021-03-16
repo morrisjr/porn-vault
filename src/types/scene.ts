@@ -17,7 +17,7 @@ import { mapAsync } from "../utils/async";
 import { mkdirpSync, readdirAsync, rimrafAsync, statAsync, unlinkAsync } from "../utils/fs/async";
 import { generateHash } from "../utils/hash";
 import { formatMessage, handleError, logger } from "../utils/logger";
-import { generateTimestampsAtIntervals } from "../utils/misc";
+import { evaluateFps, generateTimestampsAtIntervals } from "../utils/misc";
 import { libraryPath } from "../utils/path";
 import { removeExtension } from "../utils/string";
 import { ApplyActorLabelsEnum, ApplyStudioLabelsEnum } from "./../config/schema";
@@ -199,14 +199,7 @@ export default class Scene {
       if (stream.width && stream.height) {
         scene.meta.dimensions.width = stream.width;
         scene.meta.dimensions.height = stream.height;
-        scene.meta.fps = parseInt(stream.r_frame_rate || "") || null;
-        if (scene.meta.fps) {
-          if (scene.meta.fps >= 10000) {
-            scene.meta.fps /= 1000;
-          } else if (scene.meta.fps >= 1000) {
-            scene.meta.fps /= 100;
-          }
-        }
+        scene.meta.fps = stream.r_frame_rate ? evaluateFps(stream.r_frame_rate) : null;
         scene.meta.duration = parseInt(stream.duration || "") || null;
         scene.meta.size = (await statAsync(videoPath)).size;
         foundCorrectStream = true;
