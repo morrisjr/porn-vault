@@ -2,29 +2,31 @@
   <v-container fluid>
     <BindFavicon />
     <BindTitle value="Images" />
-    <v-banner app sticky class="mb-2">
-      {{ selectedImages.length }} images selected
-      <template v-slot:actions>
-        <v-btn v-if="selectedImages.length" text @click="selectedImages = []" class="text-none"
-          >Deselect</v-btn
-        >
-        <v-btn
-          v-else-if="!selectedImages.length"
-          text
-          @click="selectedImages = images.map((im) => im._id)"
-          class="text-none"
-          >Select all</v-btn
-        >
-        <v-btn
-          v-if="selectedImages.length"
-          @click="deleteSelectedImagesDialog = true"
-          text
-          class="text-none"
-          color="error"
-          >Delete</v-btn
-        >
-      </template>
-    </v-banner>
+    <v-expand-transition>
+      <v-banner app sticky class="mb-2" v-if="selectedImages.length">
+        {{ selectedImages.length }} images selected
+        <template v-slot:actions>
+          <v-btn v-if="selectedImages.length" text @click="selectedImages = []" class="text-none"
+            >Deselect</v-btn
+          >
+          <v-btn
+            :disabled="selectedImages.length === images.length"
+            text
+            @click="selectedImages = images.map((im) => im._id)"
+            class="text-none"
+            >Select all</v-btn
+          >
+          <v-btn
+            v-if="selectedImages.length"
+            @click="deleteSelectedImagesDialog = true"
+            text
+            class="text-none"
+            color="error"
+            >Delete</v-btn
+          >
+        </template>
+      </v-banner>
+    </v-expand-transition>
 
     <v-navigation-drawer v-if="showSidenav" style="z-index: 14" v-model="drawer" clipped app>
       <v-container>
@@ -91,8 +93,8 @@
         <Divider icon="mdi-account">Actors</Divider>
 
         <ActorSelector
-          :value="searchState.selectedActors"
-          @input="searchStateManager.onValueChanged('selectedActors', $event)"
+          :value="searchState.selectedImages"
+          @input="searchStateManager.onValueChanged('selectedImages', $event)"
           :multiple="true"
         />
 
@@ -155,7 +157,7 @@
           </template>
           <span>Reshuffle</span>
         </v-tooltip>
-        <v-spacer/>
+        <v-spacer />
         <div>
           <v-pagination
             v-if="!fetchLoader && $vuetify.breakpoint.mdAndUp"
@@ -326,7 +328,7 @@ export default class ImageList extends mixins(DrawerMixin) {
     bookmarksOnly: boolean;
     ratingFilter: number;
     selectedLabels: { include: string[]; exclude: string[] };
-    selectedActors: IActor[];
+    selectedImages: IActor[];
     sortBy: string;
     sortDir: string;
   }>({
@@ -339,7 +341,7 @@ export default class ImageList extends mixins(DrawerMixin) {
       favoritesOnly: true,
       bookmarksOnly: true,
       ratingFilter: { default: () => 0 },
-      selectedActors: {
+      selectedImages: {
         default: () => [],
         serialize: (actors: IActor[]) =>
           JSON.stringify(
@@ -374,7 +376,7 @@ export default class ImageList extends mixins(DrawerMixin) {
   allLabels = [] as ILabel[];
 
   get selectedActorIds() {
-    return this.searchState.selectedActors.map((ac) => ac._id);
+    return this.searchState.selectedImages.map((ac) => ac._id);
   }
 
   @Watch("$route")
