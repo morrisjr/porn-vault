@@ -936,15 +936,28 @@ export default class ActorList extends mixins(DrawerMixin) {
    * @param forceSelectionChange - whether to force a selection change, instead of opening the actor
    */
   onActorClick(actor: IActor, index: number, event: MouseEvent, forceSelectionChange = true) {
-    // Use the last selected actor or the current one, to allow toggling
-    // even when no previous selection
     let lastSelectionActorIndex =
       this.lastSelectionActorId !== null
-        ? this.actors.findIndex((act) => act._id === this.lastSelectionActorId)
+        ? this.actors.findIndex((im) => im._id === this.lastSelectionActorId)
         : index;
     lastSelectionActorIndex = lastSelectionActorIndex === -1 ? index : lastSelectionActorIndex;
 
-    if (forceSelectionChange || event.ctrlKey) {
+    if (event.shiftKey) {
+      // Next state is opposite of the clicked image state
+      const nextSelectionState = !this.isActorSelected(actor._id);
+
+      // Use >= to include the currently clicked image, so it can be toggled
+      // if necessary
+      if (index >= lastSelectionActorIndex) {
+        for (let i = lastSelectionActorIndex + 1; i <= index; i++) {
+          this.selectActor(this.actors[i]._id, nextSelectionState);
+        }
+      } else if (index < lastSelectionActorIndex) {
+        for (let i = lastSelectionActorIndex; i >= index; i--) {
+          this.selectActor(this.actors[i]._id, nextSelectionState);
+        }
+      }
+    } else if (forceSelectionChange || event.ctrlKey) {
       this.selectActor(actor._id, !this.isActorSelected(actor._id));
     } else if (!forceSelectionChange) {
       this.$router.push(`/actor/${actor._id}`);
