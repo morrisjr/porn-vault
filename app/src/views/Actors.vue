@@ -448,6 +448,7 @@ import CustomFieldFilter from "@/components/CustomFieldFilter.vue";
 import countries from "@/util/countries";
 import { SearchStateManager, isQueryDifferent } from "../util/searchState";
 import { Dictionary, Route } from "vue-router/types/router";
+import { iterate } from "@/api/actor";
 
 @Component({
   components: {
@@ -849,37 +850,27 @@ export default class ActorList extends mixins(DrawerMixin) {
 
     const actorsIds = this.selectedActors;
 
-    await this.runPluginsBulk(actorsIds);
+    try {
+      for (const id of actorsIds) {
+        await this.runPluginsForAnActor(id);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+
+    this.pluginLoader = false;
   }
 
   async runPluginsForAllActors() {
     this.pluginLoader = true;
 
-    const result = await ApolloClient.query({
-      query: gql`
-        {
-          getAllActorsIds
-        }
-      `,
-    });
-
-    const actorsIds = result.data.getAllActorsIds;
-
-    await this.runPluginsBulk(actorsIds);
-  }
-
-  async runPluginsBulk(actorsIds: string[]) {
-    this.pluginLoader = true;
-
     try {
-      for (const id of actorsIds) {
-        await this.runPluginsForAnActor(id);
-      }
-      this.pluginLoader = false;
-    } catch (error) {
-      this.pluginLoader = false;
-      console.error(error);
+      await iterate((actor) => this.runPluginsForAnActor(actor._id));
+    } catch (err) {
+      console.error(err);
     }
+
+    this.pluginLoader = false;
   }
 
   async runPluginsForAnActor(id: string) {
