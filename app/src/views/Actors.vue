@@ -245,14 +245,14 @@
             :class="
               selectedActors.length && !selectedActors.includes(actor._id) ? 'not-selected' : ''
             "
-            @click.native.stop="onActorClick(actor, index, $event, false)"
+            @click.native.stop.prevent="onActorClick(actor, index, $event, false)"
           >
             <template v-slot:action>
               <v-checkbox
                 color="primary"
                 :input-value="selectedActors.includes(actor._id)"
                 readonly
-                @click.native.stop="onActorClick(actor, index, $event, true)"
+                @click.native.stop.prevent="onActorClick(actor, index, $event, true)"
                 class="mt-0"
                 hide-details
                 :contain="true"
