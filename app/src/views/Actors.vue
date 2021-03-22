@@ -2,13 +2,7 @@
   <v-container fluid>
     <BindFavicon />
     <BindTitle value="Actors" />
-    <v-progress-linear
-      :active="pluginLoader"
-      indeterminate
-      absolute
-      top
-      color="deep-purple accent-4"
-    />
+    <v-progress-linear :active="pluginLoader" indeterminate absolute top />
 
     <v-expand-transition>
       <v-banner app sticky class="mb-2" v-if="selectedActors.length">
@@ -24,7 +18,7 @@
             class="text-none"
             >Select all</v-btn
           >
-          <v-btn text @click="runPluginsForSelectedActors" class="text-none"
+          <v-btn text @click="runPluginsForSelectedActors" class="text-none" :loading="pluginLoader"
             >Run plugins for selected actors</v-btn
           >
           <v-btn
@@ -210,7 +204,7 @@
         </v-tooltip>
         <v-tooltip bottom>
           <template v-slot:activator="{ on }">
-            <v-btn v-on="on" @click="runPluginsForAllActors" icon>
+            <v-btn v-on="on" @click="runPluginsForAllActors" icon :loading="pluginLoader">
               <v-icon>mdi-account-details</v-icon>
             </v-btn>
           </template>
