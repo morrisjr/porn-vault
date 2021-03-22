@@ -725,6 +725,9 @@ export default class ActorList extends mixins(DrawerMixin) {
                 _id
                 color
               }
+              altThumbnail {
+                _id
+              }
               numScenes
             }
           }
@@ -758,6 +761,9 @@ export default class ActorList extends mixins(DrawerMixin) {
             thumbnail {
               _id
               color
+            }
+            altThumbnail {
+              _id
             }
             numScenes
           }
@@ -882,42 +888,41 @@ export default class ActorList extends mixins(DrawerMixin) {
   }
 
   async runPluginsForAnActor(id: string) {
-    await ApolloClient.mutate({
-      mutation: gql`
-        mutation($id: String!) {
-          runActorPlugins(id: $id) {
-            ...ActorFragment
-            numScenes
-            labels {
-              _id
-              name
-              color
-            }
-            thumbnail {
-              _id
-              color
-            }
-            altThumbnail {
-              _id
-            }
-            watches
-            hero {
-              _id
-              color
-            }
-            avatar {
-              _id
+    try {
+      const res = await ApolloClient.mutate({
+        mutation: gql`
+          mutation($id: String!) {
+            runActorPlugins(id: $id) {
+              ...ActorFragment
+              labels {
+                _id
+                name
+                color
+              }
+              thumbnail {
+                _id
+                color
+              }
+              altThumbnail {
+                _id
+              }
+              numScenes
             }
           }
-        }
-        ${actorFragment}
-      `,
-      variables: {
-        id: id,
-      },
-    }).catch((err) => {
+          ${actorFragment}
+        `,
+        variables: {
+          id: id,
+        },
+      });
+      const actor = res.data.runActorPlugins;
+      const actorIndex = this.actors.findIndex((a) => a._id === id);
+      if (actorIndex !== -1) {
+        this.actors.splice(actorIndex, 1, actor);
+      }
+    } catch (err) {
       console.error(err);
-    });
+    }
   }
 
   selectedActors = [] as string[];
