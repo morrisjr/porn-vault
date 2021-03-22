@@ -252,7 +252,14 @@
         <v-card-text></v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn class="text-none" color="error" text @click="deleteSelection">Delete</v-btn>
+          <v-btn
+            class="text-none"
+            color="error"
+            text
+            @click="deleteSelection"
+            :loading="deleteImagesLoader"
+            >Delete</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -322,6 +329,8 @@ export default class ImageList extends mixins(DrawerMixin) {
   fetchingRandom = false;
   numResults = 0;
   numPages = 0;
+
+  deleteImagesLoader = false;
 
   searchStateManager = new SearchStateManager<{
     page: number;
@@ -511,28 +520,30 @@ export default class ImageList extends mixins(DrawerMixin) {
     }
   }
 
-  deleteSelection() {
-    ApolloClient.mutate({
-      mutation: gql`
-        mutation($ids: [String!]!) {
-          removeImages(ids: $ids)
-        }
-      `,
-      variables: {
-        ids: this.selectedImages,
-      },
-    })
-      .then((res) => {
-        for (const id of this.selectedImages) {
-          this.images = this.images.filter((img) => img._id != id);
-        }
-        this.selectedImages = [];
-        this.deleteSelectedImagesDialog = false;
-      })
-      .catch((err) => {
-        console.error(err);
-      })
-      .finally(() => {});
+  async deleteSelection() {
+    this.deleteImagesLoader = true;
+
+    try {
+      await ApolloClient.mutate({
+        mutation: gql`
+          mutation($ids: [String!]!) {
+            removeImages(ids: $ids)
+          }
+        `,
+        variables: {
+          ids: this.selectedImages,
+        },
+      });
+
+      this.numResults = Math.max(0, this.numResults - this.selectedImages.length);
+      this.images = this.images.filter((img) => !this.selectedImages.includes(img._id));
+      this.selectedImages = [];
+      this.deleteSelectedImagesDialog = false;
+    } catch (err) {
+      console.error(err);
+    }
+
+    this.deleteImagesLoader = false;
   }
 
   removeImage(index: number) {

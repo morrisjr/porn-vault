@@ -405,7 +405,14 @@
         <v-card-text />
         <v-card-actions>
           <v-spacer />
-          <v-btn class="text-none" color="error" text @click="deleteSelection">Delete</v-btn>
+          <v-btn
+            class="text-none"
+            color="error"
+            text
+            @click="deleteSelection"
+            :loading="deleteActorsLoader"
+            >Delete</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -579,6 +586,7 @@ export default class ActorList extends mixins(DrawerMixin) {
   labelSelectorDialog = false;
   addActorLoader = false;
   pluginLoader = false;
+  deleteActorsLoader = false;
 
   actorNameRules = [(v) => (!!v && !!v.length) || "Invalid actor name"];
 
@@ -964,27 +972,30 @@ export default class ActorList extends mixins(DrawerMixin) {
     }
   }
 
-  deleteSelection() {
-    ApolloClient.mutate({
-      mutation: gql`
-        mutation($ids: [String!]!) {
-          removeActors(ids: $ids)
-        }
-      `,
-      variables: {
-        ids: this.selectedActors,
-      },
-    })
-      .then((res) => {
-        for (const id of this.selectedActors) {
-          this.actors = this.actors.filter((act) => act._id != id);
-        }
-        this.selectedActors = [];
-        this.deleteSelectedActorsDialog = false;
-      })
-      .catch((err) => {
-        console.error(err);
+  async deleteSelection() {
+    this.deleteActorsLoader = true;
+
+    try {
+      await ApolloClient.mutate({
+        mutation: gql`
+          mutation($ids: [String!]!) {
+            removeActors(ids: $ids)
+          }
+        `,
+        variables: {
+          ids: this.selectedActors,
+        },
       });
+
+      this.numResults = Math.max(0, this.numResults - this.selectedActors.length);
+      this.actors = this.actors.filter((act) => !this.selectedActors.includes(act._id));
+      this.selectedActors = [];
+      this.deleteSelectedActorsDialog = false;
+    } catch (err) {
+      console.error(err);
+    }
+
+    this.deleteActorsLoader = false;
   }
 
   async fetchPage(page: number, take = 24, random?: boolean, seed?: string) {
