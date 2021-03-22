@@ -6,24 +6,26 @@
       <v-banner app sticky class="mb-2" v-if="selectedImages.length">
         {{ selectedImages.length }} images selected
         <template v-slot:actions>
-          <v-btn v-if="selectedImages.length" text @click="selectedImages = []" class="text-none"
-            >Deselect</v-btn
-          >
-          <v-btn
-            :disabled="selectedImages.length === images.length"
-            text
-            @click="selectedImages = images.map((im) => im._id)"
-            class="text-none"
-            >Select all</v-btn
-          >
-          <v-btn
-            v-if="selectedImages.length"
-            @click="deleteSelectedImagesDialog = true"
-            text
-            class="text-none"
-            color="error"
-            >Delete</v-btn
-          >
+          <v-flex class="flex-wrap justify-end" shrink>
+            <v-btn v-if="selectedImages.length" text @click="selectedImages = []" class="text-none"
+              >Deselect</v-btn
+            >
+            <v-btn
+              :disabled="selectedImages.length === images.length"
+              text
+              @click="selectedImages = images.map((im) => im._id)"
+              class="text-none"
+              >Select all</v-btn
+            >
+            <v-btn
+              v-if="selectedImages.length"
+              @click="deleteSelectedImagesDialog = true"
+              text
+              class="text-none"
+              color="error"
+              >Delete</v-btn
+            >
+          </v-flex>
         </template>
       </v-banner>
     </v-expand-transition>

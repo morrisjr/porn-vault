@@ -8,27 +8,33 @@
       <v-banner app sticky class="mb-2" v-if="selectedActors.length">
         {{ selectedActors.length }} actors selected
         <template v-slot:actions>
-          <v-btn v-if="selectedActors.length" text @click="selectedActors = []" class="text-none"
-            >Deselect</v-btn
-          >
-          <v-btn
-            :disabled="selectedActors.length === actors.length"
-            text
-            @click="selectedActors = actors.map((act) => act._id)"
-            class="text-none"
-            >Select all</v-btn
-          >
-          <v-btn text @click="runPluginsForSelectedActors" class="text-none" :loading="pluginLoader"
-            >Run plugins for selected actors</v-btn
-          >
-          <v-btn
-            v-if="selectedActors.length"
-            @click="deleteSelectedActorsDialog = true"
-            text
-            class="text-none"
-            color="error"
-            >Delete</v-btn
-          >
+          <v-flex class="flex-wrap justify-end" shrink>
+            <v-btn v-if="selectedActors.length" text @click="selectedActors = []" class="text-none"
+              >Deselect</v-btn
+            >
+            <v-btn
+              :disabled="selectedActors.length === actors.length"
+              text
+              @click="selectedActors = actors.map((act) => act._id)"
+              class="text-none"
+              >Select all</v-btn
+            >
+            <v-btn
+              text
+              @click="runPluginsForSelectedActors"
+              class="text-none"
+              :loading="pluginLoader"
+              >Run plugins for selected actors</v-btn
+            >
+            <v-btn
+              v-if="selectedActors.length"
+              @click="deleteSelectedActorsDialog = true"
+              text
+              class="text-none"
+              color="error"
+              >Delete</v-btn
+            >
+          </v-flex>
         </template>
       </v-banner>
     </v-expand-transition>
