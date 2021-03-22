@@ -3,16 +3,6 @@
     <BindFavicon />
     <BindTitle value="Scenes" />
 
-    <v-banner app sticky v-if="selectedScenes.length">
-      {{ selectedScenes.length }} scenes selected
-      <template v-slot:actions>
-        <v-btn text @click="selectedScenes = []" class="text-none">Deselect</v-btn>
-        <v-btn @click="deleteSelectedScenesDialog = true" text class="text-none" color="error"
-          >Delete</v-btn
-        >
-      </template>
-    </v-banner>
-
     <v-navigation-drawer v-if="showSidenav" style="z-index: 14" v-model="drawer" clipped app>
       <v-container>
         <v-btn
@@ -156,6 +146,52 @@
       </v-container>
     </v-navigation-drawer>
 
+    <v-progress-linear :active="pluginLoader" indeterminate absolute top />
+
+    <v-expand-transition>
+      <v-banner app sticky class="mb-2" v-if="selectedScenes.length">
+        {{ selectedScenes.length }} scenes selected
+        <template v-slot:actions>
+          <v-flex class="flex-wrap justify-end" shrink>
+            <v-btn v-if="selectedScenes.length" text @click="selectedScenes = []" class="text-none"
+              >Deselect</v-btn
+            >
+            <v-btn
+              :disabled="selectedScenes.length === scenes.length"
+              text
+              @click="selectedScenes = scenes.map((act) => act._id)"
+              class="text-none"
+              >Select all</v-btn
+            >
+            <v-btn
+              text
+              @click="runPluginsForSelectedScenes"
+              class="text-none"
+              :loading="pluginLoader"
+              >Run plugins for selected scenes</v-btn
+            >
+            <v-btn
+              v-if="selectedScenes.length"
+              @click="deleteSelectedScenesDialog = true"
+              text
+              class="text-none"
+              color="error"
+              >Delete</v-btn
+            >
+          </v-flex>
+        </template>
+      </v-banner>
+    </v-expand-transition>
+
+    <v-expand-transition>
+      <v-alert class="mb-3" v-if="pluginLoader" dense type="info">
+        <template v-if="runPluginTotalCount === -1"> Initializing... </template>
+        <template v-else>
+          Running plugins on scene {{ runPluginCount + 1 }} of {{ runPluginTotalCount }}
+        </template>
+      </v-alert>
+    </v-expand-transition>
+
     <div class="text-center" v-if="fetchError">
       <div>There was an error</div>
       <v-btn class="mt-2" @click="loadPage">Try again</v-btn>
@@ -182,7 +218,15 @@
           </template>
           <span>Reshuffle</span>
         </v-tooltip>
-        <v-spacer></v-spacer>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on }">
+            <v-btn v-on="on" @click="runPluginsForSearch" icon :loading="pluginLoader">
+              <v-icon>mdi-account-details</v-icon>
+            </v-btn>
+          </template>
+          <span>Run plugins for all scenes in current search</span>
+        </v-tooltip>
+        <v-spacer />
         <div>
           <v-pagination
             v-if="!fetchLoader && $vuetify.breakpoint.mdAndUp"
@@ -196,7 +240,7 @@
       </div>
       <v-row v-if="!fetchLoader && numResults">
         <v-col
-          v-for="(scene, i) in scenes"
+          v-for="(scene, sceneIdx) in scenes"
           :key="scene._id"
           class="pa-1"
           cols="12"
@@ -210,8 +254,9 @@
               selectedScenes.length && !selectedScenes.includes(scene._id) ? 'not-selected' : ''
             "
             :showLabels="showCardLabels"
-            v-model="scenes[i]"
+            v-model="scenes[sceneIdx]"
             style="height: 100%"
+            @click.native.stop.prevent="onSceneClick(scene, sceneIdx, $event, false)"
           >
             <template v-slot:action="{ hover }">
               <v-fade-transition>
@@ -219,8 +264,8 @@
                   v-if="hover || selectedScenes.includes(scene._id)"
                   color="primary"
                   :input-value="selectedScenes.includes(scene._id)"
-                  @change="selectScene(scene._id)"
-                  @click.native.stop.prevent
+                  readonly
+                  @click.native.stop.prevent="onSceneClick(scene, sceneIdx, $event, true)"
                   class="mt-0"
                   hide-details
                   :contain="true"
@@ -350,7 +395,14 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn class="text-none" color="error" text @click="deleteSelection">Delete</v-btn>
+          <v-btn
+            class="text-none"
+            color="error"
+            text
+            @click="deleteSelection"
+            :loading="deleteScenesLoader"
+            >Delete</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -378,6 +430,7 @@ import { mixins } from "vue-class-component";
 import { Route } from "vue-router";
 import { Dictionary } from "vue-router/types/router";
 import { SearchStateManager, isQueryDifferent } from "../util/searchState";
+import { Scene } from "@/api/scene";
 
 @Component({
   components: {
@@ -479,6 +532,10 @@ export default class SceneList extends mixins(DrawerMixin) {
   createSelectedLabels = [] as number[];
   labelSelectorDialog = false;
   addSceneLoader = false;
+  pluginLoader = false;
+  runPluginCount = -1;
+  runPluginTotalCount = -1;
+  deleteScenesLoader = false;
 
   sceneNameRules = [(v) => (!!v && !!v.length) || "Invalid scene name"];
 
@@ -596,6 +653,7 @@ export default class SceneList extends mixins(DrawerMixin) {
   isUploadingScene = false;
 
   selectedScenes = [] as string[];
+  lastSelectionSceneId: string | null = null;
   deleteSelectedScenesDialog = false;
   deleteSceneImages = false;
 
@@ -611,15 +669,6 @@ export default class SceneList extends mixins(DrawerMixin) {
     return contextModule.showCardLabels;
   }
 
-  selectScene(id) {
-    const sceneIdx = this.selectedScenes.findIndex((sid) => sid === id);
-    if (sceneIdx !== -1) {
-      this.selectedScenes.splice(sceneIdx, 1);
-    } else {
-      this.selectedScenes.push(id);
-    }
-  }
-
   get willDeleteSceneFiles() {
     return this.selectedScenes.some((id) => {
       const scene = this.scenes.find((sc) => sc._id === id);
@@ -627,30 +676,32 @@ export default class SceneList extends mixins(DrawerMixin) {
     });
   }
 
-  deleteSelection() {
-    ApolloClient.mutate({
-      mutation: gql`
-        mutation($ids: [String!]!, $deleteImages: Boolean) {
-          removeScenes(ids: $ids, deleteImages: $deleteImages)
-        }
-      `,
-      variables: {
-        ids: this.selectedScenes,
-        deleteImages: this.deleteSceneImages,
-      },
-    })
-      .then((res) => {
-        this.scenes = this.scenes.filter(
-          (scene) => !this.selectedScenes.find((sid) => sid === scene._id)
-        );
-        this.selectedScenes = [];
-        this.deleteSelectedScenesDialog = false;
-        this.deleteSceneImages = false;
-      })
-      .catch((err) => {
-        console.error(err);
-      })
-      .finally(() => {});
+  async deleteSelection() {
+    this.deleteScenesLoader = true;
+
+    try {
+      ApolloClient.mutate({
+        mutation: gql`
+          mutation($ids: [String!]!, $deleteImages: Boolean) {
+            removeScenes(ids: $ids, deleteImages: $deleteImages)
+          }
+        `,
+        variables: {
+          ids: this.selectedScenes,
+          deleteImages: this.deleteSceneImages,
+        },
+      });
+
+      this.numResults = Math.max(0, this.numResults - this.selectedScenes.length);
+      this.scenes = this.scenes.filter((scene) => !this.selectedScenes.includes(scene._id));
+      this.selectedScenes = [];
+      this.deleteSelectedScenesDialog = false;
+      this.deleteSceneImages = false;
+    } catch (err) {
+      console.error(err);
+    }
+
+    this.deleteScenesLoader = false;
   }
 
   openUploadDialog() {
@@ -766,6 +817,150 @@ export default class SceneList extends mixins(DrawerMixin) {
       });
   }
 
+  async runPluginsForSelectedScenes() {
+    this.pluginLoader = true;
+    this.runPluginCount = 0;
+    this.runPluginTotalCount = this.selectedScenes.length;
+
+    const sceneIds = this.selectedScenes;
+
+    try {
+      for (const id of sceneIds) {
+        await this.runPluginsForAScene(id);
+        this.runPluginCount++;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+
+    this.pluginLoader = false;
+    this.runPluginCount = -1;
+    this.runPluginTotalCount = -1;
+  }
+
+  async runPluginsForSearch() {
+    this.pluginLoader = true;
+    this.runPluginCount = 0;
+    this.runPluginTotalCount = -1;
+
+    try {
+      await Scene.iterate(
+        (scene) => this.runPluginsForAScene(scene._id),
+        this.fetchQuery,
+        ({ iteratedCount, total }) => {
+          this.runPluginCount = iteratedCount;
+          this.runPluginTotalCount = total;
+        }
+      );
+    } catch (err) {
+      console.error(err);
+    }
+
+    this.pluginLoader = false;
+    this.runPluginCount = -1;
+    this.runPluginTotalCount = -1;
+  }
+
+  async runPluginsForAScene(id: string) {
+    try {
+      const res = await ApolloClient.mutate({
+        mutation: gql`
+          mutation($id: String!) {
+            runScenePlugins(id: $id) {
+              ...SceneFragment
+              actors {
+                ...ActorFragment
+              }
+              studio {
+                ...StudioFragment
+              }
+            }
+          }
+          ${sceneFragment}
+          ${actorFragment}
+          ${studioFragment}
+        `,
+        variables: {
+          id: id,
+        },
+      });
+      const scene = res.data.runScenePlugins;
+      const sceneIndex = this.scenes.findIndex((a) => a._id === id);
+      if (sceneIndex !== -1) {
+        this.scenes.splice(sceneIndex, 1, scene);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  isSceneSelected(id: string) {
+    return !!this.selectedScenes.find((selectedId) => id === selectedId);
+  }
+
+  selectScene(id: string, add: boolean) {
+    this.lastSelectionSceneId = id;
+    if (add && !this.isSceneSelected(id)) {
+      this.selectedScenes.push(id);
+    } else {
+      this.selectedScenes = this.selectedScenes.filter((i) => i != id);
+    }
+  }
+
+  /**
+   * @param scene - the clicked scene
+   * @param index - the index of the scene in the array
+   * @param event - the mouse click event
+   * @param forceSelectionChange - whether to force a selection change, instead of opening the scene
+   */
+  onSceneClick(scene: IScene, index: number, event: MouseEvent, forceSelectionChange = true) {
+    let lastSelectionsceneIndex =
+      this.lastSelectionSceneId !== null
+        ? this.scenes.findIndex((im) => im._id === this.lastSelectionSceneId)
+        : index;
+    lastSelectionsceneIndex = lastSelectionsceneIndex === -1 ? index : lastSelectionsceneIndex;
+    if (event.shiftKey) {
+      // Next state is opposite of the clicked scene state
+      const nextSelectionState = !this.isSceneSelected(scene._id);
+      // Use >= to include the currently clicked scene, so it can be toggled
+      // if necessary
+      if (index >= lastSelectionsceneIndex) {
+        for (let i = lastSelectionsceneIndex + 1; i <= index; i++) {
+          this.selectScene(this.scenes[i]._id, nextSelectionState);
+        }
+      } else if (index < lastSelectionsceneIndex) {
+        for (let i = lastSelectionsceneIndex; i >= index; i--) {
+          this.selectScene(this.scenes[i]._id, nextSelectionState);
+        }
+      }
+    } else if (forceSelectionChange || event.ctrlKey) {
+      this.selectScene(scene._id, !this.isSceneSelected(scene._id));
+    } else if (!forceSelectionChange) {
+      this.$router.push(`/scene/${scene._id}`);
+    }
+  }
+
+  get fetchQuery() {
+    return {
+      query: this.searchState.query || "",
+      actors: this.selectedActorIds,
+      include: this.searchState.selectedLabels.include,
+      exclude: this.searchState.selectedLabels.exclude,
+      favorite: this.searchState.favoritesOnly,
+      bookmark: this.searchState.bookmarksOnly,
+      rating: this.searchState.ratingFilter,
+      durationMin:
+        this.searchState.useDuration && this.searchState.durationRange[0] !== this.durationMax
+          ? this.searchState.durationRange[0] * 60
+          : null,
+      durationMax:
+        this.searchState.useDuration && this.searchState.durationRange[1] !== this.durationMax
+          ? this.searchState.durationRange[1] * 60
+          : null,
+      studios: this.searchState.selectedStudio ? this.searchState.selectedStudio._id : null,
+    };
+  }
+
   async fetchPage(page: number, take = 24, random?: boolean, seed?: string) {
     const result = await ApolloClient.query({
       query: gql`
@@ -790,26 +985,11 @@ export default class SceneList extends mixins(DrawerMixin) {
       `,
       variables: {
         query: {
-          query: this.searchState.query || "",
+          ...this.fetchQuery,
           take,
           page: page - 1,
-          actors: this.selectedActorIds,
-          include: this.searchState.selectedLabels.include,
-          exclude: this.searchState.selectedLabels.exclude,
           sortDir: this.searchState.sortDir,
           sortBy: random ? "$shuffle" : this.searchState.sortBy,
-          favorite: this.searchState.favoritesOnly,
-          bookmark: this.searchState.bookmarksOnly,
-          rating: this.searchState.ratingFilter,
-          durationMin:
-            this.searchState.useDuration && this.searchState.durationRange[0] !== this.durationMax
-              ? this.searchState.durationRange[0] * 60
-              : null,
-          durationMax:
-            this.searchState.useDuration && this.searchState.durationRange[1] !== this.durationMax
-              ? this.searchState.durationRange[1] * 60
-              : null,
-          studios: this.searchState.selectedStudio ? this.searchState.selectedStudio._id : null,
         },
         seed: seed || localStorage.getItem("pm_seed") || "default",
       },

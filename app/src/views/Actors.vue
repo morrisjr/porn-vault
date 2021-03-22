@@ -2,42 +2,6 @@
   <v-container fluid>
     <BindFavicon />
     <BindTitle value="Actors" />
-    <v-progress-linear :active="pluginLoader" indeterminate absolute top />
-
-    <v-expand-transition>
-      <v-banner app sticky class="mb-2" v-if="selectedActors.length">
-        {{ selectedActors.length }} actors selected
-        <template v-slot:actions>
-          <v-flex class="flex-wrap justify-end" shrink>
-            <v-btn v-if="selectedActors.length" text @click="selectedActors = []" class="text-none"
-              >Deselect</v-btn
-            >
-            <v-btn
-              :disabled="selectedActors.length === actors.length"
-              text
-              @click="selectedActors = actors.map((act) => act._id)"
-              class="text-none"
-              >Select all</v-btn
-            >
-            <v-btn
-              text
-              @click="runPluginsForSelectedActors"
-              class="text-none"
-              :loading="pluginLoader"
-              >Run plugins for selected actors</v-btn
-            >
-            <v-btn
-              v-if="selectedActors.length"
-              @click="deleteSelectedActorsDialog = true"
-              text
-              class="text-none"
-              color="error"
-              >Delete</v-btn
-            >
-          </v-flex>
-        </template>
-      </v-banner>
-    </v-expand-transition>
 
     <v-navigation-drawer v-if="showSidenav" style="z-index: 14" v-model="drawer" clipped app>
       <v-container>
@@ -166,6 +130,43 @@
       </v-container>
     </v-navigation-drawer>
 
+    <v-progress-linear :active="pluginLoader" indeterminate absolute top />
+
+    <v-expand-transition>
+      <v-banner app sticky class="mb-2" v-if="selectedActors.length">
+        {{ selectedActors.length }} actors selected
+        <template v-slot:actions>
+          <v-flex class="flex-wrap justify-end" shrink>
+            <v-btn v-if="selectedActors.length" text @click="selectedActors = []" class="text-none"
+              >Deselect</v-btn
+            >
+            <v-btn
+              :disabled="selectedActors.length === actors.length"
+              text
+              @click="selectedActors = actors.map((act) => act._id)"
+              class="text-none"
+              >Select all</v-btn
+            >
+            <v-btn
+              text
+              @click="runPluginsForSelectedActors"
+              class="text-none"
+              :loading="pluginLoader"
+              >Run plugins for selected actors</v-btn
+            >
+            <v-btn
+              v-if="selectedActors.length"
+              @click="deleteSelectedActorsDialog = true"
+              text
+              class="text-none"
+              color="error"
+              >Delete</v-btn
+            >
+          </v-flex>
+        </template>
+      </v-banner>
+    </v-expand-transition>
+
     <v-expand-transition>
       <v-alert class="mb-3" v-if="pluginLoader" dense type="info">
         <template v-if="runPluginTotalCount === -1"> Initializing... </template>
@@ -240,7 +241,7 @@
       <v-row v-if="!fetchLoader && numResults">
         <v-col
           class="pa-1"
-          v-for="(actor, index) in actors"
+          v-for="(actor, actorIdx) in actors"
           :key="actor._id"
           cols="6"
           sm="6"
@@ -250,18 +251,18 @@
         >
           <actor-card
             :showLabels="showCardLabels"
-            v-model="actors[index]"
+            v-model="actors[actorIdx]"
             :class="
               selectedActors.length && !selectedActors.includes(actor._id) ? 'not-selected' : ''
             "
-            @click.native.stop.prevent="onActorClick(actor, index, $event, false)"
+            @click.native.stop.prevent="onActorClick(actor, actorIdx, $event, false)"
           >
             <template v-slot:action>
               <v-checkbox
                 color="primary"
                 :input-value="selectedActors.includes(actor._id)"
                 readonly
-                @click.native.stop.prevent="onActorClick(actor, index, $event, true)"
+                @click.native.stop.prevent="onActorClick(actor, actorIdx, $event, true)"
                 class="mt-0"
                 hide-details
                 :contain="true"
@@ -983,10 +984,10 @@ export default class ActorList extends mixins(DrawerMixin) {
     lastSelectionActorIndex = lastSelectionActorIndex === -1 ? index : lastSelectionActorIndex;
 
     if (event.shiftKey) {
-      // Next state is opposite of the clicked image state
+      // Next state is opposite of the clicked scene state
       const nextSelectionState = !this.isActorSelected(actor._id);
 
-      // Use >= to include the currently clicked image, so it can be toggled
+      // Use >= to include the currently clicked scene, so it can be toggled
       // if necessary
       if (index >= lastSelectionActorIndex) {
         for (let i = lastSelectionActorIndex + 1; i <= index; i++) {
