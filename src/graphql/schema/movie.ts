@@ -73,5 +73,6 @@ export default gql`
     addMovie(name: String!, scenes: [String!]): Movie!
     updateMovies(ids: [String!]!, opts: MovieUpdateOpts!): [Movie!]!
     removeMovies(ids: [String!]!): Boolean!
+    runMoviePlugins(id: String!): Movie
   }
 `;

@@ -94,6 +94,7 @@ const defaultConfig: IConfig = {
       actorCustom: [],
       sceneCreated: [],
       sceneCustom: [],
+      movieCreated: [],
       movieCustom: [],
       studioCreated: [],
       studioCustom: [],
