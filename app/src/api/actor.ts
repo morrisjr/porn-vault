@@ -4,7 +4,8 @@ import ApolloClient from "@/apollo";
 const ITERATE_TAKE = 24;
 
 export async function iterate<T extends { _id: string }>(
-  itemCb: (item: T) => void | unknown | Promise<void> | Promise<unknown>
+  itemCb: (item: T) => void | unknown | Promise<void> | Promise<unknown>,
+  query?: Record<string, any>
 ): Promise<T | void> {
   let more = true;
 
@@ -21,6 +22,7 @@ export async function iterate<T extends { _id: string }>(
       `,
       variables: {
         query: {
+          ...(query || {}),
           take: ITERATE_TAKE,
           page,
         },

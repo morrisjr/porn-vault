@@ -210,11 +210,11 @@
         </v-tooltip>
         <v-tooltip bottom>
           <template v-slot:activator="{ on }">
-            <v-btn v-on="on" @click="runPluginsForAllActors" icon :loading="pluginLoader">
+            <v-btn v-on="on" @click="runPluginsForSearch" icon :loading="pluginLoader">
               <v-icon>mdi-account-details</v-icon>
             </v-btn>
           </template>
-          <span>Run plugins for all actors</span>
+          <span>Run plugins for all actors in current search</span>
         </v-tooltip>
         <v-spacer />
         <div>
@@ -875,11 +875,11 @@ export default class ActorList extends mixins(DrawerMixin) {
     this.pluginLoader = false;
   }
 
-  async runPluginsForAllActors() {
+  async runPluginsForSearch() {
     this.pluginLoader = true;
 
     try {
-      await iterate((actor) => this.runPluginsForAnActor(actor._id));
+      await iterate((actor) => this.runPluginsForAnActor(actor._id), this.fetchQuery);
     } catch (err) {
       console.error(err);
     }
@@ -1003,6 +1003,19 @@ export default class ActorList extends mixins(DrawerMixin) {
     this.deleteActorsLoader = false;
   }
 
+  get fetchQuery() {
+    return {
+      query: this.searchState.query || "",
+      include: this.searchState.selectedLabels.include,
+      exclude: this.searchState.selectedLabels.exclude,
+      nationality: this.searchState.countryFilter || null,
+      favorite: this.searchState.favoritesOnly,
+      bookmark: this.searchState.bookmarksOnly,
+      rating: this.searchState.ratingFilter,
+      custom: this.searchState.customFilter,
+    };
+  }
+
   async fetchPage(page: number, take = 24, random?: boolean, seed?: string) {
     let sortDir = this.searchState.sortDir;
 
@@ -1039,18 +1052,11 @@ export default class ActorList extends mixins(DrawerMixin) {
       `,
       variables: {
         query: {
-          query: this.searchState.query || "",
-          include: this.searchState.selectedLabels.include,
-          exclude: this.searchState.selectedLabels.exclude,
-          nationality: this.searchState.countryFilter || null,
+          ...this.fetchQuery,
           take,
           page: page - 1,
           sortDir,
           sortBy: random ? "$shuffle" : this.searchState.sortBy,
-          favorite: this.searchState.favoritesOnly,
-          bookmark: this.searchState.bookmarksOnly,
-          rating: this.searchState.ratingFilter,
-          custom: this.searchState.customFilter,
         },
         seed: seed || localStorage.getItem("pm_seed") || "default",
       },
