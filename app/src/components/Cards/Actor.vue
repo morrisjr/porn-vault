@@ -6,8 +6,8 @@
     tile
     style="height: 100%"
   >
-    <v-hover v-slot:default="{ hover }">
-      <a :href="`#/actor/${value._id}`">
+    <a :href="`#/actor/${value._id}`">
+      <v-hover v-slot:default="{ hover }">
         <v-img
           :cover="fillThumbnail"
           :contain="!fillThumbnail"
@@ -28,11 +28,11 @@
             />
           </v-fade-transition>
 
-          <div class="top-corner-actions">
-            <slot name="action" />
+          <div class="corner-slot" style="z-index: 6">
+            <slot name="action" :hover="hover"></slot>
           </div>
 
-          <div class="bottom-corner-actions">
+          <div class="corner-actions bottom-left" style="z-index: 6">
             <v-btn
               light
               class="elevation-2 mr-1"
@@ -55,8 +55,8 @@
             </v-btn>
           </div>
         </v-img>
-      </a>
-    </v-hover>
+      </v-hover>
+    </a>
 
     <div class="px-2">
       <v-card-title class="d-flex align-center px-0 pt-1" style="font-size: 1.1rem">
@@ -196,14 +196,24 @@ export default class ActorCard extends Vue {
 </script>
 
 <style lang="scss" scoped>
-.top-corner-actions {
+.corner-slot {
   position: absolute;
-  top: 5px;
-  right: 5px;
+  right: 2px;
+  top: 2px;
 }
-.bottom-corner-actions {
+
+.corner-actions {
   position: absolute;
-  bottom: 5px;
-  left: 5px;
+
+  &.top-left {
+    top: 2px;
+    left: 2px;
+  }
+
+  &.bottom-left {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+  }
 }
 </style>

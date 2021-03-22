@@ -1,51 +1,47 @@
 <template>
   <v-card :dark="!!cardColor || $vuetify.theme.dark" :color="cardColor" v-if="value" tile>
     <a :href="`#/movie/${value._id}`">
-      <v-hover>
-        <template v-slot:default="{ hover }">
-          <v-img :aspect-ratio="ratio" v-ripple eager :src="frontCover">
-            <v-fade-transition>
-              <v-img eager :aspect-ratio="ratio" :src="backCover" v-if="hover"></v-img>
-            </v-fade-transition>
+      <v-hover v-slot:default="{ hover }">
+        <v-img :aspect-ratio="ratio" v-ripple eager :src="frontCover">
+          <v-fade-transition>
+            <v-img eager :aspect-ratio="ratio" :src="backCover" v-if="hover"></v-img>
+          </v-fade-transition>
 
-            <div
-              style="z-index: 6"
-              class="white--text body-2 font-weight-bold duration-stamp"
-              v-if="value.duration"
+          <div
+            style="z-index: 6"
+            class="white--text body-2 font-weight-bold duration-stamp"
+            v-if="value.duration"
+          >
+            {{ movieDuration }}
+          </div>
+
+          <div class="corner-slot" style="z-index: 6">
+            <slot name="action" :hover="hover"></slot>
+          </div>
+
+          <div class="corner-actions bottom-left" style="z-index: 6">
+            <v-btn
+              light
+              class="elevation-2 mr-1"
+              @click.stop.prevent="favorite"
+              icon
+              style="background: #fafafa"
             >
-              {{ movieDuration }}
-            </div>
-
-            <div class="corner-slot" style="z-index: 6">
-              <slot name="action" :hover="hover"></slot>
-            </div>
-
-            <div class="corner-actions bottom-left" style="z-index: 6">
-              <v-btn
-                light
-                class="elevation-2 mr-1"
-                @click.stop.prevent="favorite"
-                icon
-                style="background: #fafafa"
-              >
-                <v-icon :color="value.favorite ? 'red' : undefined">{{
-                  value.favorite ? "mdi-heart" : "mdi-heart-outline"
-                }}</v-icon>
-              </v-btn>
-              <v-btn
-                light
-                class="elevation-2"
-                @click.stop.prevent="bookmark"
-                icon
-                style="background: #fafafa"
-              >
-                <v-icon>{{
-                  value.bookmark ? "mdi-bookmark-check" : "mdi-bookmark-outline"
-                }}</v-icon>
-              </v-btn>
-            </div>
-          </v-img>
-        </template>
+              <v-icon :color="value.favorite ? 'red' : undefined">{{
+                value.favorite ? "mdi-heart" : "mdi-heart-outline"
+              }}</v-icon>
+            </v-btn>
+            <v-btn
+              light
+              class="elevation-2"
+              @click.stop.prevent="bookmark"
+              icon
+              style="background: #fafafa"
+            >
+              <v-icon>{{ value.bookmark ? "mdi-bookmark-check" : "mdi-bookmark-outline" }}</v-icon>
+            </v-btn>
+          </div>
+        </v-img>
       </v-hover>
     </a>
 

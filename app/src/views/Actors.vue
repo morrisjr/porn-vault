@@ -257,16 +257,19 @@
             "
             @click.native.stop.prevent="onActorClick(actor, actorIdx, $event, false)"
           >
-            <template v-slot:action>
-              <v-checkbox
-                color="primary"
-                :input-value="selectedActors.includes(actor._id)"
-                readonly
-                @click.native.stop.prevent="onActorClick(actor, actorIdx, $event, true)"
-                class="mt-0"
-                hide-details
-                :contain="true"
-              />
+            <template v-slot:action="{ hover }">
+              <v-fade-transition>
+                <v-checkbox
+                  v-if="hover || selectedActors.includes(actor._id)"
+                  color="primary"
+                  :input-value="selectedActors.includes(actor._id)"
+                  readonly
+                  @click.native.stop.prevent="onActorClick(actor, actorIdx, $event, true)"
+                  class="mt-0"
+                  hide-details
+                  :contain="true"
+                />
+              </v-fade-transition>
             </template>
           </actor-card>
         </v-col>
