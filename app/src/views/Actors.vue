@@ -166,6 +166,15 @@
       </v-container>
     </v-navigation-drawer>
 
+    <v-expand-transition>
+      <v-alert class="mb-3" v-if="pluginLoader" dense type="info">
+        <template v-if="runPluginTotalCount === -1"> Initializing... </template>
+        <template v-else>
+          Running plugins on actor {{ runPluginCount + 1 }} of {{ runPluginTotalCount }}
+        </template>
+      </v-alert>
+    </v-expand-transition>
+
     <div class="text-center" v-if="fetchError">
       <div>There was an error</div>
       <v-btn class="mt-2" @click="loadPage">Try again</v-btn>
@@ -586,6 +595,8 @@ export default class ActorList extends mixins(DrawerMixin) {
   labelSelectorDialog = false;
   addActorLoader = false;
   pluginLoader = false;
+  runPluginCount = -1;
+  runPluginTotalCount = -1;
   deleteActorsLoader = false;
 
   actorNameRules = [(v) => (!!v && !!v.length) || "Invalid actor name"];
@@ -861,30 +872,46 @@ export default class ActorList extends mixins(DrawerMixin) {
 
   async runPluginsForSelectedActors() {
     this.pluginLoader = true;
+    this.runPluginCount = 0;
+    this.runPluginTotalCount = this.selectedActors.length;
 
     const actorsIds = this.selectedActors;
 
     try {
       for (const id of actorsIds) {
         await this.runPluginsForAnActor(id);
+        this.runPluginCount++;
       }
     } catch (error) {
       console.error(error);
     }
 
     this.pluginLoader = false;
+    this.runPluginCount = -1;
+    this.runPluginTotalCount = -1;
   }
 
   async runPluginsForSearch() {
     this.pluginLoader = true;
+    this.runPluginCount = 0;
+    this.runPluginTotalCount = -1;
 
     try {
-      await Actor.iterate((actor) => this.runPluginsForAnActor(actor._id), this.fetchQuery);
+      await Actor.iterate(
+        (actor) => this.runPluginsForAnActor(actor._id),
+        this.fetchQuery,
+        ({ iteratedCount, total }) => {
+          this.runPluginCount = iteratedCount;
+          this.runPluginTotalCount = total;
+        }
+      );
     } catch (err) {
       console.error(err);
     }
 
     this.pluginLoader = false;
+    this.runPluginCount = -1;
+    this.runPluginTotalCount = -1;
   }
 
   async runPluginsForAnActor(id: string) {

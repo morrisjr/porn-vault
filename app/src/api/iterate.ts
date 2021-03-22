@@ -5,21 +5,39 @@ export interface PaginationQuery {
   page: number;
 }
 
-export async function iterate<T extends { _id: string }>(
+export type ProgressCallback = (progressCb: {
+  iteratedCount: number;
+  total: number;
+  percent: number;
+}) => void;
+
+export async function iterate<T extends { _id: string } = { _id: string }>(
+  fetchPage: (paginationQuery: PaginationQuery) => Promise<{ items: T[]; numItems: number }>,
   itemCb: (item: T) => void | unknown | Promise<void> | Promise<unknown>,
-  fetchPage: (paginationQuery: PaginationQuery) => Promise<T[]>
+  progressCb?: ProgressCallback
 ): Promise<T | void> {
   let more = true;
+  let iteratedCount = 0;
 
   for (let page = 0; more; page++) {
-    const items = await fetchPage({
+    const { items, numItems } = await fetchPage({
       take: ITERATE_TAKE,
       page,
     });
 
     if (items.length) {
+      if (!iteratedCount && progressCb) {
+        // Invoke the progress callback before the iteration so it can initialize
+        // with the total count
+        progressCb({ iteratedCount, total: numItems, percent: (iteratedCount / numItems) * 100 });
+      }
+
       for (const item of items) {
         const res = await itemCb(item);
+        iteratedCount++;
+        if (progressCb) {
+          progressCb({ iteratedCount, total: numItems, percent: (iteratedCount / numItems) * 100 });
+        }
         if (res) {
           return item;
         }
