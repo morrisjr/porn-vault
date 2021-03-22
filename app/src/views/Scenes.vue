@@ -159,7 +159,7 @@
             <v-btn
               :disabled="selectedScenes.length === scenes.length"
               text
-              @click="selectedScenes = scenes.map((act) => act._id)"
+              @click="selectedScenes = scenes.map((s) => s._id)"
               class="text-none"
               >Select all</v-btn
             >

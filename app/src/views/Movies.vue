@@ -2,6 +2,7 @@
   <v-container fluid>
     <BindFavicon />
     <BindTitle value="Movies" />
+
     <v-navigation-drawer v-if="showSidenav" style="z-index: 14" v-model="drawer" clipped app>
       <v-container>
         <v-btn
@@ -113,6 +114,52 @@
       </v-container>
     </v-navigation-drawer>
 
+    <v-progress-linear :active="pluginLoader" indeterminate absolute top />
+
+    <v-expand-transition>
+      <v-banner app sticky class="mb-2" v-if="selectedMovies.length">
+        {{ selectedMovies.length }} movies selected
+        <template v-slot:actions>
+          <v-flex class="flex-wrap justify-end" shrink>
+            <v-btn v-if="selectedMovies.length" text @click="selectedMovies = []" class="text-none"
+              >Deselect</v-btn
+            >
+            <v-btn
+              :disabled="selectedMovies.length === movies.length"
+              text
+              @click="selectedMovies = movies.map((m) => m._id)"
+              class="text-none"
+              >Select all</v-btn
+            >
+            <v-btn
+              text
+              @click="runPluginsForSelectedMovies"
+              class="text-none"
+              :loading="pluginLoader"
+              >Run plugins for selected movies</v-btn
+            >
+            <v-btn
+              v-if="selectedMovies.length"
+              @click="deleteSelectedMoviesDialog = true"
+              text
+              class="text-none"
+              color="error"
+              >Delete</v-btn
+            >
+          </v-flex>
+        </template>
+      </v-banner>
+    </v-expand-transition>
+
+    <v-expand-transition>
+      <v-alert class="mb-3" v-if="pluginLoader" dense type="info">
+        <template v-if="runPluginTotalCount === -1"> Initializing... </template>
+        <template v-else>
+          Running plugins on movie {{ runPluginCount + 1 }} of {{ runPluginTotalCount }}
+        </template>
+      </v-alert>
+    </v-expand-transition>
+
     <div class="text-center" v-if="fetchError">
       <div>There was an error</div>
       <v-btn class="mt-2" @click="loadPage">Try again</v-btn>
@@ -155,6 +202,14 @@
           </template>
           <span>Reshuffle</span>
         </v-tooltip>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on }">
+            <v-btn v-on="on" @click="runPluginsForSearch" icon :loading="pluginLoader">
+              <v-icon>mdi-account-details</v-icon>
+            </v-btn>
+          </template>
+          <span>Run plugins for all movies in current search</span>
+        </v-tooltip>
         <v-spacer></v-spacer>
         <div>
           <v-pagination
@@ -170,7 +225,7 @@
       <v-row v-if="!fetchLoader && numResults">
         <v-col
           class="pa-1"
-          v-for="(movie, i) in movies"
+          v-for="(movie, movieIdx) in movies"
           :key="movie._id"
           cols="6"
           sm="6"
@@ -182,8 +237,24 @@
             :showLabels="showCardLabels"
             :movie="movie"
             style="height: 100%"
-            v-model="movies[i]"
-          />
+            v-model="movies[movieIdx]"
+            @click.native.stop.prevent="onMovieClick(movie, movieIdx, $event, false)"
+          >
+            <template v-slot:action="{ hover }">
+              <v-fade-transition>
+                <v-checkbox
+                  v-if="hover || selectedMovies.includes(movie._id)"
+                  color="primary"
+                  :input-value="selectedMovies.includes(movie._id)"
+                  readonly
+                  @click.native.stop.prevent="onMovieClick(movie, movieIdx, $event, true)"
+                  class="mt-0"
+                  hide-details
+                  :contain="true"
+                ></v-checkbox>
+              </v-fade-transition>
+            </template>
+          </MovieCard>
         </v-col>
       </v-row>
       <NoResults v-else-if="!fetchLoader && !numResults" />
@@ -276,6 +347,23 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="deleteSelectedMoviesDialog" max-width="400px">
+      <v-card>
+        <v-card-title>Really delete {{ selectedMovies.length }} movies?</v-card-title>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            class="text-none"
+            color="error"
+            text
+            @click="deleteSelection"
+            :loading="deleteMoviesLoader"
+            >Delete</v-btn
+          >
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -287,7 +375,7 @@ import actorFragment from "@/fragments/actor";
 import { contextModule } from "@/store/context";
 import SceneSelector from "@/components/SceneSelector.vue";
 import IActor from "@/types/actor";
-import IScene from "@/types/scene";
+import IScene from "@/types/movie";
 import ILabel from "@/types/label";
 import MovieCard from "@/components/Cards/Movie.vue";
 import IMovie from "@/types/movie";
@@ -299,6 +387,7 @@ import ActorSelector from "@/components/ActorSelector.vue";
 import { SearchStateManager, isQueryDifferent } from "../util/searchState";
 import { Route } from "vue-router";
 import { Dictionary } from "vue-router/types/router";
+import { Movie } from "@/api/movie";
 
 @Component({
   components: {
@@ -327,6 +416,15 @@ export default class MovieList extends mixins(DrawerMixin) {
   fetchingRandom = false;
   numResults = 0;
   numPages = 0;
+
+  pluginLoader = false;
+  runPluginCount = -1;
+  runPluginTotalCount = -1;
+
+  selectedMovies = [] as string[];
+  lastSelectionMovieId: string | null = null;
+  deleteSelectedMoviesDialog = false;
+  deleteMoviesLoader = false;
 
   searchStateManager = new SearchStateManager<{
     page: number;
@@ -607,6 +705,167 @@ export default class MovieList extends mixins(DrawerMixin) {
       });
   }
 
+  async runPluginsForSelectedMovies() {
+    this.pluginLoader = true;
+    this.runPluginCount = 0;
+    this.runPluginTotalCount = this.selectedMovies.length;
+
+    const movieIds = this.selectedMovies;
+
+    try {
+      for (const id of movieIds) {
+        await this.runPluginsForAMovie(id);
+        this.runPluginCount++;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+
+    this.pluginLoader = false;
+    this.runPluginCount = -1;
+    this.runPluginTotalCount = -1;
+  }
+
+  async runPluginsForSearch() {
+    this.pluginLoader = true;
+    this.runPluginCount = 0;
+    this.runPluginTotalCount = -1;
+
+    try {
+      await Movie.iterate(
+        (movie) => this.runPluginsForAMovie(movie._id),
+        this.fetchQuery,
+        ({ iteratedCount, total }) => {
+          this.runPluginCount = iteratedCount;
+          this.runPluginTotalCount = total;
+        }
+      );
+    } catch (err) {
+      console.error(err);
+    }
+
+    this.pluginLoader = false;
+    this.runPluginCount = -1;
+    this.runPluginTotalCount = -1;
+  }
+
+  async runPluginsForAMovie(id: string) {
+    try {
+      const res = await ApolloClient.mutate({
+        mutation: gql`
+          mutation($id: String!) {
+            runMoviePlugins(id: $id) {
+              ...MovieFragment
+              actors {
+                ...ActorFragment
+              }
+              scenes {
+                _id
+              }
+            }
+          }
+          ${movieFragment}
+          ${actorFragment}
+        `,
+        variables: {
+          id: id,
+        },
+      });
+      const movie = res.data.runMoviePlugins;
+      const movieIndex = this.movies.findIndex((a) => a._id === id);
+      if (movieIndex !== -1) {
+        this.movies.splice(movieIndex, 1, movie);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  isMovieSelected(id: string) {
+    return !!this.selectedMovies.find((selectedId) => id === selectedId);
+  }
+
+  selectMovie(id: string, add: boolean) {
+    this.lastSelectionMovieId = id;
+    if (add && !this.isMovieSelected(id)) {
+      this.selectedMovies.push(id);
+    } else {
+      this.selectedMovies = this.selectedMovies.filter((i) => i != id);
+    }
+  }
+
+  /**
+   * @param movie - the clicked movie
+   * @param index - the index of the movie in the array
+   * @param event - the mouse click event
+   * @param forceSelectionChange - whether to force a selection change, instead of opening the movie
+   */
+  onMovieClick(movie: IMovie, index: number, event: MouseEvent, forceSelectionChange = true) {
+    let lastSelectionMovieIndex =
+      this.lastSelectionMovieId !== null
+        ? this.movies.findIndex((im) => im._id === this.lastSelectionMovieId)
+        : index;
+    lastSelectionMovieIndex = lastSelectionMovieIndex === -1 ? index : lastSelectionMovieIndex;
+    if (event.shiftKey) {
+      // Next state is opposite of the clicked movie state
+      const nextSelectionState = !this.isMovieSelected(movie._id);
+      // Use >= to include the currently clicked movie, so it can be toggled
+      // if necessary
+      if (index >= lastSelectionMovieIndex) {
+        for (let i = lastSelectionMovieIndex + 1; i <= index; i++) {
+          this.selectMovie(this.movies[i]._id, nextSelectionState);
+        }
+      } else if (index < lastSelectionMovieIndex) {
+        for (let i = lastSelectionMovieIndex; i >= index; i--) {
+          this.selectMovie(this.movies[i]._id, nextSelectionState);
+        }
+      }
+    } else if (forceSelectionChange || event.ctrlKey) {
+      this.selectMovie(movie._id, !this.isMovieSelected(movie._id));
+    } else if (!forceSelectionChange) {
+      this.$router.push(`/movie/${movie._id}`);
+    }
+  }
+
+  async deleteSelection() {
+    this.deleteMoviesLoader = true;
+
+    try {
+      await ApolloClient.mutate({
+        mutation: gql`
+          mutation($ids: [String!]!) {
+            removeMovies(ids: $ids)
+          }
+        `,
+        variables: {
+          ids: this.selectedMovies,
+        },
+      });
+
+      this.numResults = Math.max(0, this.numResults - this.selectedMovies.length);
+      this.movies = this.movies.filter((act) => !this.selectedMovies.includes(act._id));
+      this.selectedMovies = [];
+      this.deleteSelectedMoviesDialog = false;
+    } catch (err) {
+      console.error(err);
+    }
+
+    this.deleteMoviesLoader = false;
+  }
+
+  get fetchQuery() {
+    return {
+      query: this.searchState.query || "",
+      include: this.searchState.selectedLabels.include,
+      exclude: this.searchState.selectedLabels.exclude,
+      favorite: this.searchState.favoritesOnly,
+      bookmark: this.searchState.bookmarksOnly,
+      rating: this.searchState.ratingFilter,
+      studios: this.searchState.selectedStudio ? this.searchState.selectedStudio._id : null,
+      actors: this.selectedActorIds,
+    };
+  }
+
   async fetchPage(page: number, take = 24, random?: boolean, seed?: string) {
     const result = await ApolloClient.query({
       query: gql`
@@ -630,18 +889,11 @@ export default class MovieList extends mixins(DrawerMixin) {
       `,
       variables: {
         query: {
-          query: this.searchState.query || "",
-          include: this.searchState.selectedLabels.include,
-          exclude: this.searchState.selectedLabels.exclude,
+          ...this.fetchQuery,
           take,
           page: page - 1,
           sortDir: this.searchState.sortDir,
           sortBy: random ? "$shuffle" : this.searchState.sortBy,
-          favorite: this.searchState.favoritesOnly,
-          bookmark: this.searchState.bookmarksOnly,
-          rating: this.searchState.ratingFilter,
-          studios: this.searchState.selectedStudio ? this.searchState.selectedStudio._id : null,
-          actors: this.selectedActorIds,
         },
         seed: seed || localStorage.getItem("pm_seed") || "default",
       },
