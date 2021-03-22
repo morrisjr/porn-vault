@@ -1,45 +1,31 @@
-import gql from "graphql-tag";
 import ApolloClient from "@/apollo";
+import gql from "graphql-tag";
 
-const ITERATE_TAKE = 24;
+import { iterate } from "./iterate";
 
-export async function iterate<T extends { _id: string }>(
-  itemCb: (item: T) => void | unknown | Promise<void> | Promise<unknown>,
-  query?: Record<string, any>
-): Promise<T | void> {
-  let more = true;
-
-  for (let page = 0; more; page++) {
-    const result = await ApolloClient.query({
-      query: gql`
-        query($query: ActorSearchQuery!) {
-          getActors(query: $query) {
-            items {
-              _id
+export class Actor {
+  static async iterate<T extends { _id: string }>(
+    itemCb: (item: T) => void | unknown | Promise<void> | Promise<unknown>,
+    searchQuery?: Record<string, any>
+  ): Promise<T | void> {
+    return iterate(itemCb, (paginationQuery) =>
+      ApolloClient.query({
+        query: gql`
+          query($query: ActorSearchQuery!) {
+            getActors(query: $query) {
+              items {
+                _id
+              }
             }
           }
-        }
-      `,
-      variables: {
-        query: {
-          ...(query || {}),
-          take: ITERATE_TAKE,
-          page,
+        `,
+        variables: {
+          query: {
+            ...(searchQuery || {}),
+            ...paginationQuery,
+          },
         },
-      },
-    });
-
-    const items = result.data.getActors.items;
-
-    if (items.length) {
-      for (const item of items) {
-        const res = await itemCb(item);
-        if (res) {
-          return item;
-        }
-      }
-    } else {
-      more = false;
-    }
+      }).then((res) => res.data.getActors.items)
+    );
   }
 }

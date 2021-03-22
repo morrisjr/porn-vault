@@ -455,7 +455,7 @@ import CustomFieldFilter from "@/components/CustomFieldFilter.vue";
 import countries from "@/util/countries";
 import { SearchStateManager, isQueryDifferent } from "../util/searchState";
 import { Dictionary, Route } from "vue-router/types/router";
-import { iterate } from "@/api/actor";
+import { Actor } from "@/api/actor";
 
 @Component({
   components: {
@@ -879,7 +879,7 @@ export default class ActorList extends mixins(DrawerMixin) {
     this.pluginLoader = true;
 
     try {
-      await iterate((actor) => this.runPluginsForAnActor(actor._id), this.fetchQuery);
+      await Actor.iterate((actor) => this.runPluginsForAnActor(actor._id), this.fetchQuery);
     } catch (err) {
       console.error(err);
     }
