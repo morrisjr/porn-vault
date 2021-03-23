@@ -96,12 +96,12 @@
     <v-progress-linear :active="pluginLoader" indeterminate absolute top />
 
     <v-expand-transition>
-      <v-banner app sticky class="mb-2" v-if="selectedStudios.length">
+      <v-banner app sticky class="mb-2" v-if="selectionMode">
         {{ selectedStudios.length }} studios selected
         <template v-slot:actions>
           <v-flex class="flex-wrap justify-end" shrink>
             <v-btn
-              v-if="selectedStudios.length"
+              :disabled="!selectedStudios.length"
               text
               @click="selectedStudios = []"
               class="text-none"
@@ -115,6 +115,7 @@
               >Select all</v-btn
             >
             <v-btn
+              :disabled="!selectedStudios.length"
               text
               @click="runPluginsForSelectedStudios"
               class="text-none"
@@ -122,7 +123,7 @@
               >Run plugins for selected studios</v-btn
             >
             <v-btn
-              v-if="selectedStudios.length"
+              :disabled="!selectedStudios.length"
               @click="deleteSelectedStudiosDialog = true"
               text
               class="text-none"
@@ -187,6 +188,18 @@
           </template>
           <span>Run plugins for all studios in current search</span>
         </v-tooltip>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on }">
+            <v-btn v-on="on" @click="toggleSelectionMode" icon>
+              <v-icon
+                >{{
+                  selectionMode ? "mdi-checkbox-blank-off-outline" : "mdi-checkbox-blank-outline"
+                }}
+              </v-icon>
+            </v-btn>
+          </template>
+          <span>Toggle selection mode</span>
+        </v-tooltip>
         <v-spacer></v-spacer>
         <div>
           <v-pagination
@@ -222,7 +235,7 @@
             <template v-slot:action="{ hover }">
               <v-fade-transition>
                 <v-checkbox
-                  v-if="hover || selectedStudios.includes(studio._id)"
+                  v-if="selectionMode || hover || selectedStudios.includes(studio._id)"
                   color="primary"
                   :input-value="selectedStudios.includes(studio._id)"
                   readonly
@@ -362,6 +375,8 @@ export default class StudioList extends mixins(DrawerMixin) {
   fetchingRandom = false;
   numResults = 0;
   numPages = 0;
+  selectionMode = false;
+
   pluginLoader = false;
   runPluginCount = -1;
   runPluginTotalCount = -1;
@@ -671,6 +686,22 @@ export default class StudioList extends mixins(DrawerMixin) {
       this.selectedStudios.push(id);
     } else {
       this.selectedStudios = this.selectedStudios.filter((i) => i != id);
+    }
+  }
+
+  toggleSelectionMode() {
+    this.selectionMode = !this.selectionMode;
+    if (!this.selectionMode) {
+      this.selectedStudios = [];
+    }
+  }
+
+  @Watch("selectedStudios")
+  onSelectedStudiosChange(nextVal: string[]) {
+    if (nextVal.length) {
+      this.selectionMode = true;
+    } else {
+      this.selectionMode = false;
     }
   }
 

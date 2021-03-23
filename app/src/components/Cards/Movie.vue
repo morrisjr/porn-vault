@@ -15,7 +15,7 @@
             {{ movieDuration }}
           </div>
 
-          <div class="corner-slot" style="z-index: 6">
+          <div class="corner-actions top-right" style="z-index: 6">
             <slot name="action" :hover="hover"></slot>
           </div>
 
@@ -219,12 +219,6 @@ export default class MovieCard extends Vue {
   right: 5px;
 }
 
-.corner-slot {
-  position: absolute;
-  right: 2px;
-  top: 2px;
-}
-
 .corner-actions {
   position: absolute;
 
@@ -233,8 +227,12 @@ export default class MovieCard extends Vue {
     left: 2px;
   }
 
+  &.top-right {
+    right: 2px;
+    top: 2px;
+  }
+
   &.bottom-left {
-    position: absolute;
     bottom: 2px;
     left: 2px;
   }

@@ -149,11 +149,15 @@
     <v-progress-linear :active="pluginLoader" indeterminate absolute top />
 
     <v-expand-transition>
-      <v-banner app sticky class="mb-2" v-if="selectedScenes.length">
+      <v-banner app sticky class="mb-2" v-if="selectionMode">
         {{ selectedScenes.length }} scenes selected
         <template v-slot:actions>
           <v-flex class="flex-wrap justify-end" shrink>
-            <v-btn v-if="selectedScenes.length" text @click="selectedScenes = []" class="text-none"
+            <v-btn
+              :disabled="!selectedScenes.length"
+              text
+              @click="selectedScenes = []"
+              class="text-none"
               >Deselect</v-btn
             >
             <v-btn
@@ -164,6 +168,7 @@
               >Select all</v-btn
             >
             <v-btn
+              :disabled="!selectedScenes.length"
               text
               @click="runPluginsForSelectedScenes"
               class="text-none"
@@ -171,7 +176,7 @@
               >Run plugins for selected scenes</v-btn
             >
             <v-btn
-              v-if="selectedScenes.length"
+              :disabled="!selectedScenes.length"
               @click="deleteSelectedScenesDialog = true"
               text
               class="text-none"
@@ -227,6 +232,18 @@
           </template>
           <span>Run plugins for all scenes in current search</span>
         </v-tooltip>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on }">
+            <v-btn v-on="on" @click="toggleSelectionMode" icon>
+              <v-icon
+                >{{
+                  selectionMode ? "mdi-checkbox-blank-off-outline" : "mdi-checkbox-blank-outline"
+                }}
+              </v-icon>
+            </v-btn>
+          </template>
+          <span>Toggle selection mode</span>
+        </v-tooltip>
         <v-spacer />
         <div>
           <v-pagination
@@ -262,7 +279,7 @@
             <template v-slot:action="{ hover }">
               <v-fade-transition>
                 <v-checkbox
-                  v-if="hover || selectedScenes.includes(scene._id)"
+                  v-if="selectionMode || hover || selectedScenes.includes(scene._id)"
                   color="primary"
                   :input-value="selectedScenes.includes(scene._id)"
                   readonly
@@ -463,6 +480,7 @@ export default class SceneList extends mixins(DrawerMixin) {
   fetchingRandom = false;
   numResults = 0;
   numPages = 0;
+  selectionMode = false;
 
   searchStateManager = new SearchStateManager<{
     page: number;
@@ -903,6 +921,22 @@ export default class SceneList extends mixins(DrawerMixin) {
       this.selectedScenes.push(id);
     } else {
       this.selectedScenes = this.selectedScenes.filter((i) => i != id);
+    }
+  }
+
+  toggleSelectionMode() {
+    this.selectionMode = !this.selectionMode;
+    if (!this.selectionMode) {
+      this.selectedScenes = [];
+    }
+  }
+
+  @Watch("selectedScenes")
+  onSelectedScenesChange(nextVal: string[]) {
+    if (nextVal.length) {
+      this.selectionMode = true;
+    } else {
+      this.selectionMode = false;
     }
   }
 

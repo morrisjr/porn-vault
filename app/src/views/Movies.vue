@@ -117,11 +117,15 @@
     <v-progress-linear :active="pluginLoader" indeterminate absolute top />
 
     <v-expand-transition>
-      <v-banner app sticky class="mb-2" v-if="selectedMovies.length">
+      <v-banner app sticky class="mb-2" v-if="selectionMode">
         {{ selectedMovies.length }} movies selected
         <template v-slot:actions>
           <v-flex class="flex-wrap justify-end" shrink>
-            <v-btn v-if="selectedMovies.length" text @click="selectedMovies = []" class="text-none"
+            <v-btn
+              :disabled="!selectedMovies.length"
+              text
+              @click="selectedMovies = []"
+              class="text-none"
               >Deselect</v-btn
             >
             <v-btn
@@ -132,6 +136,7 @@
               >Select all</v-btn
             >
             <v-btn
+              :disabled="!selectedMovies.length"
               text
               @click="runPluginsForSelectedMovies"
               class="text-none"
@@ -139,7 +144,7 @@
               >Run plugins for selected movies</v-btn
             >
             <v-btn
-              v-if="selectedMovies.length"
+              :disabled="!selectedMovies.length"
               @click="deleteSelectedMoviesDialog = true"
               text
               class="text-none"
@@ -211,6 +216,18 @@
           </template>
           <span>Run plugins for all movies in current search</span>
         </v-tooltip>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on }">
+            <v-btn v-on="on" @click="toggleSelectionMode" icon>
+              <v-icon
+                >{{
+                  selectionMode ? "mdi-checkbox-blank-off-outline" : "mdi-checkbox-blank-outline"
+                }}
+              </v-icon>
+            </v-btn>
+          </template>
+          <span>Toggle selection mode</span>
+        </v-tooltip>
         <v-spacer></v-spacer>
         <div>
           <v-pagination
@@ -244,7 +261,7 @@
             <template v-slot:action="{ hover }">
               <v-fade-transition>
                 <v-checkbox
-                  v-if="hover || selectedMovies.includes(movie._id)"
+                  v-if="selectionMode || hover || selectedMovies.includes(movie._id)"
                   color="primary"
                   :input-value="selectedMovies.includes(movie._id)"
                   readonly
@@ -418,6 +435,7 @@ export default class MovieList extends mixins(DrawerMixin) {
   fetchingRandom = false;
   numResults = 0;
   numPages = 0;
+  selectionMode = false;
 
   pluginLoader = false;
   runPluginCount = -1;
@@ -791,6 +809,22 @@ export default class MovieList extends mixins(DrawerMixin) {
       this.selectedMovies.push(id);
     } else {
       this.selectedMovies = this.selectedMovies.filter((i) => i != id);
+    }
+  }
+
+  toggleSelectionMode() {
+    this.selectionMode = !this.selectionMode;
+    if (!this.selectionMode) {
+      this.selectedMovies = [];
+    }
+  }
+
+  @Watch("selectedMovies")
+  onSelectedMoviesChange(nextVal: string[]) {
+    if (nextVal.length) {
+      this.selectionMode = true;
+    } else {
+      this.selectionMode = false;
     }
   }
 

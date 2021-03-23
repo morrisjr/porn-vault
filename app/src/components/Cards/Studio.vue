@@ -5,7 +5,7 @@
         <div class="pa-2" v-ripple>
           <v-img contain aspect-ratio="2" :src="thumbnail"></v-img>
 
-          <div class="corner-slot" style="z-index: 6">
+          <div class="corner-actions top-right" style="z-index: 6">
             <slot name="action" :hover="hover"></slot>
           </div>
         </div>
@@ -62,9 +62,12 @@ export default class ActorCard extends Vue {
 </script>
 
 <style lang="scss" scoped>
-.corner-slot {
+.corner-actions {
   position: absolute;
-  right: 2px;
-  top: 2px;
+
+  &.top-right {
+    right: 2px;
+    top: 2px;
+  }
 }
 </style>

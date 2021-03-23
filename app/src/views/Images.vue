@@ -3,11 +3,15 @@
     <BindFavicon />
     <BindTitle value="Images" />
     <v-expand-transition>
-      <v-banner app sticky class="mb-2" v-if="selectedImages.length">
+      <v-banner app sticky class="mb-2" v-if="selectionMode">
         {{ selectedImages.length }} images selected
         <template v-slot:actions>
           <v-flex class="flex-wrap justify-end" shrink>
-            <v-btn v-if="selectedImages.length" text @click="selectedImages = []" class="text-none"
+            <v-btn
+              :disabled="!selectedImages.length"
+              text
+              @click="selectedImages = []"
+              class="text-none"
               >Deselect</v-btn
             >
             <v-btn
@@ -18,7 +22,7 @@
               >Select all</v-btn
             >
             <v-btn
-              v-if="selectedImages.length"
+              :disabled="!selectedImages.length"
               @click="deleteSelectedImagesDialog = true"
               text
               class="text-none"
@@ -159,6 +163,18 @@
           </template>
           <span>Reshuffle</span>
         </v-tooltip>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on }">
+            <v-btn v-on="on" @click="toggleSelectionMode" icon>
+              <v-icon
+                >{{
+                  selectionMode ? "mdi-checkbox-blank-off-outline" : "mdi-checkbox-blank-outline"
+                }}
+              </v-icon>
+            </v-btn>
+          </template>
+          <span>Toggle selection mode</span>
+        </v-tooltip>
         <v-spacer />
         <div>
           <v-pagination
@@ -192,16 +208,19 @@
             :image="image"
             :contain="true"
           >
-            <template v-slot:action>
-              <v-checkbox
-                color="primary"
-                :input-value="selectedImages.includes(image._id)"
-                readonly
-                @click.native.stop="onImageClick(image, index, $event, true)"
-                class="mt-0"
-                hide-details
-                :contain="true"
-              />
+            <template v-slot:action="{ hover }">
+              <v-fade-transition>
+                <v-checkbox
+                  v-if="selectionMode || hover || selectedImages.includes(image._id)"
+                  color="primary"
+                  :input-value="selectedImages.includes(image._id)"
+                  readonly
+                  @click.native.stop="onImageClick(image, index, $event, true)"
+                  class="mt-0"
+                  hide-details
+                  :contain="true"
+                />
+              </v-fade-transition>
             </template>
           </ImageCard>
         </v-col>
@@ -329,6 +348,7 @@ export default class ImageList extends mixins(DrawerMixin) {
   fetchingRandom = false;
   numResults = 0;
   numPages = 0;
+  selectionMode = false;
 
   deleteImagesLoader = false;
 
@@ -480,6 +500,22 @@ export default class ImageList extends mixins(DrawerMixin) {
       this.selectedImages.push(id);
     } else {
       this.selectedImages = this.selectedImages.filter((i) => i != id);
+    }
+  }
+
+  toggleSelectionMode() {
+    this.selectionMode = !this.selectionMode;
+    if (!this.selectionMode) {
+      this.selectedImages = [];
+    }
+  }
+
+  @Watch("selectedImages")
+  onSelectedImagesChange(nextVal: string[]) {
+    if (nextVal.length) {
+      this.selectionMode = true;
+    } else {
+      this.selectionMode = false;
     }
   }
 

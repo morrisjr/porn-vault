@@ -133,11 +133,12 @@
     <v-progress-linear :active="pluginLoader" indeterminate absolute top />
 
     <v-expand-transition>
-      <v-banner app sticky class="mb-2" v-if="selectedActors.length">
+      <v-banner app sticky class="mb-2" v-if="selectionMode">
         {{ selectedActors.length }} actors selected
         <template v-slot:actions>
           <v-flex class="flex-wrap justify-end" shrink>
-            <v-btn v-if="selectedActors.length" text @click="selectedActors = []" class="text-none"
+            <v-btn 
+              :disabled="!selectedActors.length" text @click="selectedActors = []" class="text-none"
               >Deselect</v-btn
             >
             <v-btn
@@ -148,6 +149,7 @@
               >Select all</v-btn
             >
             <v-btn
+              :disabled="!selectedActors.length"
               text
               @click="runPluginsForSelectedActors"
               class="text-none"
@@ -155,7 +157,7 @@
               >Run plugins for selected actors</v-btn
             >
             <v-btn
-              v-if="selectedActors.length"
+              :disabled="!selectedActors.length"
               @click="deleteSelectedActorsDialog = true"
               text
               class="text-none"
@@ -227,6 +229,18 @@
           </template>
           <span>Run plugins for all actors in current search</span>
         </v-tooltip>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on }">
+            <v-btn v-on="on" @click="toggleSelectionMode" icon>
+              <v-icon
+                >{{
+                  selectionMode ? "mdi-checkbox-blank-off-outline" : "mdi-checkbox-blank-outline"
+                }}
+              </v-icon>
+            </v-btn>
+          </template>
+          <span>Toggle selection mode</span>
+        </v-tooltip>
         <v-spacer />
         <div>
           <v-pagination
@@ -261,7 +275,7 @@
             <template v-slot:action="{ hover }">
               <v-fade-transition>
                 <v-checkbox
-                  v-if="hover || selectedActors.includes(actor._id)"
+                  v-if="selectionMode || hover || selectedActors.includes(actor._id)"
                   color="primary"
                   :input-value="selectedActors.includes(actor._id)"
                   readonly
@@ -506,6 +520,7 @@ export default class ActorList extends mixins(DrawerMixin) {
   fetchingRandom = false;
   numResults = 0;
   numPages = 0;
+  selectionMode = false;
 
   searchStateManager = new SearchStateManager<{
     page: number;
@@ -971,6 +986,22 @@ export default class ActorList extends mixins(DrawerMixin) {
       this.selectedActors.push(id);
     } else {
       this.selectedActors = this.selectedActors.filter((i) => i != id);
+    }
+  }
+
+  toggleSelectionMode() {
+    this.selectionMode = !this.selectionMode;
+    if (!this.selectionMode) {
+      this.selectedActors = [];
+    }
+  }
+
+  @Watch("selectedActors")
+  onSelectedActorsChange(nextVal: string[]) {
+    if (nextVal.length) {
+      this.selectionMode = true;
+    } else {
+      this.selectionMode = false;
     }
   }
 
