@@ -49,6 +49,17 @@
                 >Set spine cover</v-btn
               >
             </div>
+
+            <div class="mt-2 text-center">
+              <v-btn
+                color="primary"
+                :loading="pluginLoader"
+                text
+                class="text-none"
+                @click="runPlugins"
+                >Run plugins</v-btn
+              >
+            </div>
           </v-container>
         </v-col>
         <v-col cols="12" sm="6" md="8" lg="9" xl="10">
@@ -307,6 +318,8 @@ export default class MovieDetails extends Vue {
   spineCoverFile = null as File | null;
   spineCoverDialog = false;
 
+  pluginLoader = false;
+
   @Watch("currentMovie.actors", { deep: true })
   onActorChange(newVal: any[]) {
     this.actors = newVal;
@@ -514,6 +527,67 @@ export default class MovieDetails extends Vue {
         this.currentMovie.spineCover._id
       }?password=${localStorage.getItem("password")}`;
     return null;
+  }
+
+  async runPlugins() {
+    if (!this.currentMovie) return;
+
+    this.pluginLoader = true;
+
+    try {
+      const res = await ApolloClient.mutate({
+        mutation: gql`
+          mutation($id: String!) {
+            runMoviePlugins(id: $id) {
+              ...MovieFragment
+              actors {
+                ...ActorFragment
+                thumbnail {
+                  _id
+                  color
+                }
+                numScenes
+                labels {
+                  _id
+                  name
+                  color
+                }
+              }
+              scenes {
+                ...SceneFragment
+                actors {
+                  ...ActorFragment
+                }
+                studio {
+                  ...StudioFragment
+                }
+              }
+              studio {
+                ...StudioFragment
+                thumbnail {
+                  _id
+                }
+              }
+            }
+          }
+          ${movieFragment}
+          ${sceneFragment}
+          ${actorFragment}
+          ${studioFragment}
+        `,
+        variables: {
+          id: this.currentMovie._id,
+        },
+      });
+
+      movieModule.setCurrent(res.data.runMoviePlugins);
+      this.scenes = res.data.runMoviePlugins.scenes;
+      this.actors = res.data.runMoviePlugins.actors;
+    } catch (err) {
+      console.error(err);
+    }
+
+    this.pluginLoader = false;
   }
 
   readImage(file: File): Promise<string> {
