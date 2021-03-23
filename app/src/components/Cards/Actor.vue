@@ -199,11 +199,6 @@ export default class ActorCard extends Vue {
 .corner-actions {
   position: absolute;
 
-  &.top-left {
-    top: 2px;
-    left: 2px;
-  }
-
   &.top-right {
     right: 2px;
     top: 2px;
