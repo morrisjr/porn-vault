@@ -107,7 +107,7 @@
 
       <v-slide-y-reverse-transition>
         <v-alert
-          class="mb-3 mr-3 plugin-task-alert"
+          class="ma-3 plugin-task-alert"
           v-if="pluginLoader"
           dense
           type="info"

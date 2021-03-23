@@ -10,7 +10,7 @@ class PluginTask extends VuexModule {
   totalCount = -1;
 
   get message() {
-    if (this.totalCount <= 0) {
+    if (this.totalCount <= 0 || this.iteratedCount < 0) {
       return "Initializing...";
     }
 
