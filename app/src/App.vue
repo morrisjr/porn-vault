@@ -105,16 +105,18 @@
         <router-view />
       </div>
 
-      <v-alert
-        class="mb-3 mr-3 plugin-task-alert"
-        v-if="pluginLoader"
-        dense
-        type="info"
-        dismissible
-        elevation="1"
-      >
-        {{ pluginMessage }}
-      </v-alert>
+      <v-slide-y-reverse-transition>
+        <v-alert
+          class="mb-3 mr-3 plugin-task-alert"
+          v-if="pluginLoader"
+          dense
+          type="info"
+          dismissible
+          elevation="1"
+        >
+          {{ pluginMessage }}
+        </v-alert>
+      </v-slide-y-reverse-transition>
 
       <Footer />
     </v-content>
