@@ -91,7 +91,7 @@
     <v-dialog v-model="removeDialog" max-width="400px">
       <v-card :loading="removeLoader">
         <v-card-title>Really delete '{{ currentActor.name }}'?</v-card-title>
-        <v-card-text>Scene and images featuring {{ currentActor.name }} will stay in your collection.</v-card-text>
+        <v-card-text>Scenes and images featuring {{ currentActor.name }} will stay in your collection.</v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn class="text-none" text color="error" @click="remove">Delete</v-btn>

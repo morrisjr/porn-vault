@@ -351,6 +351,7 @@
     <v-dialog v-model="deleteSelectedMoviesDialog" max-width="400px">
       <v-card>
         <v-card-title>Really delete {{ selectedMovies.length }} movies?</v-card-title>
+        <v-card-text> Images will stay in your collection. </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn
@@ -710,10 +711,8 @@ export default class MovieList extends mixins(DrawerMixin) {
     this.runPluginCount = 0;
     this.runPluginTotalCount = this.selectedMovies.length;
 
-    const movieIds = this.selectedMovies;
-
     try {
-      for (const id of movieIds) {
+      for (const id of this.selectedMovies) {
         await this.runPluginsForAMovie(id);
         this.runPluginCount++;
       }
@@ -782,7 +781,7 @@ export default class MovieList extends mixins(DrawerMixin) {
   }
 
   isMovieSelected(id: string) {
-    return !!this.selectedMovies.find((selectedId) => id === selectedId);
+    return !!this.selectedMovies.includes(id);
   }
 
   selectMovie(id: string, add: boolean) {

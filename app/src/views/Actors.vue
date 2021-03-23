@@ -415,7 +415,9 @@
     <v-dialog v-model="deleteSelectedActorsDialog" max-width="400px">
       <v-card>
         <v-card-title>Really delete {{ selectedActors.length }} actors?</v-card-title>
-        <v-card-text />
+        <v-card-text
+          >Scenes and images featuring the actors will stay in your collection.</v-card-text
+        >
         <v-card-actions>
           <v-spacer />
           <v-btn
@@ -879,10 +881,8 @@ export default class ActorList extends mixins(DrawerMixin) {
     this.runPluginCount = 0;
     this.runPluginTotalCount = this.selectedActors.length;
 
-    const actorsIds = this.selectedActors;
-
     try {
-      for (const id of actorsIds) {
+      for (const id of this.selectedActors) {
         await this.runPluginsForAnActor(id);
         this.runPluginCount++;
       }
@@ -961,7 +961,7 @@ export default class ActorList extends mixins(DrawerMixin) {
   deleteSelectedActorsDialog = false;
 
   isActorSelected(id: string) {
-    return !!this.selectedActors.find((selectedId) => id === selectedId);
+    return !!this.selectedActors.includes(id);
   }
 
   selectActor(id: string, add: boolean) {

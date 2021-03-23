@@ -93,6 +93,56 @@
       </v-container>
     </v-navigation-drawer>
 
+    <v-progress-linear :active="pluginLoader" indeterminate absolute top />
+
+    <v-expand-transition>
+      <v-banner app sticky class="mb-2" v-if="selectedStudios.length">
+        {{ selectedStudios.length }} studios selected
+        <template v-slot:actions>
+          <v-flex class="flex-wrap justify-end" shrink>
+            <v-btn
+              v-if="selectedStudios.length"
+              text
+              @click="selectedStudios = []"
+              class="text-none"
+              >Deselect</v-btn
+            >
+            <v-btn
+              :disabled="selectedStudios.length === studios.length"
+              text
+              @click="selectedStudios = studios.map((s) => s._id)"
+              class="text-none"
+              >Select all</v-btn
+            >
+            <v-btn
+              text
+              @click="runPluginsForSelectedStudios"
+              class="text-none"
+              :loading="pluginLoader"
+              >Run plugins for selected studios</v-btn
+            >
+            <v-btn
+              v-if="selectedStudios.length"
+              @click="deleteSelectedStudiosDialog = true"
+              text
+              class="text-none"
+              color="error"
+              >Delete</v-btn
+            >
+          </v-flex>
+        </template>
+      </v-banner>
+    </v-expand-transition>
+
+    <v-expand-transition>
+      <v-alert class="mb-3" v-if="pluginLoader" dense type="info">
+        <template v-if="runPluginTotalCount === -1"> Initializing... </template>
+        <template v-else>
+          Running plugins on studio {{ runPluginCount + 1 }} of {{ runPluginTotalCount }}
+        </template>
+      </v-alert>
+    </v-expand-transition>
+
     <div class="text-center" v-if="fetchError">
       <div>There was an error</div>
       <v-btn class="mt-2" @click="loadPage">Try again</v-btn>
@@ -128,6 +178,14 @@
           </template>
           <span>Reshuffle</span>
         </v-tooltip>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on }">
+            <v-btn v-on="on" @click="runPluginsForSearch" icon :loading="pluginLoader">
+              <v-icon>mdi-account-details</v-icon>
+            </v-btn>
+          </template>
+          <span>Run plugins for all studios in current search</span>
+        </v-tooltip>
         <v-spacer></v-spacer>
         <div>
           <v-pagination
@@ -143,7 +201,7 @@
       <v-row v-if="!fetchLoader && numResults">
         <v-col
           class="pa-1"
-          v-for="studio in studios"
+          v-for="(studio, studioIdx) in studios"
           :key="studio._id"
           cols="6"
           sm="6"
@@ -151,7 +209,30 @@
           lg="3"
           xl="2"
         >
-          <studio-card :showLabels="showCardLabels" :studio="studio" style="height: 100%" />
+          <studio-card
+            :class="
+              selectedStudios.length && !selectedStudios.includes(studio._id) ? 'not-selected' : ''
+            "
+            :showLabels="showCardLabels"
+            :studio="studio"
+            style="height: 100%"
+            @click.native.stop.prevent="onStudioClick(studio, studioIdx, $event, false)"
+          >
+            <template v-slot:action="{ hover }">
+              <v-fade-transition>
+                <v-checkbox
+                  v-if="hover || selectedStudios.includes(studio._id)"
+                  color="primary"
+                  :input-value="selectedStudios.includes(studio._id)"
+                  readonly
+                  @click.native.stop.prevent="onStudioClick(studio, studioIdx, $event, true)"
+                  class="mt-0"
+                  hide-details
+                  :contain="true"
+                ></v-checkbox>
+              </v-fade-transition>
+            </template>
+          </studio-card>
         </v-col>
       </v-row>
       <NoResults v-else-if="!fetchLoader && !numResults" />
@@ -220,6 +301,24 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="deleteSelectedStudiosDialog" max-width="400px">
+      <v-card>
+        <v-card-title>Really delete {{ selectedStudios.length }} studios?</v-card-title>
+        <v-card-text> Scenes, images and movies will stay in your collection </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            class="text-none"
+            color="error"
+            text
+            @click="deleteSelection"
+            :loading="deleteStudiosLoader"
+            >Delete</v-btn
+          >
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -235,6 +334,8 @@ import { mixins } from "vue-class-component";
 import DrawerMixin from "@/mixins/drawer";
 import { isQueryDifferent, SearchStateManager } from "../util/searchState";
 import { Dictionary, Route } from "vue-router/types/router";
+import { Studio } from "@/api/studio";
+import IStudio from "@/types/studio";
 
 @Component({
   components: {
@@ -260,6 +361,13 @@ export default class StudioList extends mixins(DrawerMixin) {
   fetchingRandom = false;
   numResults = 0;
   numPages = 0;
+  pluginLoader = false;
+  runPluginCount = -1;
+  runPluginTotalCount = -1;
+  deleteStudiosLoader = false;
+  selectedStudios = [] as string[];
+  lastSelectionStudioId: string | null = null;
+  deleteSelectedStudiosDialog = false;
 
   searchStateManager = new SearchStateManager<{
     page: number;
@@ -472,6 +580,168 @@ export default class StudioList extends mixins(DrawerMixin) {
       });
   }
 
+  async runPluginsForSelectedStudios() {
+    this.pluginLoader = true;
+    this.runPluginCount = 0;
+    this.runPluginTotalCount = this.selectedStudios.length;
+
+    try {
+      for (const id of this.selectedStudios) {
+        await this.runPluginsForAStudio(id);
+        this.runPluginCount++;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+
+    this.pluginLoader = false;
+    this.runPluginCount = -1;
+    this.runPluginTotalCount = -1;
+  }
+
+  async runPluginsForSearch() {
+    this.pluginLoader = true;
+    this.runPluginCount = 0;
+    this.runPluginTotalCount = -1;
+
+    try {
+      await Studio.iterate(
+        (studio) => this.runPluginsForAStudio(studio._id),
+        this.fetchQuery,
+        ({ iteratedCount, total }) => {
+          this.runPluginCount = iteratedCount;
+          this.runPluginTotalCount = total;
+        }
+      );
+    } catch (err) {
+      console.error(err);
+    }
+
+    this.pluginLoader = false;
+    this.runPluginCount = -1;
+    this.runPluginTotalCount = -1;
+  }
+
+  async runPluginsForAStudio(id: string) {
+    try {
+      const res = await ApolloClient.mutate({
+        mutation: gql`
+          mutation($id: String!) {
+            runStudioPlugins(id: $id) {
+              ...StudioFragment
+              numScenes
+              thumbnail {
+                _id
+              }
+              labels {
+                _id
+                name
+                color
+              }
+              parent {
+                _id
+                name
+              }
+            }
+          }
+          ${studioFragment}
+        `,
+        variables: {
+          id: id,
+        },
+      });
+      const studio = res.data.runStudioPlugins;
+      const studioIndex = this.studios.findIndex((a) => a._id === id);
+      if (studioIndex !== -1) {
+        this.studios.splice(studioIndex, 1, studio);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  isStudioSelected(id: string) {
+    return !!this.selectedStudios.includes(id);
+  }
+
+  selectStudio(id: string, add: boolean) {
+    this.lastSelectionStudioId = id;
+    if (add && !this.isStudioSelected(id)) {
+      this.selectedStudios.push(id);
+    } else {
+      this.selectedStudios = this.selectedStudios.filter((i) => i != id);
+    }
+  }
+
+  /**
+   * @param studio - the clicked studio
+   * @param index - the index of the studio in the array
+   * @param event - the mouse click event
+   * @param forceSelectionChange - whether to force a selection change, instead of opening the studio
+   */
+  onStudioClick(studio: IStudio, index: number, event: MouseEvent, forceSelectionChange = true) {
+    let lastSelectionsceneIndex =
+      this.lastSelectionStudioId !== null
+        ? this.studios.findIndex((im) => im._id === this.lastSelectionStudioId)
+        : index;
+    lastSelectionsceneIndex = lastSelectionsceneIndex === -1 ? index : lastSelectionsceneIndex;
+    if (event.shiftKey) {
+      // Next state is opposite of the clicked studio state
+      const nextSelectionState = !this.isStudioSelected(studio._id);
+      // Use >= to include the currently clicked studio, so it can be toggled
+      // if necessary
+      if (index >= lastSelectionsceneIndex) {
+        for (let i = lastSelectionsceneIndex + 1; i <= index; i++) {
+          this.selectStudio(this.studios[i]._id, nextSelectionState);
+        }
+      } else if (index < lastSelectionsceneIndex) {
+        for (let i = lastSelectionsceneIndex; i >= index; i--) {
+          this.selectStudio(this.studios[i]._id, nextSelectionState);
+        }
+      }
+    } else if (forceSelectionChange || event.ctrlKey) {
+      this.selectStudio(studio._id, !this.isStudioSelected(studio._id));
+    } else if (!forceSelectionChange) {
+      this.$router.push(`/studio/${studio._id}`);
+    }
+  }
+
+  async deleteSelection() {
+    this.deleteStudiosLoader = true;
+
+    try {
+      await ApolloClient.mutate({
+        mutation: gql`
+          mutation($ids: [String!]!) {
+            removeStudios(ids: $ids)
+          }
+        `,
+        variables: {
+          ids: this.selectedStudios,
+        },
+      });
+
+      this.numResults = Math.max(0, this.numResults - this.selectedStudios.length);
+      this.studios = this.studios.filter((st) => !this.selectedStudios.includes(st._id));
+      this.selectedStudios = [];
+      this.deleteSelectedStudiosDialog = false;
+    } catch (err) {
+      console.error(err);
+    }
+
+    this.deleteStudiosLoader = false;
+  }
+
+  get fetchQuery() {
+    return {
+      query: this.searchState.query || "",
+      include: this.searchState.selectedLabels.include,
+      exclude: this.searchState.selectedLabels.exclude,
+      favorite: this.searchState.favoritesOnly,
+      bookmark: this.searchState.bookmarksOnly,
+    };
+  }
+
   async fetchPage(page: number, take = 24, random?: boolean, seed?: string) {
     const result = await ApolloClient.query({
       query: gql`
@@ -501,15 +771,11 @@ export default class StudioList extends mixins(DrawerMixin) {
       `,
       variables: {
         query: {
-          query: this.searchState.query || "",
-          include: this.searchState.selectedLabels.include,
-          exclude: this.searchState.selectedLabels.exclude,
+          ...this.fetchQuery,
           take,
           page: page - 1,
           sortDir: this.searchState.sortDir,
           sortBy: random ? "$shuffle" : this.searchState.sortBy,
-          favorite: this.searchState.favoritesOnly,
-          bookmark: this.searchState.bookmarksOnly,
         },
         seed: seed || localStorage.getItem("pm_seed") || "default",
       },
@@ -568,3 +834,10 @@ export default class StudioList extends mixins(DrawerMixin) {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+.not-selected {
+  transition: all 0.15s ease-in-out;
+  filter: brightness(0.6);
+}
+</style>

@@ -822,10 +822,8 @@ export default class SceneList extends mixins(DrawerMixin) {
     this.runPluginCount = 0;
     this.runPluginTotalCount = this.selectedScenes.length;
 
-    const sceneIds = this.selectedScenes;
-
     try {
-      for (const id of sceneIds) {
+      for (const id of this.selectedScenes) {
         await this.runPluginsForAScene(id);
         this.runPluginCount++;
       }
@@ -895,7 +893,7 @@ export default class SceneList extends mixins(DrawerMixin) {
   }
 
   isSceneSelected(id: string) {
-    return !!this.selectedScenes.find((selectedId) => id === selectedId);
+    return !!this.selectedScenes.includes(id);
   }
 
   selectScene(id: string, add: boolean) {
