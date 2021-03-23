@@ -193,7 +193,7 @@
         <template v-if="runPluginTotalCount === -1"> Initializing... </template>
         <template v-else>
           Running plugins on scene {{ Math.min(runPluginCount + 1, numResults) }} of
-          {{ runPluginTotalCount }}
+          {{ runPluginTotalCount }} Do not close this tab.
         </template>
       </v-alert>
     </v-expand-transition>
