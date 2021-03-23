@@ -187,7 +187,8 @@
       <v-alert class="mb-3" v-if="pluginLoader" dense type="info">
         <template v-if="runPluginTotalCount === -1"> Initializing... </template>
         <template v-else>
-          Running plugins on scene {{ runPluginCount + 1 }} of {{ runPluginTotalCount }}
+          Running plugins on scene {{ Math.min(runPluginCount + 1, numResults) }} of
+          {{ runPluginTotalCount }}
         </template>
       </v-alert>
     </v-expand-transition>
