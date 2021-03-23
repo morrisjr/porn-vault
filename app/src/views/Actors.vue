@@ -130,15 +130,16 @@
       </v-container>
     </v-navigation-drawer>
 
-    <v-progress-linear :active="pluginLoader" indeterminate absolute top />
-
     <v-expand-transition>
       <v-banner app sticky class="mb-2" v-if="selectionMode">
         {{ selectedActors.length }} actors selected
         <template v-slot:actions>
           <v-flex class="flex-wrap justify-end" shrink>
-            <v-btn 
-              :disabled="!selectedActors.length" text @click="selectedActors = []" class="text-none"
+            <v-btn
+              :disabled="!selectedActors.length"
+              text
+              @click="selectedActors = []"
+              class="text-none"
               >Deselect</v-btn
             >
             <v-btn
@@ -167,16 +168,6 @@
           </v-flex>
         </template>
       </v-banner>
-    </v-expand-transition>
-
-    <v-expand-transition>
-      <v-alert class="mb-3" v-if="pluginLoader" dense type="info">
-        <template v-if="runPluginTotalCount === -1"> Initializing... </template>
-        <template v-else>
-          Running plugins on actor {{ Math.min(runPluginCount + 1, numResults) }} of
-          {{ runPluginTotalCount }}. Do not close this tab.
-        </template>
-      </v-alert>
     </v-expand-transition>
 
     <div class="text-center" v-if="fetchError">
@@ -486,6 +477,7 @@ import countries from "@/util/countries";
 import { SearchStateManager, isQueryDifferent } from "../util/searchState";
 import { Dictionary, Route } from "vue-router/types/router";
 import { Actor } from "@/api/actor";
+import { pluginTaskModule } from "@/store/pluginTask";
 
 @Component({
   components: {
@@ -616,9 +608,6 @@ export default class ActorList extends mixins(DrawerMixin) {
   createSelectedLabels = [] as number[];
   labelSelectorDialog = false;
   addActorLoader = false;
-  pluginLoader = false;
-  runPluginCount = -1;
-  runPluginTotalCount = -1;
   deleteActorsLoader = false;
 
   actorNameRules = [(v) => (!!v && !!v.length) || "Invalid actor name"];
@@ -892,46 +881,51 @@ export default class ActorList extends mixins(DrawerMixin) {
       });
   }
 
+  get pluginLoader() {
+    return pluginTaskModule.loader;
+  }
+
   async runPluginsForSelectedActors() {
-    this.pluginLoader = true;
-    this.runPluginCount = 0;
-    this.runPluginTotalCount = this.selectedActors.length;
+    if (this.pluginLoader) {
+      // Don't trigger plugins if there is already a task running
+      return;
+    }
+
+    pluginTaskModule.startLoading({ itemsName: "actor", total: this.selectedActors.length });
 
     try {
       for (const id of this.selectedActors) {
         await this.runPluginsForAnActor(id);
-        this.runPluginCount++;
+        pluginTaskModule.incrementProgress();
       }
     } catch (error) {
       console.error(error);
     }
 
-    this.pluginLoader = false;
-    this.runPluginCount = -1;
-    this.runPluginTotalCount = -1;
+    pluginTaskModule.stopLoading();
   }
 
   async runPluginsForSearch() {
-    this.pluginLoader = true;
-    this.runPluginCount = 0;
-    this.runPluginTotalCount = -1;
+    if (this.pluginLoader) {
+      // Don't trigger plugins if there is already a task running
+      return;
+    }
+
+    pluginTaskModule.startLoading({ itemsName: "actor" });
 
     try {
       await Actor.iterate(
         (actor) => this.runPluginsForAnActor(actor._id),
         this.fetchQuery,
         ({ iteratedCount, total }) => {
-          this.runPluginCount = iteratedCount;
-          this.runPluginTotalCount = total;
+          pluginTaskModule.setProgress({ iteratedCount, total });
         }
       );
     } catch (err) {
       console.error(err);
     }
 
-    this.pluginLoader = false;
-    this.runPluginCount = -1;
-    this.runPluginTotalCount = -1;
+    pluginTaskModule.stopLoading();
   }
 
   async runPluginsForAnActor(id: string) {

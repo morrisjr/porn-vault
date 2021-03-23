@@ -104,6 +104,18 @@
       <div style="min-height: 100vh">
         <router-view />
       </div>
+
+      <v-alert
+        class="mb-3 mr-3 plugin-task-alert"
+        v-if="pluginLoader"
+        dense
+        type="info"
+        dismissible
+        elevation="1"
+      >
+        {{ pluginMessage }}
+      </v-alert>
+
       <Footer />
     </v-content>
   </v-app>
@@ -120,6 +132,7 @@ import ActorDetailsBar from "./components/AppBar/ActorDetails.vue";
 import MovieDetailsBar from "./components/AppBar/MovieDetails.vue";
 import StudioDetailsBar from "./components/AppBar/StudioDetails.vue";
 import { contextModule } from "./store/context";
+import { pluginTaskModule } from "./store/pluginTask";
 import moment from "moment";
 import { ensureDarkColor } from "./util/color";
 import Footer from "./components/Footer.vue";
@@ -326,6 +339,14 @@ export default class App extends Vue {
 
     return btns;
   }
+
+  get pluginLoader() {
+    return pluginTaskModule.loader;
+  }
+
+  get pluginMessage() {
+    return pluginTaskModule.message;
+  }
 }
 </script>
 
@@ -349,5 +370,12 @@ export default class App extends Vue {
 
 .med--text {
   opacity: 0.6;
+}
+
+.plugin-task-alert {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
 }
 </style>

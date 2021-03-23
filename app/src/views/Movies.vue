@@ -114,8 +114,6 @@
       </v-container>
     </v-navigation-drawer>
 
-    <v-progress-linear :active="pluginLoader" indeterminate absolute top />
-
     <v-expand-transition>
       <v-banner app sticky class="mb-2" v-if="selectionMode">
         {{ selectedMovies.length }} movies selected
@@ -154,16 +152,6 @@
           </v-flex>
         </template>
       </v-banner>
-    </v-expand-transition>
-
-    <v-expand-transition>
-      <v-alert class="mb-3" v-if="pluginLoader" dense type="info">
-        <template v-if="runPluginTotalCount === -1"> Initializing... </template>
-        <template v-else>
-          Running plugins on movie {{ Math.min(runPluginCount + 1, numResults) }} of
-          {{ runPluginTotalCount }} Do not close this tab.
-        </template>
-      </v-alert>
     </v-expand-transition>
 
     <div class="text-center" v-if="fetchError">
@@ -407,6 +395,7 @@ import { SearchStateManager, isQueryDifferent } from "../util/searchState";
 import { Route } from "vue-router";
 import { Dictionary } from "vue-router/types/router";
 import { Movie } from "@/api/movie";
+import { pluginTaskModule } from "@/store/pluginTask";
 
 @Component({
   components: {
@@ -436,10 +425,6 @@ export default class MovieList extends mixins(DrawerMixin) {
   numResults = 0;
   numPages = 0;
   selectionMode = false;
-
-  pluginLoader = false;
-  runPluginCount = -1;
-  runPluginTotalCount = -1;
 
   selectedMovies = [] as string[];
   lastSelectionMovieId: string | null = null;
@@ -725,46 +710,51 @@ export default class MovieList extends mixins(DrawerMixin) {
       });
   }
 
+  get pluginLoader() {
+    return pluginTaskModule.loader;
+  }
+
   async runPluginsForSelectedMovies() {
-    this.pluginLoader = true;
-    this.runPluginCount = 0;
-    this.runPluginTotalCount = this.selectedMovies.length;
+    if (this.pluginLoader) {
+      // Don't trigger plugins if there is already a task running
+      return;
+    }
+
+    pluginTaskModule.startLoading({ itemsName: "movie", total: this.selectedMovies.length });
 
     try {
       for (const id of this.selectedMovies) {
         await this.runPluginsForAMovie(id);
-        this.runPluginCount++;
+        pluginTaskModule.incrementProgress();
       }
     } catch (error) {
       console.error(error);
     }
 
-    this.pluginLoader = false;
-    this.runPluginCount = -1;
-    this.runPluginTotalCount = -1;
+    pluginTaskModule.stopLoading();
   }
 
   async runPluginsForSearch() {
-    this.pluginLoader = true;
-    this.runPluginCount = 0;
-    this.runPluginTotalCount = -1;
+    if (this.pluginLoader) {
+      // Don't trigger plugins if there is already a task running
+      return;
+    }
+
+    pluginTaskModule.startLoading({ itemsName: "movie" });
 
     try {
       await Movie.iterate(
         (movie) => this.runPluginsForAMovie(movie._id),
         this.fetchQuery,
         ({ iteratedCount, total }) => {
-          this.runPluginCount = iteratedCount;
-          this.runPluginTotalCount = total;
+          pluginTaskModule.setProgress({ iteratedCount, total });
         }
       );
     } catch (err) {
       console.error(err);
     }
 
-    this.pluginLoader = false;
-    this.runPluginCount = -1;
-    this.runPluginTotalCount = -1;
+    pluginTaskModule.stopLoading();
   }
 
   async runPluginsForAMovie(id: string) {

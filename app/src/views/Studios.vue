@@ -93,8 +93,6 @@
       </v-container>
     </v-navigation-drawer>
 
-    <v-progress-linear :active="pluginLoader" indeterminate absolute top />
-
     <v-expand-transition>
       <v-banner app sticky class="mb-2" v-if="selectionMode">
         {{ selectedStudios.length }} studios selected
@@ -133,16 +131,6 @@
           </v-flex>
         </template>
       </v-banner>
-    </v-expand-transition>
-
-    <v-expand-transition>
-      <v-alert class="mb-3" v-if="pluginLoader" dense type="info">
-        <template v-if="runPluginTotalCount === -1"> Initializing... </template>
-        <template v-else>
-          Running plugins on studio {{ Math.min(runPluginCount + 1, numResults) }} of
-          {{ runPluginTotalCount }} Do not close this tab.
-        </template>
-      </v-alert>
     </v-expand-transition>
 
     <div class="text-center" v-if="fetchError">
@@ -350,6 +338,7 @@ import { isQueryDifferent, SearchStateManager } from "../util/searchState";
 import { Dictionary, Route } from "vue-router/types/router";
 import { Studio } from "@/api/studio";
 import IStudio from "@/types/studio";
+import { pluginTaskModule } from "@/store/pluginTask";
 
 @Component({
   components: {
@@ -377,9 +366,6 @@ export default class StudioList extends mixins(DrawerMixin) {
   numPages = 0;
   selectionMode = false;
 
-  pluginLoader = false;
-  runPluginCount = -1;
-  runPluginTotalCount = -1;
   deleteStudiosLoader = false;
   selectedStudios = [] as string[];
   lastSelectionStudioId: string | null = null;
@@ -596,46 +582,51 @@ export default class StudioList extends mixins(DrawerMixin) {
       });
   }
 
+  get pluginLoader() {
+    return pluginTaskModule.loader;
+  }
+
   async runPluginsForSelectedStudios() {
-    this.pluginLoader = true;
-    this.runPluginCount = 0;
-    this.runPluginTotalCount = this.selectedStudios.length;
+    if (this.pluginLoader) {
+      // Don't trigger plugins if there is already a task running
+      return;
+    }
+
+    pluginTaskModule.startLoading({ itemsName: "studio", total: this.selectedStudios.length });
 
     try {
       for (const id of this.selectedStudios) {
         await this.runPluginsForAStudio(id);
-        this.runPluginCount++;
+        pluginTaskModule.incrementProgress();
       }
     } catch (error) {
       console.error(error);
     }
 
-    this.pluginLoader = false;
-    this.runPluginCount = -1;
-    this.runPluginTotalCount = -1;
+    pluginTaskModule.stopLoading();
   }
 
   async runPluginsForSearch() {
-    this.pluginLoader = true;
-    this.runPluginCount = 0;
-    this.runPluginTotalCount = -1;
+    if (this.pluginLoader) {
+      // Don't trigger plugins if there is already a task running
+      return;
+    }
+
+    pluginTaskModule.startLoading({ itemsName: "studio" });
 
     try {
       await Studio.iterate(
         (studio) => this.runPluginsForAStudio(studio._id),
         this.fetchQuery,
         ({ iteratedCount, total }) => {
-          this.runPluginCount = iteratedCount;
-          this.runPluginTotalCount = total;
+          pluginTaskModule.setProgress({ iteratedCount, total });
         }
       );
     } catch (err) {
       console.error(err);
     }
 
-    this.pluginLoader = false;
-    this.runPluginCount = -1;
-    this.runPluginTotalCount = -1;
+    pluginTaskModule.stopLoading();
   }
 
   async runPluginsForAStudio(id: string) {
