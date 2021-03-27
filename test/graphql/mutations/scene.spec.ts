@@ -272,7 +272,7 @@ describe("graphql", () => {
         });
       });
 
-      describe.only("removeScene", () => {
+      describe("removeScene", () => {
         const videoPath = "./test/fixtures/files/dynamic/dynamic_video.mp4";
 
         beforeEach(async () => {
