@@ -1,12 +1,14 @@
 import { expect } from "chai";
 import { existsSync, unlinkSync } from "fs";
 
-import { actorCollection, labelCollection } from "../../../src/database";
+import { actorCollection, imageCollection, labelCollection } from "../../../src/database";
 import sceneMutations from "../../../src/graphql/mutations/scene";
 import { indexActors } from "../../../src/search/actor";
+import { indexImages } from "../../../src/search/image";
 import { indexScenes } from "../../../src/search/scene";
 import { indexStudios } from "../../../src/search/studio";
 import Actor from "../../../src/types/actor";
+import Image from "../../../src/types/image";
 import Label from "../../../src/types/label";
 import Scene from "../../../src/types/scene";
 import Studio from "../../../src/types/studio";
@@ -267,6 +269,106 @@ describe("graphql", () => {
           expect(sceneFromDb.meta.dimensions).to.not.be.null;
           expect(sceneFromDb.meta.fps).to.not.be.null;
           expect(sceneFromDb.meta).to.deep.equal(testVideoMeta);
+        });
+      });
+
+      describe.only("removeScene", () => {
+        const videoPath = "./test/fixtures/files/dynamic/dynamic_video.mp4";
+
+        beforeEach(async () => {
+          await downloadTestVideo(videoPath);
+        });
+
+        afterEach(() => {
+          if (existsSync(videoPath)) {
+            unlinkSync(videoPath);
+          }
+        });
+
+        it("deletes file", async function () {
+          await startTestServer.call(this, {});
+
+          const { seedScene } = await seedDbWithScene();
+          seedScene.path = videoPath;
+          await sceneCollection.upsert(seedScene._id, seedScene);
+
+          expect(existsSync(videoPath)).to.be.true;
+
+          const res = (await sceneMutations.removeScenes(null, {
+            ids: [seedScene._id],
+            deleteFile: true,
+          }))!;
+          expect(res).to.be.true;
+          expect(existsSync(videoPath)).to.be.false;
+        });
+
+        it("keeps file", async function () {
+          await startTestServer.call(this, {});
+
+          const { seedScene } = await seedDbWithScene();
+          seedScene.path = videoPath;
+          await sceneCollection.upsert(seedScene._id, seedScene);
+
+          expect(existsSync(videoPath)).to.be.true;
+
+          const res = (await sceneMutations.removeScenes(null, {
+            ids: [seedScene._id],
+            deleteFile: false,
+          }))!;
+          expect(res).to.be.true;
+          expect(existsSync(videoPath)).to.be.true;
+        });
+
+        it("deletes images", async function () {
+          await startTestServer.call(this, {});
+
+          const { seedScene } = await seedDbWithScene();
+          seedScene.path = videoPath;
+          await sceneCollection.upsert(seedScene._id, seedScene);
+
+          const image = new Image("test image");
+          image.scene = seedScene._id;
+          await imageCollection.upsert(image._id, image);
+          await indexImages([image]);
+
+          expect(await Image.getAll()).to.have.lengthOf(1);
+          expect(await Image.getByScene(seedScene._id)).to.have.lengthOf(1);
+
+          expect(existsSync(videoPath)).to.be.true;
+
+          const res = (await sceneMutations.removeScenes(null, {
+            ids: [seedScene._id],
+            deleteImages: true,
+          }))!;
+          expect(res).to.be.true;
+          expect(await Image.getAll()).to.have.lengthOf(0);
+          expect(await Image.getByScene(seedScene._id)).to.have.lengthOf(0);
+        });
+
+        it("preserves images", async function () {
+          await startTestServer.call(this, {});
+
+          const { seedScene } = await seedDbWithScene();
+          seedScene.path = videoPath;
+          await sceneCollection.upsert(seedScene._id, seedScene);
+
+          const image = new Image("test image");
+          image.scene = seedScene._id;
+          await imageCollection.upsert(image._id, image);
+          await indexImages([image]);
+
+          expect(await Image.getAll()).to.have.lengthOf(1);
+          expect(await Image.getByScene(seedScene._id)).to.have.lengthOf(1);
+
+          expect(existsSync(videoPath)).to.be.true;
+
+          const res = (await sceneMutations.removeScenes(null, {
+            ids: [seedScene._id],
+            deleteImages: false,
+          }))!;
+          expect(res).to.be.true;
+          expect(await Image.getAll()).to.have.lengthOf(1);
+          expect(await Image.getByScene(seedScene._id)).to.have.lengthOf(0);
         });
       });
     });

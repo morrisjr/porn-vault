@@ -390,9 +390,17 @@
       <v-card>
         <v-card-title>Really delete {{ selectedScenes.length }} scenes?</v-card-title>
         <v-card-text>
-          <v-alert v-if="willDeleteSceneFiles" type="error"
-            >This will absolutely annihilate the original source files on disk</v-alert
-          >
+          <template v-if="willDeleteSceneFiles">
+            <v-checkbox
+              hide-details
+              color="error"
+              v-model="deleteSceneFiles"
+              label="Delete files"
+            ></v-checkbox>
+            <v-alert v-if="deleteSceneFiles" class="mt-3" type="error"
+              >This will absolutely annihilate the original source files on disk
+            </v-alert>
+          </template>
           <v-checkbox
             color="error"
             v-model="deleteSceneImages"
@@ -660,6 +668,7 @@ export default class SceneList extends mixins(DrawerMixin) {
   selectedScenes = [] as string[];
   lastSelectionSceneId: string | null = null;
   deleteSelectedScenesDialog = false;
+  deleteSceneFiles = false;
   deleteSceneImages = false;
 
   labelClasses(label: ILabel) {
@@ -687,13 +696,14 @@ export default class SceneList extends mixins(DrawerMixin) {
     try {
       ApolloClient.mutate({
         mutation: gql`
-          mutation($ids: [String!]!, $deleteImages: Boolean) {
-            removeScenes(ids: $ids, deleteImages: $deleteImages)
+          mutation($ids: [String!]!, $deleteImages: Boolean, $deleteFile: Boolean) {
+            removeScenes(ids: $ids, deleteImages: $deleteImages, deleteFile: $deleteFile)
           }
         `,
         variables: {
           ids: this.selectedScenes,
           deleteImages: this.deleteSceneImages,
+          deleteFile: this.deleteSceneFiles
         },
       });
 
@@ -702,6 +712,7 @@ export default class SceneList extends mixins(DrawerMixin) {
       this.selectedScenes = [];
       this.deleteSelectedScenesDialog = false;
       this.deleteSceneImages = false;
+      this.deleteSceneFiles = false;
     } catch (err) {
       console.error(err);
     }

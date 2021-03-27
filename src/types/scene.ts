@@ -355,14 +355,15 @@ export default class Scene {
     await indexActors(await Scene.getActors(scene));
   }
 
-  static async remove(scene: Scene): Promise<void> {
+  static async remove(scene: Scene, deleteFile: boolean): Promise<void> {
     await sceneCollection.remove(scene._id);
-    try {
-      if (scene.path) {
+
+    if (deleteFile && scene.path) {
+      try {
         await unlinkAsync(scene.path);
+      } catch (error) {
+        handleError(`Could not delete source file for scene ${scene._id}`, error);
       }
-    } catch (error) {
-      handleError(`Could not delete source file for scene ${scene._id}`, error);
     }
   }
 
