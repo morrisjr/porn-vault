@@ -208,7 +208,7 @@ function transcodeMp4(
           "-hwaccel qsv",
           "-filter_hw_device qsv"
         );
-        outputOptions.push("-vf 'hwupload=extra_hw_frames=10,format=nv12' ");
+        outputOptions.push("-vf 'hwupload=extra_hw_frames=10,format=nv12'");
 
         break;
       case HardwareAccelerationDriver.enum.nvenc:
