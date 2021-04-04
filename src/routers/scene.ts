@@ -38,6 +38,22 @@ interface TranscodeOptions {
   mimeType: string;
 }
 
+function getVideoBitrateParam(scene: Scene, codec: string): string[] {
+  if (!scene.meta.bitrate) {
+    return [];
+  }
+
+  if (codec === "libx264") {
+    return [`-maxrate ${scene.meta.bitrate}`, `-bufsize ${scene.meta.bitrate * 2}`];
+  }
+
+  return [
+    `-b:v ${scene.meta.bitrate}`,
+    `-maxrate ${scene.meta.bitrate}`,
+    `-bufsize ${scene.meta.bitrate * 2}`,
+  ];
+}
+
 function streamTranscode(
   scene: Scene & { path: string },
   req: Request,
@@ -231,7 +247,8 @@ function transcodeMp4(
     `-c:v ${vCodec}`,
     "-movflags frag_keyframe+empty_moov+faststart",
     `-preset ${transcode.h264Preset ?? "veryfast"}`,
-    `-crf ${transcode.h264Crf ?? 23}`
+    `-crf ${transcode.h264Crf ?? 23}`,
+    ...getVideoBitrateParam(scene, vCodec)
   );
 
   const isMP4AudioValid =
@@ -263,7 +280,7 @@ router.get("/:scene", async (req, res, next) => {
   }
 
   try {
-    if (!scene.meta.container || !scene.meta.videoCodec) {
+    if (!scene.meta.container || !scene.meta.videoCodec || !scene.meta.bitrate) {
       logger.verbose(
         `Scene ${scene._id} doesn't have codec information to determine supported transcodes, running ffprobe`
       );
