@@ -81,6 +81,7 @@ export class SceneMeta {
   videoCodec: FFProbeVideoCodecs | null = null;
   audioCodec: FFProbeAudioCodecs | null = null;
   container: FFProbeContainers | null = null;
+  bitrate: number | null = null;
 }
 
 export default class Scene {
@@ -209,9 +210,15 @@ export default class Scene {
     );
 
     const iterateStreams = [...streams];
+
     let stream = iterateStreams.shift();
-    while (stream && (!scene.meta.videoCodec || !scene.meta.audioCodec)) {
-      if (!scene.meta.videoCodec && stream.codec_type === "video") {
+    let foundVCodec = false;
+    let foundACodec = false;
+
+    while (stream && (!foundVCodec || !foundACodec)) {
+      if (!foundVCodec && stream.codec_type === "video") {
+        foundVCodec = true;
+
         scene.meta.videoCodec = (stream.codec_name as FFProbeVideoCodecs) || null;
 
         if (stream.width && stream.height) {
@@ -222,21 +229,30 @@ export default class Scene {
         scene.meta.fps = stream.r_frame_rate ? evaluateFps(stream.r_frame_rate) : null;
         scene.meta.duration = parseFloat(stream.duration || "") || null;
         scene.meta.size = (await statAsync(videoPath)).size;
+        scene.meta.bitrate = stream.bit_rate ? parseInt(stream.bit_rate) : null;
+        if (Number.isNaN(scene.meta.bitrate)) {
+          scene.meta.bitrate = null;
+        }
       }
 
-      if (!scene.meta.audioCodec && stream.codec_type === "audio") {
+      if (!foundACodec && stream.codec_type === "audio") {
+        foundACodec = true;
         scene.meta.audioCodec = (stream.codec_name as FFProbeAudioCodecs) || null;
       }
 
       stream = iterateStreams.shift();
     }
 
+    if (!foundVCodec) {
+      logger.debug(streams);
+      throw new Error("Could not get video stream...broken file?");
+    }
+
     // MKV stores duration in format
     scene.meta.duration = scene.meta.duration ?? (format.duration || null);
 
-    if (!scene.meta.videoCodec) {
-      logger.debug(streams);
-      throw new Error("Could not get video stream...broken file?");
+    if (!scene.meta.bitrate && scene.meta.size && scene.meta.duration) {
+      scene.meta.bitrate = Math.round(scene.meta.size / scene.meta.duration);
     }
 
     return metadata;
