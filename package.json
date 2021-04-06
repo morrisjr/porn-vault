@@ -32,7 +32,8 @@
     "zip:mac": "gulp zipMac",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint --quiet --fix \"src/**/*.ts\"",
-    "cm": "cz"
+    "cm": "cz",
+    "prepare": "husky install"
   },
   "repository": {
     "type": "git",
@@ -128,7 +129,8 @@
     "nyc": "^15.1.0",
     "pkg": "^4.4.9",
     "prettier": "^2.2.1",
-    "sinon": "^10.0.0"
+    "sinon": "^10.0.0",
+    "husky": "^6.0.0"
   },
   "nodemonConfig": {
     "ignore": [
