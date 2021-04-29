@@ -10,12 +10,12 @@
             <VideoPlayer
               maxHeight="85vh"
               ref="player"
-              :src="videoPath"
+              :sources="sources"
               :poster="thumbnail"
               :duration="currentScene.meta.duration"
               :dimensions="currentScene.meta.dimensions"
               :markers="markers"
-              :preview="currentScene.preview ? imageLink(currentScene.preview) : null"
+              :preview="preview"
               :theaterMode="theaterMode"
               :showTheaterMode="$vuetify.breakpoint.mdAndUp"
               @theaterMode="setTheaterMode"
@@ -82,7 +82,8 @@
       <div class="mt-2 d-flex">
         <v-spacer></v-spacer>
         <router-link v-if="currentScene.studio" :to="`/studio/${currentScene.studio._id}`">
-          <v-img contain v-ripple max-width="200px" :src="studioLogo"></v-img>
+          <v-img v-if="studioLogo" contain v-ripple max-width="200px" :src="studioLogo"></v-img>
+          <span v-else>{{ currentScene.studio.name }}</span>
         </router-link>
       </div>
       <v-row>
@@ -574,7 +575,7 @@
 
 <script lang="ts">
 import { Component, Vue, Watch } from "vue-property-decorator";
-import ApolloClient, { serverBase } from "@/apollo";
+import ApolloClient from "@/apollo";
 import gql from "graphql-tag";
 import sceneFragment from "@/fragments/scene";
 import studioFragment from "@/fragments/studio";
@@ -601,7 +602,8 @@ import hotkeys from "hotkeys-js";
 import CustomFieldSelector from "@/components/CustomFieldSelector.vue";
 import ActorGrid from "@/components/ActorGrid.vue";
 import VideoPlayer from "@/components/VideoPlayer.vue";
-import { copy } from "../util/object";
+import { copy } from "@/util/object";
+import { SceneSource } from "@/types/scene";
 
 interface ICropCoordinates {
   left: number;
@@ -618,8 +620,20 @@ export const pageDataQuery = `
 processed
 preview {
   _id
+  meta {
+    dimensions {
+      width
+      height
+    }
+  }
 }
 ...SceneFragment
+availableStreams {
+  label
+  mimeType
+  streamType
+  transcode
+}
 actors {
   ...ActorFragment
   thumbnail {
@@ -1001,11 +1015,20 @@ export default class SceneDetails extends Vue {
     return contextModule.sceneAspectRatio;
   }
 
-  get videoPath() {
-    if (this.currentScene)
-      return `${serverBase}/media/scene/${this.currentScene._id}?password=${localStorage.getItem(
+  get sources(): SceneSource[] {
+    if (!this.currentScene) {
+      return [];
+    }
+
+    return this.currentScene.availableStreams.map((s) => ({
+      label: s.label,
+      mimeType: s.mimeType,
+      streamType: s.streamType,
+      transcode: s.transcode,
+      url: `/api/media/scene/${this.currentScene!._id}?type=${s.streamType}&password=${localStorage.getItem(
         "password"
-      )}`;
+      )}`,
+    }));
   }
 
   @Watch("currentScene.actors", { deep: true })
@@ -1305,8 +1328,18 @@ export default class SceneDetails extends Vue {
     return "";
   }
 
-  imageLink(image: any) {
-    return `${serverBase}/media/image/${image._id}?password=${localStorage.getItem("password")}`;
+  imageLink(image: { _id: string }): string {
+    return `/api/media/image/${image._id}?password=${localStorage.getItem("password")}`;
+  }
+
+  get preview() {
+    if (!this.currentScene?.preview) {
+      return null;
+    }
+    return {
+      src: this.imageLink(this.currentScene.preview),
+      dimensions: this.currentScene.preview.meta?.dimensions,
+    };
   }
 
   rate($event) {
@@ -1334,11 +1367,10 @@ export default class SceneDetails extends Vue {
   }
 
   get thumbnail() {
-    if (this.currentScene && this.currentScene.thumbnail)
-      return `${serverBase}/media/image/${
-        this.currentScene.thumbnail._id
-      }?password=${localStorage.getItem("password")}`;
-    return `${serverBase}/assets/broken.png`;
+    if (this.currentScene && this.currentScene.thumbnail){
+      return this.imageLink(this.currentScene.thumbnail);
+    }
+    return "/assets/broken.png";
   }
 
   setTheaterMode(theaterMode: boolean): void {
@@ -1347,10 +1379,9 @@ export default class SceneDetails extends Vue {
   }
 
   get studioLogo() {
-    if (this.currentScene && this.currentScene.studio && this.currentScene.studio.thumbnail)
-      return `${serverBase}/media/image/${
-        this.currentScene.studio.thumbnail._id
-      }?password=${localStorage.getItem("password")}`;
+    if (this.currentScene && this.currentScene.studio && this.currentScene.studio.thumbnail) {
+      return this.imageLink(this.currentScene.studio.thumbnail);
+    }
     return "";
   }
 
