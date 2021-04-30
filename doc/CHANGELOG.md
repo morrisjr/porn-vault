@@ -2,24 +2,35 @@
 
 ### Highlights
 
-#### Improved video player
+#### ✨ Initial transcoding support
+More files can now be scanned and played in the app thanks to cpu transcoding. The supported extensions are `.m4v, .mp4, .mov, .wmv, .avi, .mpg, .mpeg, .rmvb, .rm, .flv, .asf, .mkv, .webm,`.  
+Files will either be played normally if the browser supports it, or transcoded to webm. Additionally for MKV files, if they contain MP4 compatible streams, they will simply be remuxed into an MP4 container.  
+🚧 ATTENTION: This feature is still in development and may not work exactly as wanted. Files are transcoded on demand, using the CPU. For large files, this may not be fast enough. You can try adjusting the new webm transcode settings in `transcode.webm`. In the future, users will be able to configure hardware acceleration for better performance.
+
+
+#### ✨ Improved video player
 Added playback rate controls, fit width/height, theater mode, improved scrubbing experience, better touch support, tap to seek.  
 > The scrubbing hover zone is bigger  
 > ![Peek 2021-04-05 16-47](https://user-images.githubusercontent.com/17180727/113587189-b8525e80-962e-11eb-915b-6ad6eadc16e0.gif)
 
+#### ✨ New markers page
+There is now a new markers page to manage all the markers created. You can also jump directly to the scene's page at the marker's time.
 
-#### Initial data support in plugins
+#### ✨ Initial data support in plugins
 Plugins can now access the initial state of items for richer queries or data manipulation.  
 For plugin developers, this means that you can now access more data such as a scene's studio, its actors, its movies...
 For example, a scene matcher plugin can use the scene's studio in its queries, or a renamer plugin can use these values to insert them into the filename.  
 From the user's standpoint, nothing changes but your plugins can only get better !
 
-### Migration guide
+### 💥 Migration guide
 No breaking changes from 0.26
 
-### Bug fixes
+### 🐛 Bug fixes
 - **ui:** video previews were offset by 2% in video player ([#1254](https://github.com/porn-vault/porn-vault/pull/1254))
 - **ui:** only show custom fields applicable to actors on Actors List page ([b1b091c](https://github.com/porn-vault/porn-vault/commit/b1b091c6e9c8e89dca64530bce6e0f9447efc7a5))
+- **ui** app bar would disappear when navigating backwards ([#1369](https://github.com/porn-vault/porn-vault/pull/1369))
+- **ui** scene hover preview could show two images at once ([#1378](https://github.com/porn-vault/porn-vault/pull/1378))))
+- **ui** show studio name as fallback when no thumbnail exists in scene,movie details ([#1378](https://github.com/porn-vault/porn-vault/pull/1378))
 - **processing** processing would fail when using a self-signed https cert ([#1368](https://github.com/porn-vault/porn-vault/pull/1368))
 - **scene:** prevent changing a scene's path to another scene's path ([8f361c](https://github.com/porn-vault/porn-vault/commit/8f361c405bdd669c38822cec3f60de65521c9d94))
 - **scene:** deleting the first screenshot would delete the thumbnail ([#1318](https://github.com/porn-vault/porn-vault/pull/1318))
@@ -28,7 +39,8 @@ No breaking changes from 0.26
 - **label:** only match the created label ([#1317](https://github.com/porn-vault/porn-vault/pull/1317))
 - **logs:** log files could exceed the max ([#1319](https://github.com/porn-vault/porn-vault/pull/1319))
 
-### Enhancements
+### ⚡️ Enhancements
+- **scanner/player:** scan more video formats, transcode on demand ([#1287](https://github.com/porn-vault/porn-vault/pull/1287))
 - **ui:** various video player enhancements ([#1254](https://github.com/porn-vault/porn-vault/pull/1254))
 - - add playback rate controls
 - - add theater mode
@@ -37,5 +49,12 @@ No breaking changes from 0.26
 - - add play/pause & scrubbing touch support
 - - tap to seek backwards/forwards on the left/right 25% of the video
 - - facilitate scrubbing by increasing the hover zone height
+- **ui:** show aliases of actors and studios in combobox options ([#1380](https://github.com/porn-vault/porn-vault/pull/1380))
+- **ui** reorganize settings page ([#927](https://github.com/porn-vault/porn-vault/pull/927))
+- **ui** automatic light/dark theme (when no theme has been selected) ([#927](https://github.com/porn-vault/porn-vault/pull/927))
+- **ui** new markers page ([#822](https://github.com/porn-vault/porn-vault/pull/822))
+- **player** configure jump duration in ui settings ([#927](https://github.com/porn-vault/porn-vault/pull/927))
+- **search:** don't add default filter values to url ([#1384](https://github.com/porn-vault/porn-vault/pull/1384))
 - **plugins:** add `util` as `ctx.$util`
+- **plugins:** add plugin metadata support ([#1424](https://github.com/porn-vault/porn-vault/pull/1424))
 - **logs:** log graphql errors ([#1360](https://github.com/porn-vault/porn-vault/pull/1360))
