@@ -9,6 +9,7 @@ import { register } from "ts-node";
 import { IConfig } from "../config/schema";
 import { handleError, logger } from "../utils/logger";
 import version from "../version";
+import { UnknownPlugin } from "./types";
 
 let didRegisterTsNode = false;
 
@@ -44,25 +45,6 @@ export function requireUncached(modulePath: string): unknown {
   }
 }
 
-// Imported from plugin dev context
-interface IPluginMetadata {
-  // Used to validate usage
-  requiredVersion: string;
-  validateArguments: (args: unknown) => boolean;
-
-  // Taken from plugin's info.json
-  events: string[];
-  arguments: unknown;
-  version: string;
-  authors: string[];
-  pluginName: string;
-  description: string;
-}
-type PluginFunction<Input, Output> = (ctx: Input) => Promise<Output>;
-type Plugin<Input, Output> = PluginFunction<Input, Output> & Partial<IPluginMetadata>;
-
-type UnknownPlugin = Plugin<unknown, unknown>;
-
 export let registeredPlugins: Record<string, UnknownPlugin> = {};
 let pluginWatchers: FSWatcher[] = [];
 
@@ -85,7 +67,8 @@ export function clearPluginWatchers(): void {
 function validatePluginVersion(name: string, plugin: UnknownPlugin): true {
   const required = plugin.requiredVersion;
   if (required) {
-    if (!semver.satisfies(version, required)) {
+    const baseVersion = semver.coerce(version) || version;
+    if (!semver.satisfies(baseVersion, required)) {
       throw new Error(`Plugin "${name}" requires Porn Vault version ${required}`);
     }
   }
@@ -159,9 +142,12 @@ export function initializePlugins(config: IConfig) {
   for (const [name, _path, _args, plugin] of plugins) {
     registeredPlugins[name] = plugin;
     let str = `Registered plugin "${name}"`;
-    if (plugin.version) {
-      str += ` v${plugin.version}`;
+    if (plugin.info) {
+      str += ` v${plugin.info.version}`;
+    } else {
+      logger.warn(`Plugin "${name}" does not contain metadata. May be outdated?`);
     }
+
     logger.debug(str);
   }
 
