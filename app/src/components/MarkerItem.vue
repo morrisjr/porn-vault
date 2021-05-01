@@ -142,17 +142,7 @@ import ApolloClient from "@/apollo";
 import gql from "graphql-tag";
 import { copy } from "@/util/object";
 import IActor from "@/types/actor";
-
-interface IMarker {
-  _id: string;
-  name: string;
-  time: number;
-  labels: { _id: string; name: string }[];
-  actors: IActor[];
-  favorite: boolean;
-  bookmark: number | null;
-  rating: number;
-}
+import { IMarker } from "@/types/marker";
 
 @Component({
   components: {
@@ -243,5 +233,3 @@ export default class MarkerItem extends Vue {
   }
 }
 </script>
-
-

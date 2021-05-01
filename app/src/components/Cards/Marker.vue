@@ -1,7 +1,13 @@
 <template>
   <v-card style="height: 100%" tile v-if="value">
     <a class="hover" v-ripple :href="sceneUrl">
-      <v-img :src="thumbnail"></v-img>
+      <v-hover v-slot:default="{ hover }">
+        <v-img :src="thumbnail" eager>
+          <div class="corner-actions top-right" style="z-index: 6">
+            <slot name="action" :hover="hover"></slot>
+          </div>
+        </v-img>
+      </v-hover>
     </a>
     <div class="pa-2">
       <div
@@ -77,9 +83,7 @@ export default class SceneCard extends Vue {
   }
 
   get sceneUrl() {
-    return `/?password=${localStorage.getItem("password")}#/scene/${this.value.scene._id}?t=${
-      this.value.time
-    }&mk_name=${this.value.name}`;
+    return `#/scene/${this.value.scene._id}?t=${this.value.time}&mk_name=${this.value.name}`;
   }
 
   rate($event) {
@@ -153,4 +157,12 @@ export default class SceneCard extends Vue {
 </script>
 
 <style lang="scss" scoped>
+.corner-actions {
+  position: absolute;
+
+  &.top-right {
+    right: 2px;
+    top: 2px;
+  }
+}
 </style>
