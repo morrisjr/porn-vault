@@ -38,7 +38,7 @@
         <v-row>
           <v-col class="pt-0" :cols="12" :sm="6" :md="12">
             <div>
-              <v-subheader class="pl-0">Scene cards aspect ratio</v-subheader>
+              <v-subheader class="pl-0">Scene &amp; marker cards aspect ratio</v-subheader>
               <v-divider></v-divider>
               <v-radio-group v-model="sceneRatio">
                 <v-radio color="primary" :value="1" label="Square"></v-radio>

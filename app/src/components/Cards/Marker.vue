@@ -2,7 +2,7 @@
   <v-card style="height: 100%" tile v-if="value">
     <a class="hover" v-ripple :href="sceneUrl">
       <v-hover v-slot:default="{ hover }">
-        <v-img :src="thumbnail" eager>
+        <v-img cover :aspect-ratio="aspectRatio" v-ripple eager :src="thumbnail">
           <div class="corner-actions top-right" style="z-index: 6">
             <slot name="action" :hover="hover"></slot>
           </div>
@@ -64,6 +64,7 @@ import { Component, Vue, Prop } from "vue-property-decorator";
 import ApolloClient from "@/apollo";
 import gql from "graphql-tag";
 import { copy } from "@/util/object";
+import { contextModule } from "@/store/context";
 
 @Component
 export default class SceneCard extends Vue {
@@ -88,6 +89,10 @@ export default class SceneCard extends Vue {
 
   get sceneUrl() {
     return `#/scene/${this.value.scene._id}?t=${this.value.time}&mk_name=${this.value.name}`;
+  }
+
+  get aspectRatio() {
+    return contextModule.sceneAspectRatio;
   }
 
   rate($event) {
