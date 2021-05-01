@@ -282,7 +282,7 @@ describe("graphql", () => {
         const videoPath = "./test/fixtures/files/dynamic/dynamic_video.mp4";
 
         beforeEach(async () => {
-          await downloadTestVideo(videoPath);
+          await downloadFile(TEST_VIDEOS.MP4.url, videoPath);
         });
 
         afterEach(() => {
