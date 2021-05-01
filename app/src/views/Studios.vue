@@ -326,7 +326,7 @@
 
 <script lang="ts">
 import { Component, Vue, Watch } from "vue-property-decorator";
-import ApolloClient, { serverBase } from "@/apollo";
+import ApolloClient from "@/apollo";
 import gql from "graphql-tag";
 import { contextModule } from "@/store/context";
 import ILabel from "@/types/label";
@@ -386,8 +386,8 @@ export default class StudioList extends mixins(DrawerMixin) {
         default: () => 1,
       },
       query: true,
-      favoritesOnly: true,
-      bookmarksOnly: true,
+      favoritesOnly: { default: () => false },
+      bookmarksOnly: { default: () => false },
       selectedLabels: { default: () => ({ include: [], exclude: [] }) },
       sortBy: { default: () => "relevance" },
       sortDir: {
@@ -455,7 +455,10 @@ export default class StudioList extends mixins(DrawerMixin) {
     }
     this.jumpPage = null;
     this.searchStateManager.onValueChanged("page", page);
-    this.updateRoute({ page: page.toString() });
+    this.updateRoute(this.searchStateManager.toQuery(), false, () => {
+      // If the query wasn't different, just reset the flag
+      this.searchStateManager.refreshed = true;
+    });
   }
 
   updateRoute(query: { [x: string]: string }, replace = false, noChangeCb: Function | null = null) {
@@ -463,10 +466,7 @@ export default class StudioList extends mixins(DrawerMixin) {
       // Only change the current url if the new url will be different to avoid redundant navigation
       const update = {
         name: "studios",
-        query: {
-          ...this.$route.query,
-          ...query,
-        },
+        query, // Always override the current query
       };
       if (replace) {
         this.$router.replace(update);
@@ -566,8 +566,11 @@ export default class StudioList extends mixins(DrawerMixin) {
   }
 
   resetPagination() {
-    this.searchState.page = 1;
-    this.updateRoute(this.searchStateManager.toQuery());
+    this.searchStateManager.onValueChanged("page", 1);
+    this.updateRoute(this.searchStateManager.toQuery(), false, () => {
+      // If the query wasn't different, just reset the flag
+      this.searchStateManager.refreshed = true;
+    });
   }
 
   getRandom() {
@@ -830,7 +833,11 @@ export default class StudioList extends mixins(DrawerMixin) {
 
   beforeMount() {
     this.searchStateManager.initState(this.$route.query as Dictionary<string>);
-    this.updateRoute(this.searchStateManager.toQuery(), true, this.loadPage);
+    this.updateRoute(this.searchStateManager.toQuery(), true, () => {
+      // If the query wasn't different, there will be no route change
+      // => manually trigger loadPage
+      this.loadPage();
+    });
 
     ApolloClient.query({
       query: gql`

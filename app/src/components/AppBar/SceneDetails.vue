@@ -132,7 +132,7 @@
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
 import { sceneModule } from "../../store/scene";
-import ApolloClient, { serverBase } from "../../apollo";
+import ApolloClient from "../../apollo";
 import gql from "graphql-tag";
 import ActorSelector from "../ActorSelector.vue";
 import IActor from "../../types/actor";
@@ -324,7 +324,7 @@ export default class SceneToolbar extends Vue {
 
   get currentSceneURL() {
     if (this.currentScene)
-      return `${serverBase}/media/scene/${this.currentScene._id}?password=${localStorage.getItem(
+      return `/api/media/scene/${this.currentScene._id}?password=${localStorage.getItem(
         "password"
       )}`;
   }

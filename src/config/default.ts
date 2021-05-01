@@ -1,7 +1,7 @@
 import { platform } from "os";
 
 import { DEFAULT_WORD_MATCHER } from "../matching/wordMatcher";
-import { ApplyActorLabelsEnum, ApplyStudioLabelsEnum, IConfig } from "./schema";
+import { ApplyActorLabelsEnum, ApplyStudioLabelsEnum, IConfig, WebmDeadline } from "./schema";
 
 function isWindows(): boolean {
   return platform() === "win32";
@@ -123,6 +123,13 @@ const defaultConfig: IConfig = {
       key: "",
     },
     port: 3000,
+  },
+  transcode: {
+    webm: {
+      deadline: WebmDeadline.enum.realtime,
+      cpuUsed: 3,
+      crf: 31,
+    },
   },
 };
 

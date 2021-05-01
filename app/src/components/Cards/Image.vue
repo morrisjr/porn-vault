@@ -27,7 +27,7 @@
 
 <script lang="ts">
 import { Component, Vue, Prop } from "vue-property-decorator";
-import { serverBase } from "@/apollo";
+
 import IImage from "@/types/image";
 
 @Component
@@ -36,7 +36,7 @@ export default class ImageCard extends Vue {
   @Prop({ default: false }) contain!: boolean;
 
   imageLink(image: IImage) {
-    return `${serverBase}/media/image/${image._id}/thumbnail?password=${localStorage.getItem(
+    return `/api/media/image/${image._id}/thumbnail?password=${localStorage.getItem(
       "password"
     )}`;
   }
