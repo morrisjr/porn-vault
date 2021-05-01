@@ -569,10 +569,7 @@ export default class MarkerList extends mixins(DrawerMixin) {
       // Only change the current url if the new url will be different to avoid redundant navigation
       const update = {
         name: "markers",
-        query: {
-          ...this.$route.query,
-          ...query,
-        },
+        query, // Always override the current query
       };
       if (replace) {
         this.$router.replace(update);
