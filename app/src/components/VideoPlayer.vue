@@ -36,7 +36,7 @@
             </v-fade-transition>
 
             <v-fade-transition>
-              <div v-if="showControls" class="bottom-bar-wrapper">
+              <div v-show="true" class="bottom-bar-wrapper">
                 <div class="bottom-bar-content">
                   <v-hover close-delay="200" @input="isHoveringProgressBar = $event">
                     <div
@@ -57,9 +57,9 @@
                             <div class="preview-wrapper" :style="previewStyle">
                               <img
                                 class="preview-image"
-                                :style="`left: -${imageIndex * SINGLE_PREVIEW_WIDTH}px; background-position: ${
+                                :style="`left: -${
                                   imageIndex * SINGLE_PREVIEW_WIDTH
-                                }`"
+                                }px; background-position: ${imageIndex * SINGLE_PREVIEW_WIDTH}`"
                                 :src="preview.src"
                               />
                             </div>
@@ -102,12 +102,21 @@
                     </div>
                   </v-hover>
 
-                  <div class="control-bar px-1 align-center d-flex">
-                    <v-btn dark @click="togglePlay(false)" icon>
-                      <v-icon>{{
-                        ended ? "mdi-replay" : isPlaying ? "mdi-pause" : "mdi-play"
-                      }}</v-icon>
-                    </v-btn>
+                  <div class="control-bar px-1 align-center d-flex" ref="controlBar">
+                    <v-tooltip
+                      top
+                      :attach="$refs.controlBar"
+                      content-class="control-btn-tooltip play-tooltip"
+                    >
+                      <template v-slot:activator="{ on }">
+                        <v-btn dark v-on="on" @click="togglePlay(false)" icon id="test">
+                          <v-icon>{{
+                            ended ? "mdi-replay" : isPlaying ? "mdi-pause" : "mdi-play"
+                          }}</v-icon>
+                        </v-btn>
+                      </template>
+                      {{ ended ? "Replay" : isPlaying ? "Pause (k)" : "Play (k)" }}
+                    </v-tooltip>
                     <v-hover v-slot:default="{ hover }" close-delay="100">
                       <!-- close-delay to allow the user to jump the gap and hover over volume wrapper -->
                       <div>
@@ -136,9 +145,18 @@
                             </div>
                           </div>
                         </transition>
-                        <v-btn dark @click="toggleMute" icon>
-                          <v-icon>{{ isMuted ? "mdi-volume-mute" : "mdi-volume-high" }}</v-icon>
-                        </v-btn>
+                        <v-tooltip
+                          top
+                          :attach="$refs.controlBar"
+                          content-class="control-btn-tooltip"
+                        >
+                          <template v-slot:activator="{ on }">
+                            <v-btn dark v-on="on" @click="toggleMute" icon>
+                              <v-icon>{{ isMuted ? "mdi-volume-mute" : "mdi-volume-high" }}</v-icon>
+                            </v-btn>
+                          </template>
+                          {{ isMuted ? "Unmute (m)" : "Mute (m)" }}
+                        </v-tooltip>
                       </div>
                     </v-hover>
                     <span class="mx-2 body-2"
@@ -146,10 +164,26 @@
                     >
                     <v-spacer></v-spacer>
                     <v-menu offset-y top @input="onPlaybackRateMenuToggle" attach>
-                      <template #activator="{ on, attrs }">
-                        <v-btn class="text-none" dark text v-bind="attrs" v-on="on" small>
-                          {{ `${playbackRate}x` }}
-                        </v-btn>
+                      <template #activator="{ on: onMenu, attrs }">
+                        <v-tooltip
+                          top
+                          :attach="$refs.controlBar"
+                          content-class="control-btn-tooltip"
+                        >
+                          <template v-slot:activator="{ on: onTooltip }">
+                            <v-btn
+                              class="text-none"
+                              dark
+                              text
+                              v-bind="attrs"
+                              v-on="{ ...onMenu, ...onTooltip }"
+                              small
+                            >
+                              {{ `${playbackRate}x` }}
+                            </v-btn>
+                          </template>
+                          Playback speed
+                        </v-tooltip>
                       </template>
 
                       <v-list>
@@ -172,10 +206,26 @@
                       </v-list>
                     </v-menu>
                     <v-menu offset-y top @input="onStreamTypeMenuToggle" attach>
-                      <template #activator="{ on, attrs }">
-                        <v-btn class="text-none" dark text v-bind="attrs" v-on="on" small>
-                          {{ currentSource() ? currentSource().label : "select a source" }}
-                        </v-btn>
+                      <template #activator="{ on: onMenu, attrs }">
+                        <v-tooltip
+                          top
+                          :attach="$refs.controlBar"
+                          content-class="control-btn-tooltip"
+                        >
+                          <template v-slot:activator="{ on: onTooltip }">
+                            <v-btn
+                              class="text-none"
+                              dark
+                              text
+                              v-bind="attrs"
+                              v-on="{ ...onMenu, ...onTooltip }"
+                              small
+                            >
+                              {{ currentSource() ? currentSource().label : "select a source" }}
+                            </v-btn>
+                          </template>
+                          Stream type
+                        </v-tooltip>
                       </template>
 
                       <v-list>
@@ -197,29 +247,53 @@
                         </v-list-item-group>
                       </v-list>
                     </v-menu>
-                    <v-btn
-                      dark
-                      @click="fitMode = fitMode === 'contain' ? 'cover' : 'contain'"
-                      icon
-                      v-if="hasDimensions(dimensions) && showFitOption"
+                    <v-tooltip top :attach="$refs.controlBar" content-class="control-btn-tooltip">
+                      <template v-slot:activator="{ on }">
+                        <v-btn
+                          dark
+                          v-on="on"
+                          @click="fitMode = fitMode === 'contain' ? 'cover' : 'contain'"
+                          icon
+                          v-if="hasDimensions(dimensions) && showFitOption"
+                        >
+                          <v-icon>{{
+                            fitMode === "contain"
+                              ? "mdi-arrow-expand-horizontal"
+                              : "mdi-arrow-expand-vertical"
+                          }}</v-icon>
+                        </v-btn>
+                      </template>
+                      {{ fitMode === "contain" ? "Fit width" : "Fit height" }}
+                    </v-tooltip>
+                    <v-tooltip
+                      top
+                      :attach="$refs.controlBar"
+                      content-class="control-btn-tooltip"
+                      :value="true"
                     >
-                      <v-icon>{{
-                        fitMode === "contain"
-                          ? "mdi-arrow-expand-horizontal"
-                          : "mdi-arrow-expand-vertical"
-                      }}</v-icon>
-                    </v-btn>
-                    <v-btn
-                      v-if="showTheaterMode"
-                      dark
-                      @click="$emit('theaterMode', !theaterMode)"
-                      icon
-                    >
-                      <v-icon :size="theaterMode ? 16 : 24"> mdi-rectangle-outline </v-icon>
-                    </v-btn>
-                    <v-btn dark @click="toggleFullscreen" icon>
-                      <v-icon>{{ isFullscreen ? "mdi-fullscreen-exit" : "mdi-fullscreen" }}</v-icon>
-                    </v-btn>
+                      <template v-slot:activator="{ on }">
+                        <v-btn
+                          v-if="showTheaterMode"
+                          dark
+                          v-on="on"
+                          @click="$emit('theaterMode', !theaterMode)"
+                          icon
+                        >
+                          <v-icon :size="theaterMode ? 16 : 24"> mdi-rectangle-outline </v-icon>
+                        </v-btn>
+                      </template>
+                      {{ theaterMode ? "Default view (t)" : "Theater mode (t)" }}
+                    </v-tooltip>
+                    <v-tooltip top :attach="$refs.controlBar" content-class="control-btn-tooltip">
+                      <template v-slot:activator="{ on }">
+                        <v-btn dark v-on="on" @click="toggleFullscreen" icon>
+                          <v-icon>{{
+                            isFullscreen ? "mdi-fullscreen-exit" : "mdi-fullscreen"
+                          }}</v-icon>
+                        </v-btn>
+                      </template>
+                      {{ isFullscreen ? "Exit full screen (f)" : "Full screen (f)" }}
+                    </v-tooltip>
                   </div>
                 </div>
               </div>
@@ -1169,6 +1243,14 @@ export default class VideoPlayer extends Vue {
     width: 100%;
 
     background: #121420ee;
+
+    .control-btn-tooltip {
+      top: -16px !important;
+
+      &.play-tooltip {
+        left: 0px !important;
+      }
+    }
   }
 
   $barHeight: 6px;
