@@ -1,8 +1,8 @@
 import Jimp from "jimp";
 
-import { imageCollection,sceneCollection  } from "../../database";
+import { imageCollection, sceneCollection } from "../../database";
 import { FFProbeContainers } from "../../ffmpeg/ffprobe";
-import { SceneStreamTypes } from "../../routers/scene";
+import { SceneStreamTypes } from "../../transcode/transcoder";
 import Actor from "../../types/actor";
 import CustomField, { CustomFieldTarget } from "../../types/custom_field";
 import Image from "../../types/image";
@@ -113,16 +113,24 @@ export default {
       streams.push({
         label: "mkv direct stream",
         mimeType: "video/mp4",
-        streamType: SceneStreamTypes.MP4,
+        streamType: SceneStreamTypes.MP4_DIRECT,
         transcode: true,
       });
     }
+
+    // Fallback transcode: mp4 (potentially hardware accelerated)
+    streams.push({
+      label: "mp4 transcode",
+      mimeType: "video/mp4",
+      streamType: SceneStreamTypes.MP4_TRANSCODE,
+      transcode: true,
+    });
 
     // Fallback transcode: webm
     streams.push({
       label: "webm transcode",
       mimeType: "video/webm",
-      streamType: SceneStreamTypes.WEBM,
+      streamType: SceneStreamTypes.WEBM_TRANSCODE,
       transcode: true,
     });
 
