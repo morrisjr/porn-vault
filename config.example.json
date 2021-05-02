@@ -111,14 +111,14 @@
   },
   "transcode": {
     "hwaDriver": false,
-    "vaapiDevice": null,
+    "vaapiDevice": "/dev/dri/renderD128",
     "h264": {
       "preset": "veryfast",
       "crf": 23
     },
     "webm": {
       "deadline": "realtime",
-      "cpuUsed": 3,
+      "cpuUsed": 5,
       "crf": 31
     }
   }
