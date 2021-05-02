@@ -171,8 +171,8 @@ function copyMp4(scene: Scene & { path: string }, req: Request, res: Response): 
     "-f mp4",
     "-c:v copy",
     "-movflags frag_keyframe+empty_moov+faststart",
-    `-preset ${config.playback.transcode.h264.preset ?? "veryfast"}`,
-    `-crf ${config.playback.transcode.h264.crf ?? 23}`,
+    `-preset ${config.transcode.h264.preset ?? "veryfast"}`,
+    `-crf ${config.transcode.h264.crf ?? 23}`,
   ];
 
   mp4Options.push(
@@ -192,11 +192,11 @@ function transcodeMp4(
   res: Response
 ): Response | void {
   const config = getConfig();
-  const transcode = config.playback.transcode;
+  const transcode = config.transcode;
 
   const inputOptions: string[] = [];
   const outputOptions: string[] = [];
-  let vCodec ='';
+  let vCodec = "";
 
   if (
     !transcode.hwaDriver ||
@@ -247,8 +247,8 @@ function transcodeMp4(
     "-f mp4",
     `-c:v ${vCodec}`,
     "-movflags frag_keyframe+empty_moov+faststart",
-    `-preset ${transcode.h264Preset ?? "veryfast"}`,
-    `-crf ${transcode.h264Crf ?? 23}`,
+    `-preset ${transcode.h264.preset ?? "veryfast"}`,
+    `-crf ${transcode.h264.crf ?? 23}`,
     ...getVideoBitrateParam(scene, vCodec)
   );
 
