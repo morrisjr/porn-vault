@@ -118,13 +118,15 @@ function transcodeWebm(
   req: Request,
   res: Response
 ): Response | void {
+  const transcodeOpts = getConfig().transcode.webm;
+
   const webmOptions: string[] = [
     "-f webm",
-    "-deadline realtime",
-    "-cpu-used 5",
-    "-row-mt 1",
-    "-crf 30",
-    "-b:v 0",
+    `-deadline ${transcodeOpts.deadline}`,
+    `-cpu-used ${transcodeOpts.cpuUsed}`,
+    "-row-mt 1", // Enable tile row multithreading
+    `-crf ${transcodeOpts.crf}`,
+    "-b:v 0", // Bitrate must be 0 to use constant quality (like x264) instead of constrained quality
   ];
 
   if (
@@ -169,8 +171,8 @@ function copyMp4(scene: Scene & { path: string }, req: Request, res: Response): 
     "-f mp4",
     "-c:v copy",
     "-movflags frag_keyframe+empty_moov+faststart",
-    `-preset ${config.playback.transcode.h264Preset ?? "veryfast"}`,
-    `-crf ${config.playback.transcode.h264Crf ?? 23}`,
+    `-preset ${config.playback.transcode.h264.preset ?? "veryfast"}`,
+    `-crf ${config.playback.transcode.h264.crf ?? 23}`,
   ];
 
   mp4Options.push(
@@ -194,7 +196,7 @@ function transcodeMp4(
 
   const inputOptions: string[] = [];
   const outputOptions: string[] = [];
-  let vCodec: string;
+  let vCodec ='';
 
   if (
     !transcode.hwaDriver ||

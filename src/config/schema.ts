@@ -61,6 +61,8 @@ export const H264Preset = zod.enum([
   "veryslow",
 ]);
 
+export const WebmDeadline = zod.enum(["good", "best", "realtime"]);
+
 const configSchema = zod
   .object({
     search: zod.object({
@@ -161,12 +163,17 @@ const configSchema = zod
         })
       ),
     }),
-    playback: zod.object({
-      transcode: zod.object({
-        hwaDriver: HardwareAccelerationDriver.nullable(),
-        vaapiDevice: zod.string().nullable(),
-        h264Preset: H264Preset,
-        h264Crf: zod.number().min(0).max(51),
+    transcode: zod.object({
+      hwaDriver: HardwareAccelerationDriver.nullable(),
+      vaapiDevice: zod.string().nullable(),
+      h264: zod.object({
+        preset: H264Preset,
+        crf: zod.number().min(0).max(51),
+      }),
+      webm: zod.object({
+        deadline: WebmDeadline,
+        cpuUsed: zod.number(),
+        crf: zod.number().min(0).max(63),
       }),
     }),
   })

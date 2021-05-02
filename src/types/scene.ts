@@ -212,13 +212,11 @@ export default class Scene {
     const iterateStreams = [...streams];
 
     let stream = iterateStreams.shift();
-    let foundVCodec = false;
-    let foundACodec = false;
-
-    while (stream && (!foundVCodec || !foundACodec)) {
-      if (!foundVCodec && stream.codec_type === "video") {
-        foundVCodec = true;
-
+    let foundVideoCodec = false;
+    let foundAudioCodec = false;
+    while (stream && (!foundVideoCodec || !foundAudioCodec)) {
+      if (!foundVideoCodec && stream.codec_type === "video") {
+        foundVideoCodec = true;
         scene.meta.videoCodec = (stream.codec_name as FFProbeVideoCodecs) || null;
 
         if (stream.width && stream.height) {
@@ -235,15 +233,15 @@ export default class Scene {
         }
       }
 
-      if (!foundACodec && stream.codec_type === "audio") {
-        foundACodec = true;
+      if (!foundAudioCodec && stream.codec_type === "audio") {
+        foundAudioCodec = true;
         scene.meta.audioCodec = (stream.codec_name as FFProbeAudioCodecs) || null;
       }
 
       stream = iterateStreams.shift();
     }
 
-    if (!foundVCodec) {
+    if (!foundVideoCodec) {
       logger.debug(streams);
       throw new Error("Could not get video stream...broken file?");
     }
@@ -253,6 +251,9 @@ export default class Scene {
 
     if (!scene.meta.bitrate && scene.meta.size && scene.meta.duration) {
       scene.meta.bitrate = Math.round(scene.meta.size / scene.meta.duration);
+    }
+    if (!foundVideoCodec) {
+      throw new Error("Could not get video stream...broken file?");
     }
 
     return metadata;

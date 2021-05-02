@@ -109,12 +109,17 @@
     },
     "port": 3000
   },
-  "playback": {
-    "transcode": {
-      "hwaDriver": false,
-      "vaapiDevice": null,
-      "h264Preset": "veryfast",
-      "h264Crf": 23
+  "transcode": {
+    "hwaDriver": false,
+    "vaapiDevice": null,
+    "h264": {
+      "preset": "veryfast",
+      "crf": 23
+    },
+    "webm": {
+      "deadline": "realtime",
+      "cpuUsed": 3,
+      "crf": 31
     }
   }
 }

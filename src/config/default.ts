@@ -1,7 +1,7 @@
 import { platform } from "os";
 
 import { DEFAULT_WORD_MATCHER } from "../matching/wordMatcher";
-import { ApplyActorLabelsEnum, ApplyStudioLabelsEnum, H264Preset, IConfig } from "./schema";
+import { ApplyActorLabelsEnum, ApplyStudioLabelsEnum, H264Preset, IConfig , WebmDeadline} from "./schema";
 
 function isWindows(): boolean {
   return platform() === "win32";
@@ -123,12 +123,17 @@ const defaultConfig: IConfig = {
     },
     port: 3000,
   },
-  playback: {
-    transcode: {
-      hwaDriver: null,
-      vaapiDevice: null,
-      h264Preset: H264Preset.enum.veryfast,
-      h264Crf: 23,
+  transcode: {
+    hwaDriver: null,
+    vaapiDevice: null,
+    h264: {
+      preset: H264Preset.enum.veryfast,
+      crf: 23,
+    },
+    webm: {
+      deadline: WebmDeadline.enum.realtime,
+      cpuUsed: 3,
+      crf: 31,
     },
   },
 };
