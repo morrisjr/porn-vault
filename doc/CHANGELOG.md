@@ -23,7 +23,10 @@ For example, a scene matcher plugin can use the scene's studio in its queries, o
 From the user's standpoint, nothing changes but your plugins can only get better !
 
 ### 💥 Migration guide
-No breaking changes from 0.26
+
+- `$cheerio` has been removed from the plugin function context. Any plugin that uses cheerio must be updated and will not be backwards compatible with 0.26
+- - Plugin devs: you must now import it directly: `import cheerio from "cheerio"`
+- - Plugin users: you should download updated versions of your plugins
 
 ### 🐛 Bug fixes
 - **ui:** video previews were offset by 2% in video player ([#1254](https://github.com/porn-vault/porn-vault/pull/1254))
