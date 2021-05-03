@@ -576,19 +576,6 @@ export default class MarkerList extends mixins(DrawerMixin) {
     });
   }
 
-  onPageChange(val: number) {
-    let page = Number(val);
-    if (isNaN(page) || page <= 0 || page > this.numPages) {
-      page = 1;
-    }
-    this.jumpPage = null;
-    this.searchStateManager.onValueChanged("page", page);
-    this.updateRoute(this.searchStateManager.toQuery(), false, () => {
-      // If the query wasn't different, just reset the flag
-      this.searchStateManager.refreshed = true;
-    });
-  }
-
   updateRoute(query: { [x: string]: string }, replace = false, noChangeCb: Function | null = null) {
     if (isQueryDifferent(query, this.$route.query as Dictionary<string>)) {
       // Only change the current url if the new url will be different to avoid redundant navigation
