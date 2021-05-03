@@ -51,7 +51,7 @@ From the user's standpoint, nothing changes but your plugins can only get better
 - **logs:** log files could exceed the max ([#1319](https://github.com/porn-vault/porn-vault/pull/1319))
 
 ### ⚡️ Enhancements
-- **scanner/player:** scan more video formats, transcode on demand ([#1287](https://github.com/porn-vault/porn-vault/pull/1287))
+- **scanner/player:** scan more video formats, transcode on demand ([#1287](https://github.com/porn-vault/porn-vault/pull/1287)) ([#1436](https://github.com/porn-vault/porn-vault/pull/1436))
 - **ui:** various video player enhancements ([#1254](https://github.com/porn-vault/porn-vault/pull/1254))
 - - add playback rate controls
 - - add theater mode
