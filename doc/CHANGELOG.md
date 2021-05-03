@@ -3,9 +3,17 @@
 ### Highlights
 
 #### ✨ Initial transcoding support
-More files can now be scanned and played in the app thanks to cpu transcoding. The supported extensions are `.m4v, .mp4, .mov, .wmv, .avi, .mpg, .mpeg, .rmvb, .rm, .flv, .asf, .mkv, .webm,`.  
-Files will either be played normally if the browser supports it, or transcoded to webm. Additionally for MKV files, if they contain MP4 compatible streams, they will simply be remuxed into an MP4 container.  
-🚧 ATTENTION: This feature is still in development and may not work exactly as wanted. Files are transcoded on demand, using the CPU. For large files, this may not be fast enough. You can try adjusting the new webm transcode settings in `transcode.webm`. In the future, users will be able to configure hardware acceleration for better performance.
+More files can now be scanned and played in the app thanks to cpu/gpu transcoding. The supported extensions are `.m4v, .mp4, .mov, .wmv, .avi, .mpg, .mpeg, .rmvb, .rm, .flv, .asf, .mkv, .webm,`.  
+Scenes can be played via multiple streaming methods:
+- `direct play:` the file is sent straight to the browser
+- `mkv direct stream:` an MKV file an MP4 compatible video stream is remuxed to MP4. Low cpu requirements
+- `mp4 transcode:` hardware acceleration possible (`transcode.h264` in config)
+- `webm transcode:` cpu acceleration only (`transcode.webm` in config)
+
+Scenes will attempt to play in this order, going to the next streaming method if the browser fails to play the current stream.  
+
+🚧 ATTENTION: This feature is still in development and may not work exactly perfectly. For large files, this may not be fast enough. You can try adjusting the new transcode settings in your config file.  
+Additionally only the `vaapi, amf, qsv` methods have been tested by only a couple of people. Feel free to test and report your setup.
 
 
 #### ✨ Improved video player
