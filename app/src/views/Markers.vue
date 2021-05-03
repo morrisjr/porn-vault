@@ -275,7 +275,7 @@ export default class MarkerList extends mixins(DrawerMixin) {
   }
 
   markers = [] as any[];
-
+  
   sortDirItems = [
     {
       text: "Ascending",
@@ -324,6 +324,7 @@ export default class MarkerList extends mixins(DrawerMixin) {
   selectionMode = false;
 
   deleteMarkersLoader = false;
+
 
   searchStateManager = new SearchStateManager<{
     page: number;
@@ -482,6 +483,17 @@ export default class MarkerList extends mixins(DrawerMixin) {
       rating: this.searchState.ratingFilter,
     };
   }
+  
+  get fetchQuery() {
+    return {
+      query: this.searchState.query || "",
+      include: this.searchState.selectedLabels.include,
+      exclude: this.searchState.selectedLabels.exclude,
+      favorite: this.searchState.favoritesOnly,
+      bookmark: this.searchState.bookmarksOnly,
+      rating: this.searchState.ratingFilter,
+    };
+  }
 
   async fetchPage(page: number, take = 24, random?: boolean, seed?: string) {
     const result = await ApolloClient.query({
@@ -549,6 +561,19 @@ export default class MarkerList extends mixins(DrawerMixin) {
       .finally(() => {
         this.fetchLoader = false;
       });
+  }
+  
+  onPageChange(val: number) {
+    let page = Number(val);
+    if (isNaN(page) || page <= 0 || page > this.numPages) {
+      page = 1;
+    }
+    this.jumpPage = null;
+    this.searchStateManager.onValueChanged("page", page);
+    this.updateRoute(this.searchStateManager.toQuery(), false, () => {
+      // If the query wasn't different, just reset the flag
+      this.searchStateManager.refreshed = true;
+    });
   }
 
   onPageChange(val: number) {
