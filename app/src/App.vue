@@ -395,7 +395,7 @@ export default class App extends Vue {
 }
 
 .plugin-task-alert {
-  position: fixed;
+  position: fixed !important;
   right: 0;
   bottom: 0;
   z-index: 1;
