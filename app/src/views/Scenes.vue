@@ -189,6 +189,19 @@
           <v-tooltip bottom>
             <template #activator="{ on }">
               <v-btn
+                v-on="on"
+                @click="subtractLabelsDialog = true"
+                icon
+                :disabled="!selectedScenes.length"
+              >
+                <v-icon>mdi-label-off</v-icon>
+              </v-btn>
+            </template>
+            Remove labels
+          </v-tooltip>
+          <v-tooltip bottom>
+            <template #activator="{ on }">
+              <v-btn
                 :disabled="!selectedScenes.length"
                 v-on="on"
                 @click="deleteSelectedScenesDialog = true"
@@ -437,6 +450,48 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog
+      :persistent="subtractLoader"
+      scrollable
+      v-model="subtractLabelsDialog"
+      max-width="400px"
+    >
+      <v-card :loading="subtractLoader">
+        <v-card-title
+          >Subtract {{ subtractLabelsIndices.length }}
+          {{ subtractLabelsIndices.length === 1 ? "label" : "labels" }}</v-card-title
+        >
+
+        <v-text-field
+          clearable
+          color="primary"
+          hide-details
+          class="px-5 mb-2"
+          label="Find labels..."
+          v-model="subtractLabelsSearchQuery"
+        />
+
+        <v-card-text style="max-height: 400px">
+          <LabelSelector
+            :searchQuery="subtractLabelsSearchQuery"
+            :items="allLabels"
+            v-model="subtractLabelsIndices"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            :loading="subtractLoader"
+            class="text-none"
+            color="primary"
+            text
+            @click="subtractLabels"
+            >Commit</v-btn
+          >
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -463,6 +518,7 @@ import { Dictionary } from "vue-router/types/router";
 import { SearchStateManager, isQueryDifferent } from "../util/searchState";
 import { Scene } from "@/api/scene";
 import { pluginTaskModule } from "@/store/pluginTask";
+import { removeLabelFromItem } from "@/api/label";
 
 @Component({
   components: {
@@ -687,6 +743,38 @@ export default class SceneList extends mixins(DrawerMixin) {
   deleteSelectedScenesDialog = false;
   deleteSceneFiles = false;
   deleteSceneImages = false;
+
+  subtractLabelsDialog = false;
+  subtractLabelsIndices: number[] = [];
+  subtractLabelsSearchQuery = "";
+  subtractLoader = false;
+
+  get labelsToSubtract(): ILabel[] {
+    return this.subtractLabelsIndices.map((i) => this.allLabels[i]).filter(Boolean);
+  }
+
+  async subtractLabels(): Promise<void> {
+    try {
+      const labelIdsToSubtract = this.labelsToSubtract.map((l) => l._id);
+      this.subtractLoader = true;
+      for (let i = 0; i < this.selectedScenes.length; i++) {
+        const id = this.selectedScenes[i];
+        const scene = this.scenes.find((sc) => sc._id === id);
+        if (scene) {
+          for (const labelId of labelIdsToSubtract) {
+            await removeLabelFromItem(id, labelId);
+          }
+        }
+      }
+      // Refresh page
+      await this.loadPage();
+      this.subtractLabelsDialog = false;
+      this.subtractLabelsIndices = [];
+    } catch (error) {
+      console.error(error);
+    }
+    this.subtractLoader = false;
+  }
 
   labelClasses(label: ILabel) {
     if (this.searchState.selectedLabels.include.includes(label._id))

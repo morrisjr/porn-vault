@@ -136,6 +136,19 @@
           <v-tooltip bottom>
             <template #activator="{ on }">
               <v-btn
+                v-on="on"
+                @click="subtractLabelsDialog = true"
+                icon
+                :disabled="!selectedStudios.length"
+              >
+                <v-icon>mdi-label-off</v-icon>
+              </v-btn>
+            </template>
+            Remove labels
+          </v-tooltip>
+          <v-tooltip bottom>
+            <template #activator="{ on }">
+              <v-btn
                 :disabled="!selectedStudios.length"
                 v-on="on"
                 @click="deleteSelectedStudiosDialog = true"
@@ -338,6 +351,48 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog
+      :persistent="subtractLoader"
+      scrollable
+      v-model="subtractLabelsDialog"
+      max-width="400px"
+    >
+      <v-card :loading="subtractLoader">
+        <v-card-title
+          >Subtract {{ subtractLabelsIndices.length }}
+          {{ subtractLabelsIndices.length === 1 ? "label" : "labels" }}</v-card-title
+        >
+
+        <v-text-field
+          clearable
+          color="primary"
+          hide-details
+          class="px-5 mb-2"
+          label="Find labels..."
+          v-model="subtractLabelsSearchQuery"
+        />
+
+        <v-card-text style="max-height: 400px">
+          <LabelSelector
+            :searchQuery="subtractLabelsSearchQuery"
+            :items="allLabels"
+            v-model="subtractLabelsIndices"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            :loading="subtractLoader"
+            class="text-none"
+            color="primary"
+            text
+            @click="subtractLabels"
+            >Commit</v-btn
+          >
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -356,10 +411,13 @@ import { Dictionary, Route } from "vue-router/types/router";
 import { Studio } from "@/api/studio";
 import IStudio from "@/types/studio";
 import { pluginTaskModule } from "@/store/pluginTask";
+import LabelSelector from "@/components/LabelSelector.vue";
+import { removeLabelFromItem } from "@/api/label";
 
 @Component({
   components: {
     StudioCard,
+    LabelSelector
   },
 })
 export default class StudioList extends mixins(DrawerMixin) {
@@ -537,6 +595,38 @@ export default class StudioList extends mixins(DrawerMixin) {
     } */
   ];
 
+  subtractLabelsDialog = false;
+  subtractLabelsIndices: number[] = [];
+  subtractLabelsSearchQuery = "";
+  subtractLoader = false;
+
+  get labelsToSubtract(): ILabel[] {
+    return this.subtractLabelsIndices.map((i) => this.allLabels[i]).filter(Boolean);
+  }
+
+  async subtractLabels(): Promise<void> {
+    try {
+      const labelIdsToSubtract = this.labelsToSubtract.map((l) => l._id);
+      this.subtractLoader = true;
+      for (let i = 0; i < this.selectedStudios.length; i++) {
+        const id = this.selectedStudios[i];
+        const studio = this.studios.find((sc) => sc._id === id);
+        if (studio) {
+          for (const labelId of labelIdsToSubtract) {
+            await removeLabelFromItem(id, labelId);
+          }
+        }
+      }
+      // Refresh page
+      await this.loadPage();
+      this.subtractLabelsDialog = false;
+      this.subtractLabelsIndices = [];
+    } catch (error) {
+      console.error(error);
+    }
+    this.subtractLoader = false;
+  }
+
   labelIDs(indices: number[]) {
     return indices.map((i) => this.allLabels[i]).map((l) => l._id);
   }
@@ -560,6 +650,7 @@ export default class StudioList extends mixins(DrawerMixin) {
                 _id
                 name
                 color
+                aliases
               }
               parent {
                 _id
@@ -664,6 +755,7 @@ export default class StudioList extends mixins(DrawerMixin) {
                 _id
                 name
                 color
+                aliases
               }
               parent {
                 _id
@@ -800,6 +892,7 @@ export default class StudioList extends mixins(DrawerMixin) {
                 _id
                 name
                 color
+                aliases
               }
               parent {
                 _id

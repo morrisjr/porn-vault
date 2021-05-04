@@ -381,6 +381,7 @@ import ActorSelector from "@/components/ActorSelector.vue";
 import { isQueryDifferent, SearchStateManager } from "../util/searchState";
 import { Route } from "vue-router";
 import { Dictionary } from "vue-router/types/router";
+import { removeLabelFromItem } from "@/api/label";
 
 @Component({
   components: {
@@ -565,20 +566,6 @@ export default class ImageList extends mixins(DrawerMixin) {
     return this.subtractLabelsIndices.map((i) => this.allLabels[i]).filter(Boolean);
   }
 
-  async removeLabelFromImage(imageId: string, labelId: string): Promise<void> {
-    await ApolloClient.mutate({
-      mutation: gql`
-        mutation($item: String!, $label: String!) {
-          removeLabel(item: $item, label: $label)
-        }
-      `,
-      variables: {
-        item: imageId,
-        label: labelId,
-      },
-    });
-  }
-
   async subtractLabels(): Promise<void> {
     try {
       const labelIdsToSubtract = this.labelsToSubtract.map((l) => l._id);
@@ -591,7 +578,7 @@ export default class ImageList extends mixins(DrawerMixin) {
 
         if (image) {
           for (const labelId of labelIdsToSubtract) {
-            await this.removeLabelFromImage(id, labelId);
+            await removeLabelFromItem(id, labelId);
           }
         }
       }
@@ -599,6 +586,7 @@ export default class ImageList extends mixins(DrawerMixin) {
       // Refresh page
       await this.loadPage();
       this.subtractLabelsDialog = false;
+      this.subtractLabelsIndices = [];
     } catch (error) {
       console.error(error);
     }
