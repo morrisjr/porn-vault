@@ -148,40 +148,57 @@
 
     <v-expand-transition>
       <v-banner app sticky class="mb-2" v-if="selectionMode">
-        {{ selectedScenes.length }} scenes selected
+        <div class="d-flex align-center">
+          <v-tooltip bottom v-if="!selectedScenes.length">
+            <template #activator="{ on }">
+              <v-btn icon v-on="on" @click="selectedScenes = scenes.map((im) => im._id)">
+                <v-icon>mdi-checkbox-blank-circle-outline</v-icon>
+              </v-btn>
+            </template>
+            Select all
+          </v-tooltip>
+          <v-tooltip bottom v-else>
+            <template #activator="{ on }">
+              <v-btn icon v-on="on" @click="selectedScenes = []">
+                <v-icon>mdi-checkbox-marked-circle</v-icon>
+              </v-btn>
+            </template>
+            Deselect
+          </v-tooltip>
+
+          <div class="title ml-2">
+            {{ selectedScenes.length }}
+          </div>
+        </div>
+
         <template v-slot:actions>
-          <v-flex class="flex-wrap justify-end" shrink>
-            <v-btn
-              :disabled="!selectedScenes.length"
-              text
-              @click="selectedScenes = []"
-              class="text-none"
-              >Deselect</v-btn
-            >
-            <v-btn
-              :disabled="selectedScenes.length === scenes.length"
-              text
-              @click="selectedScenes = scenes.map((s) => s._id)"
-              class="text-none"
-              >Select all</v-btn
-            >
-            <v-btn
-              :disabled="!selectedScenes.length"
-              text
-              @click="runPluginsForSelectedScenes"
-              class="text-none"
-              :loading="pluginLoader"
-              >Run plugins for selected scenes</v-btn
-            >
-            <v-btn
-              :disabled="!selectedScenes.length"
-              @click="deleteSelectedScenesDialog = true"
-              text
-              class="text-none"
-              color="error"
-              >Delete</v-btn
-            >
-          </v-flex>
+          <v-tooltip bottom>
+            <template #activator="{ on }">
+              <v-btn
+                :disabled="!selectedScenes.length"
+                v-on="on"
+                @click="runPluginsForSelectedScenes"
+                :loading="pluginLoader"
+                icon
+              >
+                <v-icon>mdi-database-sync</v-icon>
+              </v-btn>
+            </template>
+            Run plugins for selected scenes
+          </v-tooltip>
+          <v-tooltip bottom>
+            <template #activator="{ on }">
+              <v-btn
+                :disabled="!selectedScenes.length"
+                v-on="on"
+                @click="deleteSelectedScenesDialog = true"
+                icon
+                color="error"
+                ><v-icon>mdi-delete-forever</v-icon>
+              </v-btn>
+            </template>
+            Delete
+          </v-tooltip>
         </template>
       </v-banner>
     </v-expand-transition>
@@ -215,7 +232,7 @@
         <v-tooltip bottom>
           <template v-slot:activator="{ on }">
             <v-btn v-on="on" @click="runPluginsForSearch" icon :loading="pluginLoader">
-              <v-icon>mdi-account-details</v-icon>
+              <v-icon>mdi-database-sync</v-icon>
             </v-btn>
           </template>
           <span>Run plugins for all scenes in current search</span>
@@ -703,7 +720,7 @@ export default class SceneList extends mixins(DrawerMixin) {
         variables: {
           ids: this.selectedScenes,
           deleteImages: this.deleteSceneImages,
-          deleteFile: this.deleteSceneFiles
+          deleteFile: this.deleteSceneFiles,
         },
       });
 
@@ -810,9 +827,7 @@ export default class SceneList extends mixins(DrawerMixin) {
 
   sceneThumbnail(scene: any) {
     if (scene.thumbnail)
-      return `/api/media/image/${scene.thumbnail._id}?password=${localStorage.getItem(
-        "password"
-      )}`;
+      return `/api/media/image/${scene.thumbnail._id}?password=${localStorage.getItem("password")}`;
     return "";
   }
 

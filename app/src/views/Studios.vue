@@ -95,40 +95,57 @@
 
     <v-expand-transition>
       <v-banner app sticky class="mb-2" v-if="selectionMode">
-        {{ selectedStudios.length }} studios selected
+        <div class="d-flex align-center">
+          <v-tooltip bottom v-if="!selectedStudios.length">
+            <template #activator="{ on }">
+              <v-btn icon v-on="on" @click="selectedStudios = studios.map((im) => im._id)">
+                <v-icon>mdi-checkbox-blank-circle-outline</v-icon>
+              </v-btn>
+            </template>
+            Select all
+          </v-tooltip>
+          <v-tooltip bottom v-else>
+            <template #activator="{ on }">
+              <v-btn icon v-on="on" @click="selectedStudios = []">
+                <v-icon>mdi-checkbox-marked-circle</v-icon>
+              </v-btn>
+            </template>
+            Deselect
+          </v-tooltip>
+
+          <div class="title ml-2">
+            {{ selectedStudios.length }}
+          </div>
+        </div>
+
         <template v-slot:actions>
-          <v-flex class="flex-wrap justify-end" shrink>
-            <v-btn
-              :disabled="!selectedStudios.length"
-              text
-              @click="selectedStudios = []"
-              class="text-none"
-              >Deselect</v-btn
-            >
-            <v-btn
-              :disabled="selectedStudios.length === studios.length"
-              text
-              @click="selectedStudios = studios.map((s) => s._id)"
-              class="text-none"
-              >Select all</v-btn
-            >
-            <v-btn
-              :disabled="!selectedStudios.length"
-              text
-              @click="runPluginsForSelectedStudios"
-              class="text-none"
-              :loading="pluginLoader"
-              >Run plugins for selected studios</v-btn
-            >
-            <v-btn
-              :disabled="!selectedStudios.length"
-              @click="deleteSelectedStudiosDialog = true"
-              text
-              class="text-none"
-              color="error"
-              >Delete</v-btn
-            >
-          </v-flex>
+          <v-tooltip bottom>
+            <template #activator="{ on }">
+              <v-btn
+                :disabled="!selectedStudios.length"
+                v-on="on"
+                @click="runPluginsForSelectedStudios"
+                :loading="pluginLoader"
+                icon
+              >
+                <v-icon>mdi-database-sync</v-icon>
+              </v-btn>
+            </template>
+            Run plugins for selected studios
+          </v-tooltip>
+          <v-tooltip bottom>
+            <template #activator="{ on }">
+              <v-btn
+                :disabled="!selectedStudios.length"
+                v-on="on"
+                @click="deleteSelectedStudiosDialog = true"
+                icon
+                color="error"
+                ><v-icon>mdi-delete-forever</v-icon>
+              </v-btn>
+            </template>
+            Delete
+          </v-tooltip>
         </template>
       </v-banner>
     </v-expand-transition>
@@ -171,7 +188,7 @@
         <v-tooltip bottom>
           <template v-slot:activator="{ on }">
             <v-btn v-on="on" @click="runPluginsForSearch" icon :loading="pluginLoader">
-              <v-icon>mdi-account-details</v-icon>
+              <v-icon>mdi-database-sync</v-icon>
             </v-btn>
           </template>
           <span>Run plugins for all studios in current search</span>

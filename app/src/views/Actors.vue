@@ -132,40 +132,57 @@
 
     <v-expand-transition>
       <v-banner app sticky class="mb-2" v-if="selectionMode">
-        {{ selectedActors.length }} actors selected
+        <div class="d-flex align-center">
+          <v-tooltip bottom v-if="!selectedActors.length">
+            <template #activator="{ on }">
+              <v-btn icon v-on="on" @click="selectedActors = actors.map((im) => im._id)">
+                <v-icon>mdi-checkbox-blank-circle-outline</v-icon>
+              </v-btn>
+            </template>
+            Select all
+          </v-tooltip>
+          <v-tooltip bottom v-else>
+            <template #activator="{ on }">
+              <v-btn icon v-on="on" @click="selectedActors = []">
+                <v-icon>mdi-checkbox-marked-circle</v-icon>
+              </v-btn>
+            </template>
+            Deselect
+          </v-tooltip>
+
+          <div class="title ml-2">
+            {{ selectedActors.length }}
+          </div>
+        </div>
+
         <template v-slot:actions>
-          <v-flex class="flex-wrap justify-end" shrink>
-            <v-btn
-              :disabled="!selectedActors.length"
-              text
-              @click="selectedActors = []"
-              class="text-none"
-              >Deselect</v-btn
-            >
-            <v-btn
-              :disabled="selectedActors.length === actors.length"
-              text
-              @click="selectedActors = actors.map((act) => act._id)"
-              class="text-none"
-              >Select all</v-btn
-            >
-            <v-btn
-              :disabled="!selectedActors.length"
-              text
-              @click="runPluginsForSelectedActors"
-              class="text-none"
-              :loading="pluginLoader"
-              >Run plugins for selected actors</v-btn
-            >
-            <v-btn
-              :disabled="!selectedActors.length"
-              @click="deleteSelectedActorsDialog = true"
-              text
-              class="text-none"
-              color="error"
-              >Delete</v-btn
-            >
-          </v-flex>
+          <v-tooltip bottom>
+            <template #activator="{ on }">
+              <v-btn
+                :disabled="!selectedActors.length"
+                v-on="on"
+                @click="runPluginsForSelectedActors"
+                :loading="pluginLoader"
+                icon
+              >
+                <v-icon>mdi-database-sync</v-icon>
+              </v-btn>
+            </template>
+            Run plugins for selected actors
+          </v-tooltip>
+          <v-tooltip bottom>
+            <template #activator="{ on }">
+              <v-btn
+                :disabled="!selectedActors.length"
+                v-on="on"
+                @click="deleteSelectedActorsDialog = true"
+                icon
+                color="error"
+                ><v-icon>mdi-delete-forever</v-icon>
+              </v-btn>
+            </template>
+            Delete
+          </v-tooltip>
         </template>
       </v-banner>
     </v-expand-transition>
@@ -215,7 +232,7 @@
         <v-tooltip bottom>
           <template v-slot:activator="{ on }">
             <v-btn v-on="on" @click="runPluginsForSearch" icon :loading="pluginLoader">
-              <v-icon>mdi-account-details</v-icon>
+              <v-icon>mdi-database-sync</v-icon>
             </v-btn>
           </template>
           <span>Run plugins for all actors in current search</span>
@@ -859,9 +876,7 @@ export default class ActorList extends mixins(DrawerMixin) {
 
   actorThumbnail(actor: any) {
     if (actor.thumbnail)
-      return `/api/media/image/${actor.thumbnail._id}?password=${localStorage.getItem(
-        "password"
-      )}`;
+      return `/api/media/image/${actor.thumbnail._id}?password=${localStorage.getItem("password")}`;
     return "";
   }
 

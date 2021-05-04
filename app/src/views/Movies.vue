@@ -116,40 +116,57 @@
 
     <v-expand-transition>
       <v-banner app sticky class="mb-2" v-if="selectionMode">
-        {{ selectedMovies.length }} movies selected
+        <div class="d-flex align-center">
+          <v-tooltip bottom v-if="!selectedMovies.length">
+            <template #activator="{ on }">
+              <v-btn icon v-on="on" @click="selectedMovies = movies.map((im) => im._id)">
+                <v-icon>mdi-checkbox-blank-circle-outline</v-icon>
+              </v-btn>
+            </template>
+            Select all
+          </v-tooltip>
+          <v-tooltip bottom v-else>
+            <template #activator="{ on }">
+              <v-btn icon v-on="on" @click="selectedMovies = []">
+                <v-icon>mdi-checkbox-marked-circle</v-icon>
+              </v-btn>
+            </template>
+            Deselect
+          </v-tooltip>
+
+          <div class="title ml-2">
+            {{ selectedMovies.length }}
+          </div>
+        </div>
+
         <template v-slot:actions>
-          <v-flex class="flex-wrap justify-end" shrink>
-            <v-btn
-              :disabled="!selectedMovies.length"
-              text
-              @click="selectedMovies = []"
-              class="text-none"
-              >Deselect</v-btn
-            >
-            <v-btn
-              :disabled="selectedMovies.length === movies.length"
-              text
-              @click="selectedMovies = movies.map((m) => m._id)"
-              class="text-none"
-              >Select all</v-btn
-            >
-            <v-btn
-              :disabled="!selectedMovies.length"
-              text
-              @click="runPluginsForSelectedMovies"
-              class="text-none"
-              :loading="pluginLoader"
-              >Run plugins for selected movies</v-btn
-            >
-            <v-btn
-              :disabled="!selectedMovies.length"
-              @click="deleteSelectedMoviesDialog = true"
-              text
-              class="text-none"
-              color="error"
-              >Delete</v-btn
-            >
-          </v-flex>
+          <v-tooltip bottom>
+            <template #activator="{ on }">
+              <v-btn
+                :disabled="!selectedMovies.length"
+                v-on="on"
+                @click="runPluginsForSelectedMovies"
+                :loading="pluginLoader"
+                icon
+              >
+                <v-icon>mdi-database-sync</v-icon>
+              </v-btn>
+            </template>
+            Run plugins for selected movies
+          </v-tooltip>
+          <v-tooltip bottom>
+            <template #activator="{ on }">
+              <v-btn
+                :disabled="!selectedMovies.length"
+                v-on="on"
+                @click="deleteSelectedMoviesDialog = true"
+                icon
+                color="error"
+                ><v-icon>mdi-delete-forever</v-icon>
+              </v-btn>
+            </template>
+            Delete
+          </v-tooltip>
         </template>
       </v-banner>
     </v-expand-transition>
@@ -199,7 +216,7 @@
         <v-tooltip bottom>
           <template v-slot:activator="{ on }">
             <v-btn v-on="on" @click="runPluginsForSearch" icon :loading="pluginLoader">
-              <v-icon>mdi-account-details</v-icon>
+              <v-icon>mdi-database-sync</v-icon>
             </v-btn>
           </template>
           <span>Run plugins for all movies in current search</span>

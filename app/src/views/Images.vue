@@ -5,23 +5,24 @@
     <v-expand-transition>
       <v-banner app sticky class="mb-2" v-if="selectionMode">
         <div class="d-flex align-center">
+          <v-tooltip bottom v-if="!selectedImages.length">
+            <template #activator="{ on }">
+              <v-btn icon v-on="on" @click="selectedImages = images.map((im) => im._id)">
+                <v-icon>mdi-checkbox-blank-circle-outline</v-icon>
+              </v-btn>
+            </template>
+            Select all
+          </v-tooltip>
+          <v-tooltip bottom v-else>
+            <template #activator="{ on }">
+              <v-btn icon v-on="on" @click="selectedImages = []">
+                <v-icon>mdi-checkbox-marked-circle</v-icon>
+              </v-btn>
+            </template>
+            Deselect
+          </v-tooltip>
+
           <div class="title ml-2">
-            <v-tooltip bottom v-if="!selectedImages.length">
-              <template #activator="{ on }">
-                <v-btn icon v-on="on" @click="selectedImages = images.map((im) => im._id)">
-                  <v-icon>mdi-checkbox-blank-circle-outline</v-icon>
-                </v-btn>
-              </template>
-              Select all
-            </v-tooltip>
-            <v-tooltip bottom v-else>
-              <template #activator="{ on }">
-                <v-btn icon v-on="on" @click="selectedImages = []">
-                  <v-icon>mdi-checkbox-marked-circle</v-icon>
-                </v-btn>
-              </template>
-              Deselect
-            </v-tooltip>
             {{ selectedImages.length }}
           </div>
         </div>
