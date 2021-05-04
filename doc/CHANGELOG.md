@@ -64,6 +64,7 @@ From the user's standpoint, nothing changes but your plugins can only get better
 - **ui** reorganize settings page ([#927](https://github.com/porn-vault/porn-vault/pull/927))
 - **ui** automatic light/dark theme (when no theme has been selected) ([#927](https://github.com/porn-vault/porn-vault/pull/927))
 - **ui** new markers page ([#822](https://github.com/porn-vault/porn-vault/pull/822))
+- **ui** add dvd 3D view in movie details ([#1432](https://github.com/porn-vault/porn-vault/pull/1432))
 - **player** configure jump duration in ui settings ([#927](https://github.com/porn-vault/porn-vault/pull/927))
 - **search:** don't add default filter values to url ([#1384](https://github.com/porn-vault/porn-vault/pull/1384))
 - **plugins:** add `util` as `ctx.$util`
