@@ -2,7 +2,7 @@
 ![Docker Pulls](https://img.shields.io/docker/pulls/leadwolf/porn-vault)
 
 Unofficial images of porn-vault built from https://github.com/leadwolf/porn-vault  
-There are no code changes, so if you don't want alpine, just use the official images https://hub.docker.com/r/boi12321/porn-vault
+There are no code changes, so if you don't want any of my tags, just use the official images https://hub.docker.com/r/boi12321/porn-vault
 
 ## Version Tags
 
@@ -13,11 +13,8 @@ There are no code changes, so if you don't want alpine, just use the official im
 | latest    | The latest **stable** release                    |
 | edge      | The latest release (release candidates included) |
 | `version` | A specific porn-vault release                    |
-| \<tag>-alpine      | A specific tag, but with an alpine base |
 
-The images are based on Debian slim and Alpine images are available with the `-alpine` suffix for all tags.
-
-[Read the docker instructions here](https://github.com/leadwolf/porn-vault/blob/dev/doc/docker.md). This document details how to locally build an image, but the instructions for the parameters are the same when pulling an image.
+[Read the docker instructions here](https://porn-vault.github.io/porn-vault/guides/docker.html). This document details how to locally build an image, but the instructions for the parameters are the same when pulling an image.
 
 # Original Readme below:
 
