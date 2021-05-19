@@ -3,7 +3,7 @@ name: Build app
 on:
   push:
     branches:
-      - dev
+      - dev # dev branch doesn't exist on this fork
   pull_request:
     branches:
       - "**"
