@@ -4,7 +4,8 @@ export enum SceneStreamTypes {
   DIRECT = "direct",
   MP4_DIRECT = "mp4_direct",
   MP4_TRANSCODE = "mp4_transcode",
-  WEBM_TRANSCODE = "webm_transcode",
+  VP8_TRANSCODE = "VP8_TRANSCODE",
+  VP9_TRANSCODE = "VP9_TRANSCODE",
 }
 
 export type FFmpegOption = string;

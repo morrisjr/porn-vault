@@ -128,11 +128,19 @@ export default {
       transcode: true,
     });
 
-    // Fallback transcode: webm
+    // Fallback transcode: webm vp9
     streams.push({
-      label: "webm transcode",
+      label: "vp9 transcode",
       mimeType: "video/webm",
-      streamType: SceneStreamTypes.WEBM_TRANSCODE,
+      streamType: SceneStreamTypes.VP9_TRANSCODE,
+      transcode: true,
+    });
+
+    // Fallback transcode: webm vp8
+    streams.push({
+      label: "vp8 transcode",
+      mimeType: "video/webm",
+      streamType: SceneStreamTypes.VP8_TRANSCODE,
       transcode: true,
     });
 
