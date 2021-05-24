@@ -136,6 +136,14 @@ export default {
       transcode: true,
     });
 
+    // Fallback transcode: hls
+    streams.push({
+      label: "HLS transcode",
+      mimeType: "application/x-mpegURL",
+      streamType: SceneStreamTypes.HLS_TRANSCODE,
+      transcode: true,
+    });
+
     // Otherwise video cannot be streamed
 
     return streams;

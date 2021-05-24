@@ -4,6 +4,7 @@ import path from "path";
 
 import { sceneCollection } from "../database";
 import { CopyMP4Transcoder } from "../transcode/copyMp4";
+import { HLSTranscoder } from "../transcode/hls";
 import { MP4Transcoder } from "../transcode/mp4";
 import { SceneStreamTypes, TranscodeOptions } from "../transcode/transcoder";
 import { WebmTranscoder } from "../transcode/webm";
@@ -71,6 +72,24 @@ function streamDirect(scene: Scene & { path: string }, _: Request, res: Response
 
 const router = Router();
 
+router.get("/:scene/hls/:segment", async (req, res, next) => {
+  const sc = await Scene.getById(req.params.scene);
+  if (!sc || !sc.path) {
+    return next(404);
+  }
+  const scene = sc as Scene & { path: string };
+
+  const transcoder = new HLSTranscoder(scene);
+
+  const validateRes = transcoder.validateRequirements();
+  if (validateRes !== true) {
+    return res.status(400).send(validateRes.message);
+  }
+
+  const transcodeOpts = transcoder.getTranscodeOptions();
+  return streamTranscode(scene, req, res, transcodeOpts);
+});
+
 router.get("/:scene", async (req, res, next) => {
   const sc = await Scene.getById(req.params.scene);
   if (!sc || !sc.path) {
@@ -99,6 +118,27 @@ router.get("/:scene", async (req, res, next) => {
   } catch (err) {
     handleError("Error getting video codecs for transcode", err);
     return res.status(500).send("Could not determine video codecs for transcoding");
+  }
+
+  if (streamType === SceneStreamTypes.HLS_TRANSCODE) {
+    const transcoder = new HLSTranscoder(scene);
+
+    const validateRes = transcoder.validateRequirements();
+    if (validateRes !== true) {
+      return res.status(400).send(validateRes.message);
+    }
+
+    const segmentBaseUrl = `${req.baseUrl}${req.path}`;
+    const startQuery = (req.query as { start?: string }).start || "0";
+    const startSeconds = Number.parseFloat(startQuery);
+    if (Number.isNaN(startSeconds)) {
+      res.status(400).send(`Could not parse start query as number: ${startQuery}`);
+      return;
+    }
+
+    const masterPlaylist = transcoder.masterPlaylist(segmentBaseUrl, startSeconds);
+
+    return res.send(masterPlaylist);
   }
 
   const TranscoderClass = {
