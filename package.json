@@ -99,8 +99,8 @@
     "@types/sinon": "^10.0.0",
     "@types/tiny-async-pool": "^1.0.0",
     "@types/yargs": "^16.0.0",
-    "@typescript-eslint/eslint-plugin": "^4.22.0",
-    "@typescript-eslint/parser": "^4.22.0",
+    "@typescript-eslint/eslint-plugin": "^4.25.0",
+    "@typescript-eslint/parser": "^4.25.0",
     "chai": "^4.3.0",
     "chai-as-promised": "^7.1.1",
     "cross-env": "^7.0.3",
@@ -121,7 +121,7 @@
     "nyc": "^15.1.0",
     "pkg": "^4.4.9",
     "prettier": "^2.2.1",
-    "sinon": "^10.0.0"
+    "sinon": "^11.1.0"
   },
   "nodemonConfig": {
     "ignore": [
