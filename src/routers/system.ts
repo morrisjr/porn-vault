@@ -4,6 +4,7 @@ import { uptime } from "os";
 
 import { exitIzzy, izzyVersion } from "../binaries/izzy";
 import { ensureIndices, getClient, indexMap } from "../search";
+import { indexBuildProgress } from "../search/internal/buildIndex";
 import { setServerStatus } from "../server";
 import { handleError, logger } from "../utils/logger";
 
@@ -97,13 +98,19 @@ router.get("/status", async (req, res) => {
   const osUptime = uptime();
 
   res.json({
+    // Izzy
     izzyStatus,
     izzyVersion: iVersion,
+    izzyLoaded: true, // TODO:
+    // ES
     esStatus,
     esVersion,
+    esIndices, // raw status of indices
+    indexBuildProgress, // build progress
+    allIndexesBuilt: true, // TODO:
+    // Other
     serverUptime,
     osUptime,
-    esIndices,
   });
 });
 

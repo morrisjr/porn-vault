@@ -54,7 +54,7 @@
                 Status: {{ status.esStatus }}
                 <v-icon
                   class="ml-1"
-                  v-if="status.izzyStatus === ServiceStatus.Connected"
+                  v-if="status.esStatus === ServiceStatus.Connected"
                   color="green"
                   dense
                   >mdi-check</v-icon
@@ -71,10 +71,11 @@
             <template v-else>
               <v-alert dense type="info" v-if="status.esIndices.find((i) => i.health === 'yellow')">
                 Some indexes are yellow. This likely is because you only have 1 Elasticsearch node:
-                the data is not replicated. It shouldn't be a problem if you don't know what this means.
+                the data is not replicated. It shouldn't be a problem if you don't know what this
+                means.
               </v-alert>
               <v-simple-table class="mb-3">
-                <template v-slot:default>
+                <template #default>
                   <thead>
                     <tr>
                       <th class="text-left">Name</th>
@@ -153,34 +154,8 @@ import { Component, Vue } from "vue-property-decorator";
 import SettingsWrapper from "@/components/SettingsWrapper.vue";
 import Axios from "axios";
 import moment from "moment";
-
-enum ServiceStatus {
-  Unknown = "unknown",
-  Disconnected = "disconnected",
-  Stopped = "stopped",
-  Connected = "connected",
-}
-
-interface StatusData {
-  izzyStatus: ServiceStatus;
-  izzyVersion: string;
-  esStatus: ServiceStatus;
-  esVersion: string;
-  serverUptime: number;
-  osUptime: number;
-  esIndices: {
-    health: string;
-    status: string;
-    index: string;
-    uuid: string;
-    pri: string;
-    rep: string;
-    "docs.count": string;
-    "docs.deleted": string;
-    "store.size": string;
-    "pri.store.size": string;
-  }[];
-}
+import { StatusData, ServiceStatus } from "@/types/status";
+import { getStatus } from "@/api/system";
 
 const UPTIME_UPDATE_INTERVAL = 1;
 
@@ -194,10 +169,13 @@ export default class Status extends Vue {
     izzyStatus: ServiceStatus.Unknown,
     izzyVersion: "unknown",
     esVersion: "unknown",
+    izzyLoaded: false,
     esStatus: ServiceStatus.Unknown,
+    esIndices: [],
+    indexBuildProgress: {},
     serverUptime: 0,
     osUptime: 0,
-    esIndices: [],
+    allIndexesBuilt: false,
   };
 
   ServiceStatus = ServiceStatus;
@@ -213,9 +191,7 @@ export default class Status extends Vue {
 
   async fetchData() {
     try {
-      const res = await Axios.get("/api/system/status", {
-        params: { password: localStorage.getItem("password") },
-      });
+      const res = await getStatus();
       this.connected = true;
       this.status = res.data;
       this.uptimeOffset = 0;

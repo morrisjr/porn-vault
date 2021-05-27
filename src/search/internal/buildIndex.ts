@@ -1,11 +1,14 @@
 import ora from "ora";
 
 import { logger } from "../../utils/logger";
-import { getClient } from "../index";
+import { getClient } from "..";
 
 const DEFAULT_INDEX_SLICE_SIZE = 5000;
 
-export type ProgressCallback = (progressCb: { percent: number }) => void;
+export type ProgressCallback = (progressCb: {
+  indexedCount: number;
+  totalToIndexCount: number;
+}) => void;
 
 export async function addSearchDocs<IndexItemType extends { id: string }>(
   index: string,
@@ -46,7 +49,10 @@ export async function indexItems<CollectionType, IndexItemType>(
     indexedItemCount += docsToIndex.length;
     docsToIndex = [];
     if (progressCb) {
-      progressCb({ percent: (indexedItemCount / items.length) * 100 });
+      progressCb({
+        indexedCount: indexedItemCount,
+        totalToIndexCount: items.length,
+      });
     }
   }
 
@@ -63,6 +69,15 @@ export async function indexItems<CollectionType, IndexItemType>(
   return indexedItemCount;
 }
 
+export const indexBuildProgress: {
+  [indexName: string]: {
+    name: string;
+    indexedCount: number;
+    totalToIndexCount: number;
+    eta: number;
+  };
+} = {};
+
 export async function buildIndex<CollectionType>(
   indexName: string,
   getAllCollectionItems: () => Promise<CollectionType[]>,
@@ -70,11 +85,27 @@ export async function buildIndex<CollectionType>(
 ): Promise<void> {
   const timeNow = +new Date();
   const loader = ora(`Building ${indexName} index... ETA: calculating...`).start();
+  indexBuildProgress[indexName] = {
+    name: indexName,
+    indexedCount: 0,
+    totalToIndexCount: 0,
+    eta: -1,
+  };
 
-  const indexedCount = await indexer(await getAllCollectionItems(), ({ percent }) => {
+  const allCollectionItems = await getAllCollectionItems();
+  indexBuildProgress[indexName].totalToIndexCount = allCollectionItems.length;
+
+  const indexedCount = await indexer(allCollectionItems, ({ indexedCount, totalToIndexCount }) => {
+    const percent = (indexedCount / totalToIndexCount) * 100;
     const secondsElapsed = (Date.now() - timeNow) / 1000;
-    const eta =
-      percent === 0 ? "calculating..." : ((secondsElapsed * (100 - percent)) / percent).toFixed(0);
+
+    const etaS = percent === 0 ? -1 : (secondsElapsed * (100 - percent)) / percent;
+
+    indexBuildProgress[indexName].indexedCount = indexedCount;
+    indexBuildProgress[indexName].totalToIndexCount = totalToIndexCount;
+    indexBuildProgress[indexName].eta = etaS;
+
+    const eta = etaS < 0 ? "calculating..." : etaS.toFixed(0);
     loader.text = `Building ${indexName} index... Elapsed: ${secondsElapsed.toFixed(
       0
     )}s ETA: ${eta}s`;
