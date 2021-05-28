@@ -3,7 +3,7 @@ name: Build server
 on:
   push:
     branches:
-      - leadwolf-dev
+      - dev
   pull_request:
     branches:
       - "**"

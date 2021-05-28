@@ -12,12 +12,6 @@ rules: # Array of rules
     mergeUnstable: true # Optional, merge pull request even when the mergeable_state is not clean. Default: false
     conflictReviewers: # Optional, on merge conflict assign a reviewer
       - leadwolf
-  - base: leadwolf-dev
-    upstream: porn-vault:dev # Required. Can be a branch in the same forked repo.
-    mergeMethod: merge # Optional, one of [none, merge, squash, rebase, hardreset], Default: none.
-    mergeUnstable: true # Optional, merge pull request even when the mergeable_state is not clean. Default: false
-    conflictReviewers: # Optional, on merge conflict assign a reviewer
-      - leadwolf
   - base: boi-dev
     upstream: porn-vault:dev # Required. Can be a branch in the same forked repo.
     mergeMethod: hardreset # Optional, one of [none, merge, squash, rebase, hardreset], Default: none.
