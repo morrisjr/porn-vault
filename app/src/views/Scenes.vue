@@ -406,24 +406,17 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog scrollable v-model="labelSelectorDialog" max-width="400px">
-      <v-card>
-        <v-card-title>Select labels for '{{ createSceneName }}'</v-card-title>
-
-        <v-card-text style="max-height: 400px">
-          <LabelSelector :items="allLabels" v-model="createSelectedLabels" />
-        </v-card-text>
-        <v-divider></v-divider>
-
-        <v-card-actions>
-          <v-btn @click="createSelectedLabels = []" text class="text-none">Clear</v-btn>
-          <v-spacer></v-spacer>
-          <v-btn @click="labelSelectorDialog = false" text color="primary" class="text-none"
-            >OK</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <LabelSelectorDialog
+      v-model="labelSelectorDialog"
+      labelConfirm="OK"
+      :loader="false"
+      :selectedLabelIds="createSelectedLabels"
+      :allLabels="allLabels"
+      @changeSelectedLabelIds="createSelectedLabels = $event"
+      @confirm="labelSelectorDialog = false"
+    >
+      <template #title>Select labels for '{{ createSceneName }}' </template>
+    </LabelSelectorDialog>
 
     <!-- <v-dialog :persistent="isUploadingScene" v-model="uploadDialog" max-width="400px">
       <SceneUploader @update-state="isUploadingScene = $event" @uploaded="scenes.unshift($event)" />
@@ -464,81 +457,34 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog :persistent="addLoader" scrollable v-model="addLabelsDialog" max-width="400px">
-      <v-card :loading="addLoader">
-        <v-card-title
-          >Add {{ addLabelIds.length }}
-          {{ addLabelIds.length === 1 ? "label" : "labels" }}</v-card-title
-        >
-
-        <v-text-field
-          clearable
-          color="primary"
-          hide-details
-          class="px-5 mb-2"
-          label="Find labels..."
-          v-model="addLabelsSearchQuery"
-        />
-
-        <v-card-text style="max-height: 400px">
-          <LabelSelector
-            :searchQuery="addLabelsSearchQuery"
-            :items="allLabels"
-            v-model="addLabelIds"
-          />
-        </v-card-text>
-        <v-card-actions>
-          <v-btn @click="addLabelIds = []" text class="text-none">Clear</v-btn>
-          <v-spacer></v-spacer>
-          <v-btn :loading="addLoader" class="text-none" color="primary" text @click="addLabels"
-            >Commit</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <v-dialog
-      :persistent="subtractLoader"
-      scrollable
-      v-model="subtractLabelsDialog"
-      max-width="400px"
+    <LabelSelectorDialog
+      v-model="addLabelsDialog"
+      labelConfirm="Commit"
+      :loader="addLoader"
+      :selectedLabelIds="addLabelIds"
+      :allLabels="allLabels"
+      @changeSelectedLabelIds="addLabelIds = $event"
+      @confirm="addLabels"
     >
-      <v-card :loading="subtractLoader">
-        <v-card-title
-          >Subtract {{ subtractLabelIds.length }}
-          {{ subtractLabelIds.length === 1 ? "label" : "labels" }}</v-card-title
-        >
+      <template #title>
+        Add {{ addLabelIds.length }} {{ addLabelIds.length === 1 ? "label" : "labels" }}
+      </template>
+    </LabelSelectorDialog>
 
-        <v-text-field
-          clearable
-          color="primary"
-          hide-details
-          class="px-5 mb-2"
-          label="Find labels..."
-          v-model="subtractLabelsSearchQuery"
-        />
-
-        <v-card-text style="max-height: 400px">
-          <LabelSelector
-            :searchQuery="subtractLabelsSearchQuery"
-            :items="allLabels"
-            v-model="subtractLabelIds"
-          />
-        </v-card-text>
-        <v-card-actions>
-          <v-btn @click="subtractLabelIds = []" text class="text-none">Clear</v-btn>
-          <v-spacer></v-spacer>
-          <v-btn
-            :loading="subtractLoader"
-            class="text-none"
-            color="primary"
-            text
-            @click="subtractLabels"
-            >Commit</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <LabelSelectorDialog
+      v-model="subtractLabelsDialog"
+      labelConfirm="Commit"
+      :loader="subtractLoader"
+      :selectedLabelIds="subtractLabelIds"
+      :allLabels="allLabels"
+      @changeSelectedLabelIds="subtractLabelIds = $event"
+      @confirm="subtractLabels"
+    >
+      <template #title>
+        Subtract {{ subtractLabelIds.length }}
+        {{ subtractLabelIds.length === 1 ? "label" : "labels" }}
+      </template>
+    </LabelSelectorDialog>
   </v-container>
 </template>
 
@@ -550,7 +496,7 @@ import SceneCard from "@/components/Cards/Scene.vue";
 import sceneFragment from "@/fragments/scene";
 import actorFragment from "@/fragments/actor";
 import studioFragment from "@/fragments/studio";
-import LabelSelector from "@/components/LabelSelector.vue";
+import LabelSelectorDialog from "@/components/LabelSelectorDialog.vue";
 import { contextModule } from "@/store/context";
 import ActorSelector from "@/components/ActorSelector.vue";
 import StudioSelector from "@/components/StudioSelector.vue";
@@ -570,7 +516,7 @@ import { attachLabelsToItem, detachLabelsFromItem } from "@/api/label";
 @Component({
   components: {
     SceneCard,
-    LabelSelector,
+    LabelSelectorDialog,
     ActorSelector,
     SceneUploader,
     StudioSelector,
@@ -793,12 +739,10 @@ export default class SceneList extends mixins(DrawerMixin) {
 
   addLabelsDialog = false;
   addLabelIds: string[] = [];
-  addLabelsSearchQuery = "";
   addLoader = false;
 
   subtractLabelsDialog = false;
   subtractLabelIds: string[] = [];
-  subtractLabelsSearchQuery = "";
   subtractLoader = false;
 
   async subtractLabels(): Promise<void> {

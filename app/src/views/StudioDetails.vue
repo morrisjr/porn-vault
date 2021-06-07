@@ -231,35 +231,17 @@
       </div>
     </div>
 
-    <v-dialog scrollable v-model="labelSelectorDialog" max-width="400px">
-      <v-card :loading="labelEditLoader" v-if="currentStudio">
-        <v-card-title>Edit studio labels</v-card-title>
-
-        <v-text-field
-          clearable
-          color="primary"
-          hide-details
-          class="px-5 mb-2"
-          label="Find labels..."
-          v-model="labelSearchQuery"
-        />
-
-        <v-card-text style="max-height: 400px">
-          <LabelSelector
-            :searchQuery="labelSearchQuery"
-            :items="allLabels"
-            v-model="selectedLabels"
-          />
-        </v-card-text>
-        <v-divider></v-divider>
-
-        <v-card-actions>
-          <v-btn @click="selectedLabels = []" text class="text-none">Clear</v-btn>
-          <v-spacer></v-spacer>
-          <v-btn @click="editLabels" text color="primary" class="text-none">Edit</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <LabelSelectorDialog
+      v-model="labelSelectorDialog"
+      labelTitle="Edit studio labels"
+      labelConfirm="Edit"
+      :loader="labelEditLoader"
+      :selectedLabelIds="selectedLabels"
+      :allLabels="allLabels"
+      @changeSelectedLabelIds="selectedLabels = $event"
+      @confirm="editLabels"
+    >
+    </LabelSelectorDialog>
 
     <v-dialog v-model="thumbnailDialog" max-width="400px">
       <v-card v-if="currentStudio" :loading="thumbnailLoader">
@@ -300,7 +282,7 @@ import studioFragment from "@/fragments/studio";
 import IScene from "@/types/scene";
 import IMovie from "@/types/movie";
 import StudioCard from "@/components/Cards/Studio.vue";
-import LabelSelector from "@/components/LabelSelector.vue";
+import LabelSelectorDialog from "@/components/LabelSelectorDialog.vue";
 
 @Component({
   components: {
@@ -309,7 +291,7 @@ import LabelSelector from "@/components/LabelSelector.vue";
     MovieCard,
     ActorCard,
     StudioCard,
-    LabelSelector,
+    LabelSelectorDialog,
   },
   beforeRouteLeave(_to, _from, next) {
     studioModule.setCurrent(null);
@@ -344,8 +326,6 @@ export default class StudioDetails extends Vue {
   thumbnailDialog = false;
   thumbnailLoader = false;
   selectedThumbnail = null as File | null;
-
-  labelSearchQuery = "";
 
   activeTab = 0;
 

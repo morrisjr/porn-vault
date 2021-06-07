@@ -384,67 +384,29 @@
       <v-progress-circular indeterminate></v-progress-circular>
     </div>
 
-    <v-dialog scrollable v-model="labelSelectorDialog" max-width="400px">
-      <v-card :loading="labelEditLoader" v-if="currentScene">
-        <v-card-title>Select scene labels</v-card-title>
+    <LabelSelectorDialog
+      v-model="labelSelectorDialog"
+      labelTitle="Select scene labels"
+      labelConfirm="Edit"
+      :loader="labelEditLoader"
+      :selectedLabelIds="selectedLabels"
+      :allLabels="allLabels"
+      @changeSelectedLabelIds="selectedLabels = $event"
+      @confirm="editLabels"
+    >
+    </LabelSelectorDialog>
 
-        <v-text-field
-          clearable
-          color="primary"
-          hide-details
-          class="px-5 mb-2"
-          label="Find labels..."
-          v-model="labelSearchQuery"
-        />
-
-        <v-card-text style="max-height: 400px">
-          <LabelSelector
-            :searchQuery="labelSearchQuery"
-            :items="allLabels"
-            v-model="selectedLabels"
-          />
-        </v-card-text>
-        <v-divider></v-divider>
-
-        <v-card-actions>
-          <v-btn @click="selectedLabels = []" text class="text-none">Clear</v-btn>
-          <v-spacer></v-spacer>
-          <v-btn @click="editLabels" text color="primary" class="text-none">Edit</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <v-dialog scrollable v-model="markerLabelSelectorDialog" max-width="400px">
-      <v-card v-if="currentScene">
-        <v-card-title>Select marker labels</v-card-title>
-
-        <v-text-field
-          clearable
-          color="primary"
-          hide-details
-          class="px-5 mb-2"
-          label="Find labels..."
-          v-model="markerLabelSearchQuery"
-        />
-
-        <v-card-text style="max-height: 400px">
-          <LabelSelector
-            :searchQuery="markerLabelSearchQuery"
-            :items="allLabels"
-            v-model="selectedMarkerLabels"
-          />
-        </v-card-text>
-        <v-divider></v-divider>
-
-        <v-card-actions>
-          <v-btn @click="selectedMarkerLabels = []" text class="text-none">Clear</v-btn>
-          <v-spacer></v-spacer>
-          <v-btn @click="markerLabelSelectorDialog = false" text color="primary" class="text-none"
-            >OK</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <LabelSelectorDialog
+      v-model="markerLabelSelectorDialog"
+      labelTitle="Select marker labels"
+      labelConfirm="OK"
+      :loader="false"
+      :selectedLabelIds="selectedMarkerLabels"
+      :allLabels="allLabels"
+      @changeSelectedLabelIds="selectedMarkerLabels = $event"
+      @confirm="markerLabelSelectorDialog = false"
+    >
+    </LabelSelectorDialog>
 
     <v-dialog
       v-if="currentScene"
@@ -593,7 +555,7 @@ import movieFragment from "@/fragments/movie";
 import MovieCard from "@/components/Cards/Movie.vue";
 import moment from "moment";
 import ActorSelector from "@/components/ActorSelector.vue";
-import LabelSelector from "@/components/LabelSelector.vue";
+import LabelSelectorDialog from "@/components/LabelSelectorDialog.vue";
 import Lightbox from "@/components/Lightbox.vue";
 import ImageCard from "@/components/Cards/Image.vue";
 import { Cropper } from "vue-advanced-cropper";
@@ -693,7 +655,7 @@ const LS_THEATER_MODE = "theater_mode";
   components: {
     MovieCard,
     ActorGrid,
-    LabelSelector,
+    LabelSelectorDialog,
     Lightbox,
     ImageCard,
     Cropper,
@@ -749,12 +711,9 @@ export default class SceneDetails extends Vue {
   markerLabelSelectorDialog = false;
   selectedMarkerLabels: string[] = [];
   selectedMarkerActors = [] as IActor[];
-  markerLabelSearchQuery = "";
 
   autoPaused = false;
   manuallyStarted = false;
-
-  labelSearchQuery = "";
 
   editCustomFields = {} as any;
   hasUpdatedFields = false;

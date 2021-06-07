@@ -1,6 +1,6 @@
 <template>
   <div>
-    <v-list-item-group v-model="innerValue" multiple>
+    <v-list-item-group v-model="innerValue" @change="$emit('input', $event)" multiple>
       <v-list>
         <template v-for="label in filteredItems">
           <v-list-item :key="label._id" :value="label._id">
@@ -64,11 +64,6 @@ export default class LabelSelector extends Vue {
 
   labelAliases(label: ILabel) {
     return label.aliases.slice().sort().join(", ");
-  }
-
-  @Watch("innerValue", { deep: true })
-  onInnerValueChange() {
-    this.$emit("input", this.innerValue);
   }
 }
 </script>

@@ -99,36 +99,17 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog scrollable v-model="markerLabelSelectorDialog" max-width="400px">
-      <v-card v-if="value">
-        <v-card-title>Select marker labels</v-card-title>
-
-        <v-text-field
-          clearable
-          color="primary"
-          hide-details
-          class="px-5 mb-2"
-          label="Find labels..."
-          v-model="markerLabelSearchQuery"
-        />
-
-        <v-card-text style="max-height: 400px">
-          <LabelSelector
-            :searchQuery="markerLabelSearchQuery"
-            :items="labels"
-            v-model="updateLabels"
-          />
-        </v-card-text>
-        <v-divider></v-divider>
-
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn @click="markerLabelSelectorDialog = false" text color="primary" class="text-none"
-            >OK</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <LabelSelectorDialog
+      v-model="markerLabelSelectorDialog"
+      labelTitle="Select marker labels"
+      labelConfirm="OK"
+      :loader="false"
+      :selectedLabelIds="updateLabels"
+      :allLabels="labels"
+      @changeSelectedLabelIds="updateLabels = $event"
+      @confirm="markerLabelSelectorDialog = false"
+    >
+    </LabelSelectorDialog>
   </div>
 </template>
 
@@ -137,7 +118,7 @@ import { Component, Vue, Prop } from "vue-property-decorator";
 import moment from "moment";
 import ILabel from "@/types/label";
 import ActorSelector from "@/components/ActorSelector.vue";
-import LabelSelector from "@/components/LabelSelector.vue";
+import LabelSelectorDialog from "@/components/LabelSelectorDialog.vue";
 import ApolloClient from "@/apollo";
 import gql from "graphql-tag";
 import { copy } from "@/util/object";
@@ -146,7 +127,7 @@ import { IMarker } from "@/types/marker";
 
 @Component({
   components: {
-    LabelSelector,
+    LabelSelectorDialog,
     ActorSelector,
   },
 })
@@ -162,7 +143,6 @@ export default class MarkerItem extends Vue {
   updateRating = this.value.rating;
   updateActors: IActor[] = [];
 
-  markerLabelSearchQuery = "";
   markerLabelSelectorDialog = false;
   updateLabels: string[] = [];
 
