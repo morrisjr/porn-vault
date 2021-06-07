@@ -6,6 +6,10 @@
           :class="{ 'video-wrapper': true, hideControls: !isHoveringVideo }"
           ref="videoWrapper"
           tabindex="0"
+          @touchstart="onVideoTouchStart"
+          @touchend="onVideoTouchEnd"
+          @dblclick="toggleFullscreen"
+          @mousedown="mouseDownVideo = true"
           @mousemove="
             isHoveringVideo = true;
             startVideoHoverTimeout();
@@ -14,8 +18,6 @@
         >
           <div :class="{ 'video-overlay': true, hideControls: !isHoveringVideo }">
             <v-img
-              @click="togglePlay(false)"
-              @dblclick="toggleFullscreen"
               :src="poster"
               cover
               max-height="100%"
@@ -23,8 +25,6 @@
               v-if="poster && showPoster"
             ></v-img>
             <v-img
-              @click="togglePlay(false)"
-              @dblclick="toggleFullscreen"
               class="poster text-center"
               :src="poster"
               contain
@@ -36,30 +36,44 @@
             </v-fade-transition>
 
             <v-fade-transition>
-              <div v-if="showControls" class="bottom-bar-wrapper">
+              <!-- Prevent mouse/touch events from going -->
+              <!-- to video wrapper and triggering play/pause -->
+              <div
+                v-if="showControls"
+                class="bottom-bar-wrapper"
+                @click.stop
+                @touchstart.stop
+                @touchend.stop
+                @mousedown.stop
+              >
                 <div class="bottom-bar-content">
-                  <v-hover close-delay="200" @input="isHoveringProgressBar = $event">
+                  <v-hover close-delay="200" @input="isHoveringProgressBarDelayed = $event">
                     <div
-                      @mousedown.stop.prevent="onProgressBarMouseDown"
+                      @mouseenter="isHoveringProgressBarExact = true"
+                      @mouseleave="isHoveringProgressBarExact = false"
+                      @mousedown.prevent="onProgressBarMouseDown"
                       @touchmove.prevent="onProgressBarScrub"
                       @touchstart.prevent="onProgressBarMouseDown"
-                      @touchend.prevent="onProgressBarMouseUp"
+                      @touchend.prevent="onVideoMouseUp"
                       ref="progressBar"
                       class="progress-bar-wrapper"
                     >
-                      <div :class="{ 'time-bar': true, large: isHoveringProgressBar }">
+                      <!-- Use 'isHoveringProgressBarDelayed' to include the hover close delay -->
+                      <div :class="{ 'time-bar': true, large: isHoveringProgressBarDelayed }">
                         <v-fade-transition>
                           <div
                             class="elevation-4 preview-window"
-                            v-if="(isHoveringProgressBar || isDraggingProgressBar) && preview"
-                            :style="`left: ${previewX * 100}%;`"
+                            v-if="
+                              (isHoveringProgressBarDelayed || isDraggingProgressBar) && preview
+                            "
+                            :style="`left: ${previewX}px;`"
                           >
                             <div class="preview-wrapper" :style="previewStyle">
                               <img
                                 class="preview-image"
-                                :style="`left: -${imageIndex * SINGLE_PREVIEW_WIDTH}px; background-position: ${
+                                :style="`left: -${
                                   imageIndex * SINGLE_PREVIEW_WIDTH
-                                }`"
+                                }px; background-position: ${imageIndex * SINGLE_PREVIEW_WIDTH}`"
                                 :src="preview.src"
                               />
                             </div>
@@ -76,14 +90,19 @@
                       <template v-for="(range, i) in bufferedRanges">
                         <div
                           :key="i"
-                          :class="{ 'buffer-bar': true, large: isHoveringProgressBar }"
+                          :class="{ 'buffer-bar': true, large: isHoveringProgressBarDelayed }"
                           :style="`left: ${percentOfVideo(range.start) * 100}%; right: ${
                             100 - percentOfVideo(range.end) * 100
                           }%;`"
                         ></div>
                       </template>
                       <div
-                        :class="{ 'progress-bar': true, large: isHoveringProgressBar }"
+                        v-if="isHoveringProgressBarDelayed"
+                        :class="{ 'seek-bar': true, large: isHoveringProgressBarDelayed }"
+                        :style="`width: ${previewPercent * 100}%;`"
+                      ></div>
+                      <div
+                        :class="{ 'progress-bar': true, large: isHoveringProgressBarDelayed }"
                         :style="`width: ${progressPercent * 100}%;`"
                       ></div>
                       <v-tooltip v-for="marker in markers" :key="marker.id" bottom>
@@ -226,10 +245,6 @@
             </v-fade-transition>
           </div>
           <video
-            @click="togglePlay(false)"
-            @touchstart="onVideoTouchStart"
-            @touchend="onVideoTouchEnd"
-            @dblclick="toggleFullscreen"
             :class="{
               'video video-js': true,
               cover: fitMode === 'cover',
@@ -307,6 +322,7 @@ export default class VideoPlayer extends Vue {
   videoNotice = "";
   noticeTimeout: null | number = null;
   previewX = 0;
+  previewPercent = 0;
   progress = 0;
   buffered: videojs.TimeRange | null = null;
   ended = false;
@@ -326,8 +342,10 @@ export default class VideoPlayer extends Vue {
 
   transcodeOffset = 0;
 
+  mouseDownVideo = false;
   isDraggingProgressBar = false;
-  isHoveringProgressBar = false;
+  isHoveringProgressBarExact = false;
+  isHoveringProgressBarDelayed = false;
   didPauseForSeeking = false;
   applyScrubPositionTimeout: number | null = null;
   isHoveringVideo = false;
@@ -351,7 +369,7 @@ export default class VideoPlayer extends Vue {
 
   mounted() {
     window.addEventListener("mouseup", this.onVolumeMouseUp);
-    window.addEventListener("mouseup", this.onProgressBarMouseUp);
+    window.addEventListener("mouseup", this.onVideoMouseUp);
     window.addEventListener("mousemove", this.onProgressBarScrub);
 
     this.player = videojs(
@@ -400,7 +418,7 @@ export default class VideoPlayer extends Vue {
           const video = this.$refs.video as HTMLVideoElement;
           const box = video.getBoundingClientRect();
           const renderedAspectRatio = box.width / box.height;
-          this.showFitOption = renderedAspectRatio !== this.aspectRatio;
+          this.showFitOption = Math.abs(renderedAspectRatio - this.aspectRatio) > 0.01;
         });
 
         this.player!.on("error", this.onPlayerError);
@@ -433,7 +451,7 @@ export default class VideoPlayer extends Vue {
 
   beforeDestroy() {
     window.removeEventListener("mouseup", this.onVolumeMouseUp);
-    window.removeEventListener("mouseup", this.onProgressBarMouseUp);
+    window.removeEventListener("mouseup", this.onVideoMouseUp);
     window.removeEventListener("mousemove", this.onProgressBarScrub);
 
     if (this.player) {
@@ -468,19 +486,19 @@ export default class VideoPlayer extends Vue {
 
   get imageIndex() {
     // The preview start is offset from the beginning of the scene.
-    // If previewX is in this zone, just show the first preview we have
-    if (this.previewX <= PREVIEW_START_OFFSET) {
+    // If previewPercent is in this zone, just show the first preview we have
+    if (this.previewPercent <= PREVIEW_START_OFFSET) {
       return 0;
     }
     // For the rest, subtract the offset to get the actual "x"
     // of the cursor in the preview
-    const actualX = this.previewX - PREVIEW_START_OFFSET;
+    const actualX = this.previewPercent - PREVIEW_START_OFFSET;
     // Multiply by 100 since there are 100 previews
     return Math.floor(actualX * 100);
   }
 
   get previewTime() {
-    return this.formatTime(this.duration * this.previewX);
+    return this.formatTime(this.duration * this.previewPercent);
   }
 
   get previewStyle() {
@@ -498,7 +516,7 @@ export default class VideoPlayer extends Vue {
       this.isPlaybackRateMenuOpen ||
       this.isStreamTypeMenuOpen ||
       this.isVolumeDragging ||
-      this.isHoveringProgressBar ||
+      this.isHoveringProgressBarDelayed ||
       this.isDraggingProgressBar ||
       this.isHoveringVideo
     );
@@ -620,16 +638,23 @@ export default class VideoPlayer extends Vue {
     }
   }
 
-  onProgressBarMouseDown(ev: MouseEvent) {
+  onProgressBarMouseDown(ev: MouseEvent | TouchEvent) {
     this.isDraggingProgressBar = true;
     // Scrub right away so the user doesn't have to move
     // their mouse
     this.onProgressBarScrub(ev);
   }
 
-  onProgressBarMouseUp(ev: MouseEvent) {
-    // Ignore global mouseup events
+  onVideoMouseUp(ev: MouseEvent | TouchEvent) {
     if (!this.isDraggingProgressBar) {
+      if (this.mouseDownVideo) {
+        // If we weren't dragging the progress bar, but did originally
+        // press on the video element, toggle play and exit func
+        this.mouseDownVideo = false;
+        this.togglePlay(false);
+      }
+
+      // Ignore non video related mouseup events: exit func
       return;
     }
 
@@ -640,7 +665,11 @@ export default class VideoPlayer extends Vue {
     const progressBar = this.$refs.progressBar as Element;
     if (progressBar) {
       const rect = progressBar.getBoundingClientRect();
-      const x = ev.clientX - rect.left;
+      const clientX =
+        window.TouchEvent && ev instanceof window.TouchEvent
+          ? ev.changedTouches[0].clientX
+          : (ev as MouseEvent).clientX;
+      const x = clientX - rect.left;
       const xPercentage = x / rect.width;
       this.seek(Math.min(this.duration, Math.max(0, xPercentage * this.duration)), "", false);
     }
@@ -654,7 +683,10 @@ export default class VideoPlayer extends Vue {
 
   onProgressBarScrub(ev: MouseEvent | TouchEvent) {
     // Ignore global mousemove events
-    if (!this.isDraggingProgressBar && !this.isHoveringProgressBar) {
+    // Check 'isHoveringProgressBarExact' instead of 'isHoveringProgressBarDelayed'
+    // so we can stop scrubbing as soon as the mouse leaves the hover zone,
+    // while still displaying the progress bar for a short time
+    if (!this.isDraggingProgressBar && !this.isHoveringProgressBarExact) {
       return;
     }
 
@@ -673,11 +705,15 @@ export default class VideoPlayer extends Vue {
         ? ev.touches[0].clientX
         : (ev as MouseEvent).clientX;
     let x = clientX - rect.left;
-    // Do not "outside" the width of rectangle
+    // Do not go "outside" the width of rectangle
     x = Math.min(rect.right - rect.left, x);
     x = Math.max(0, x);
 
-    this.previewX = x / rect.width;
+    this.previewPercent = x / rect.width;
+
+    const sideOffset = SINGLE_PREVIEW_WIDTH / 2 + 5;
+    // Prevent preview window "overflowing" the container
+    this.previewX = Math.max(Math.min(x, rect.width - sideOffset), sideOffset);
 
     if (this.isDraggingProgressBar) {
       if (!this.isPaused()) {
@@ -685,14 +721,14 @@ export default class VideoPlayer extends Vue {
         this.didPauseForSeeking = true;
       }
       // Update our progress right away
-      const time = this.previewX * this.duration;
+      const time = this.previewPercent * this.duration;
       this.progress = time;
 
       // But delay the seek so we don't seek on every scrub
       this.applyScrubPosition(time);
 
       // For touch mode, after scrubbing, we want the controls to linger a little
-      // since 'isHoveringProgressBar' won't be set to true
+      // since 'isHoveringProgressBarDelayed' won't be set to true
       this.isHoveringVideo = true;
       this.startVideoHoverTimeout();
     }
@@ -810,7 +846,13 @@ export default class VideoPlayer extends Vue {
     if (ev.touches.length !== 1) {
       return;
     }
-    this.lastTouchClientX = ev.touches[0].clientX;
+
+    if (this.showPoster) {
+      // If the poster is being shown, just start playing
+      this.play();
+    } else {
+      this.lastTouchClientX = ev.touches[0].clientX;
+    }
   }
 
   onVideoTouchEnd(ev: TouchEvent): void {
@@ -1245,6 +1287,12 @@ export default class VideoPlayer extends Vue {
       opacity: 0.2;
     }
 
+    .seek-bar {
+      @include bar;
+      background: white;
+      opacity: 0.3;
+    }
+
     .marker {
       position: absolute;
       bottom: 0;
@@ -1286,7 +1334,10 @@ export default class VideoPlayer extends Vue {
   }
 
   .poster {
-    pointer-events: auto;
+    // Prevent the poster intercepting 'touchstart' events:
+    // Since it's rendered conditionnally, if it's hidden after the 'touchstart'
+    // it won't trigger a 'touchend' event
+    pointer-events: none;
     position: absolute;
     left: 0;
     top: 0;

@@ -176,6 +176,7 @@
         >
           <MarkerCard
             v-model="markers[markerIdx]"
+            :showLabels="showCardLabels"
             @click.native.stop.prevent="onMarkerClick(marker, markerIdx, $event, false)"
           >
             <template v-slot:action="{ hover }">
@@ -274,8 +275,12 @@ export default class MarkerList extends mixins(DrawerMixin) {
     return contextModule.showSidenav;
   }
 
+  get showCardLabels() {
+    return contextModule.showCardLabels;
+  }
+
   markers = [] as any[];
-  
+
   sortDirItems = [
     {
       text: "Ascending",
@@ -324,7 +329,6 @@ export default class MarkerList extends mixins(DrawerMixin) {
   selectionMode = false;
 
   deleteMarkersLoader = false;
-
 
   searchStateManager = new SearchStateManager<{
     page: number;
@@ -506,6 +510,11 @@ export default class MarkerList extends mixins(DrawerMixin) {
               thumbnail {
                 _id
               }
+              labels {
+                _id
+                name
+                color
+              }
             }
             numItems
             numPages
@@ -551,7 +560,7 @@ export default class MarkerList extends mixins(DrawerMixin) {
         this.fetchLoader = false;
       });
   }
-  
+
   onPageChange(val: number) {
     let page = Number(val);
     if (isNaN(page) || page <= 0 || page > this.numPages) {

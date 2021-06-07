@@ -615,6 +615,10 @@ export default class MovieList extends mixins(DrawerMixin) {
       value: "duration",
     },
     {
+      text: "Release date",
+      value: "releaseDate",
+    },
+    {
       text: "Bookmarked",
       value: "bookmark",
     },

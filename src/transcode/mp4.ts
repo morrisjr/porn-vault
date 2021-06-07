@@ -1,6 +1,8 @@
+import * as os from "os";
+
 import { getConfig } from "../config";
 import { HardwareAccelerationDriver } from "../config/schema";
-import { FFProbeAudioCodecs, FFProbeVideoCodecs } from "../ffmpeg/ffprobe";
+import { FFProbeAudioCodecs, FFProbeContainers, FFProbeVideoCodecs } from "../ffmpeg/ffprobe";
 import { BasicTranscoder, FFmpegOption, TranscodeOptions } from "./transcoder";
 
 export class MP4Transcoder extends BasicTranscoder {
@@ -41,12 +43,13 @@ export class MP4Transcoder extends BasicTranscoder {
   }
 
   getBitrateParams(): FFmpegOption[] {
-    if (!this.scene.meta.bitrate) {
+    // Only apply bitrate options for windows using amf driver
+    if (
+      os.platform() !== "win32" ||
+      this.currentVideoEncoder !== "h264_amf" ||
+      !this.scene.meta.bitrate
+    ) {
       return [];
-    }
-
-    if (this.currentVideoEncoder === "libx264") {
-      return [`-maxrate ${this.scene.meta.bitrate}`, `-bufsize ${this.scene.meta.bitrate * 2}`];
     }
 
     return [
@@ -60,9 +63,12 @@ export class MP4Transcoder extends BasicTranscoder {
     const { inputOptions, outputOptions, mimeType } = super.getTranscodeOptions();
     const transcodeConfig = getConfig().transcode;
 
-    let vCodec = this.videoEncoder();
+    let vCodec =
+      outputOptions.find((opt) => opt.startsWith("-c:v"))?.split(" ")[1] || this.videoEncoder();
 
-    if (transcodeConfig.hwaDriver) {
+    // Only apply hw drivers when the stream isn't already
+    // compatible
+    if (vCodec !== "copy" && transcodeConfig.hwaDriver) {
       switch (transcodeConfig.hwaDriver) {
         case HardwareAccelerationDriver.enum.vaapi:
           vCodec = "h264_vaapi";
@@ -91,6 +97,10 @@ export class MP4Transcoder extends BasicTranscoder {
           vCodec = "h264_nvenc";
           inputOptions.push("-hwaccel nvenc", "-hwaccel_output_format cuda");
           break;
+        case HardwareAccelerationDriver.enum.cuda:
+          vCodec = "h264_nvenc";
+          inputOptions.push("-hwaccel cuda", "-hwaccel_output_format cuda");
+          break;
         case HardwareAccelerationDriver.enum.amf:
           vCodec = "h264_amf";
           inputOptions.push("-hwaccel d3d11va");
@@ -103,6 +113,15 @@ export class MP4Transcoder extends BasicTranscoder {
     }
 
     this.currentVideoEncoder = vCodec;
+
+    // Sometimes mpegts contains aac audio with adts headers
+    // but mp4 requires raw aac: this filter converts it for us
+    if (
+      this.scene.meta.container === FFProbeContainers.MPEGTS &&
+      this.scene.meta.audioCodec === FFProbeAudioCodecs.AAC
+    ) {
+      outputOptions.push("-bsf:a aac_adtstoasc");
+    }
 
     outputOptions.push(
       "-f mp4",
