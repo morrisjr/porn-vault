@@ -238,7 +238,7 @@ export default class Lightbox extends Vue {
 
   labelSelectorDialog = false;
   allLabels = [] as ILabel[];
-  selectedLabels = [] as number[];
+  selectedLabels: string[] = [];
   labelEditLoader = false;
 
   editActorsDialog = false;
@@ -399,9 +399,7 @@ export default class Lightbox extends Vue {
     this.selectedLabels = [];
 
     if (this.items[newVal]) {
-      this.selectedLabels = this.items[newVal].labels.map((l) =>
-        this.allLabels.findIndex((k) => k._id == l._id)
-      );
+      this.selectedLabels = this.items[newVal].labels.map((l) => l._id);
       this.editScene = this.items[newVal].scene;
     }
   }
@@ -569,9 +567,7 @@ export default class Lightbox extends Vue {
           return;
         }
 
-        this.selectedLabels = this.currentImage.labels.map((l) =>
-          this.allLabels.findIndex((k) => k._id == l._id)
-        );
+        this.selectedLabels = this.currentImage.labels.map((l) => l._id);
         this.labelSelectorDialog = true;
       } catch (error) {
         console.error(error);

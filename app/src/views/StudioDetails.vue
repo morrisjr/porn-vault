@@ -324,7 +324,7 @@ export default class StudioDetails extends Vue {
 
   labelSelectorDialog = false;
   allLabels = [] as ILabel[];
-  selectedLabels = [] as number[];
+  selectedLabels: string[] = [];
   labelEditLoader = false;
 
   pluginLoader = false;
@@ -732,7 +732,10 @@ export default class StudioDetails extends Vue {
     }
 
     this.labelEditLoader = true;
-    return this.updateStudioLabels(this.selectedLabels.map((i) => this.allLabels[i]))
+    const labels = this.selectedLabels
+      .map((id) => this.allLabels.find((l) => l._id === id))
+      .filter(Boolean) as ILabel[];
+    return this.updateStudioLabels(labels)
       .then((res) => {
         this.labelSelectorDialog = false;
       })
@@ -770,9 +773,7 @@ export default class StudioDetails extends Vue {
             return;
           }
 
-          this.selectedLabels = this.currentStudio.labels.map((l) =>
-            this.allLabels.findIndex((k) => k._id == l._id)
-          );
+          this.selectedLabels = this.currentStudio.labels.map((l) => l._id);
           this.labelSelectorDialog = true;
         })
         .catch((err) => {

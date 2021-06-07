@@ -715,7 +715,7 @@ export default class ActorDetails extends Vue {
 
   labelSelectorDialog = false;
   allLabels = [] as ILabel[];
-  selectedLabels = [] as number[];
+  selectedLabels: string[] = [];
   labelEditLoader = false;
 
   numScenes = -1;
@@ -1672,9 +1672,7 @@ export default class ActorDetails extends Vue {
             return;
           }
 
-          this.selectedLabels = this.currentActor.labels.map((l) =>
-            this.allLabels.findIndex((k) => k._id == l._id)
-          );
+          this.selectedLabels = this.currentActor.labels.map((l) => l._id);
           this.labelSelectorDialog = true;
         })
         .catch((err) => {

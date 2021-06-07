@@ -2,11 +2,11 @@
   <div>
     <v-list-item-group v-model="innerValue" multiple>
       <v-list>
-        <template v-for="label in items">
-          <v-list-item :key="label._id" v-show="itemIsFound(label)">
+        <template v-for="label in filteredItems">
+          <v-list-item :key="label._id" :value="label._id">
             <template v-slot:default="{ active, toggle }">
               <v-list-item-action>
-                <v-checkbox color="primary" v-model="active" @click="toggle"></v-checkbox>
+                <v-checkbox color="primary" :input-value="active" @click="toggle"></v-checkbox>
               </v-list-item-action>
 
               <v-list-item-content>
@@ -37,27 +37,28 @@ import ILabel from "@/types/label";
 
 @Component
 export default class LabelSelector extends Vue {
-  @Prop() value!: ILabel[];
+  @Prop() value!: string[]; // array of selected label ids
   @Prop(Array) items!: ILabel[];
   @Prop({ default: "" }) searchQuery!: string | null;
 
-  itemIsFound(label: ILabel) {
+  get filteredItems(): ILabel[] {
     if (!this.searchQuery) {
-      return true;
+      return this.items;
     }
 
     const sq = this.searchQuery.toLowerCase();
 
-    return (
-      label.name.toLowerCase().includes(sq) ||
-      label.aliases.some((name) => name.toLowerCase().includes(sq))
+    return this.items.filter(
+      (label) =>
+        label.name.toLowerCase().includes(sq) ||
+        label.aliases.some((name) => name.toLowerCase().includes(sq))
     );
   }
 
-  innerValue = (this.value.length ? this.value : []) as ILabel[];
+  innerValue: string[] = this.value.length ? this.value : [];
 
   @Watch("value", { deep: true })
-  onValueChange(newVal: ILabel[]) {
+  onValueChange(newVal: string[]) {
     this.innerValue = newVal;
   }
 

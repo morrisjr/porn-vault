@@ -722,7 +722,7 @@ export default class SceneDetails extends Vue {
 
   labelSelectorDialog = false;
   allLabels = [] as ILabel[];
-  selectedLabels = [] as number[];
+  selectedLabels: string[] = [];
   labelEditLoader = false;
 
   screenshotLoader = false;
@@ -747,7 +747,7 @@ export default class SceneDetails extends Vue {
   markerBookmark = false;
   markerDialog = false;
   markerLabelSelectorDialog = false;
-  selectedMarkerLabels = [] as number[];
+  selectedMarkerLabels: string[] = [];
   selectedMarkerActors = [] as IActor[];
   markerLabelSearchQuery = "";
 
@@ -982,7 +982,7 @@ export default class SceneDetails extends Vue {
         rating: this.markerRating,
         favorite: this.markerFavorite,
         bookmark: this.markerBookmark ? Date.now() : null,
-        labels: this.selectedMarkerLabels.map((i) => this.allLabels[i]).map((l) => l._id),
+        labels: this.selectedMarkerLabels,
         actors: this.selectedMarkerActors.map((ac) => ac._id),
       },
     }).then((res) => {
@@ -1310,7 +1310,10 @@ export default class SceneDetails extends Vue {
     }
 
     this.labelEditLoader = true;
-    return this.updateSceneLabels(this.selectedLabels.map((i) => this.allLabels[i]))
+    const labels = this.selectedLabels
+      .map((id) => this.allLabels.find((l) => l._id === id))
+      .filter(Boolean) as ILabel[];
+    return this.updateSceneLabels(labels)
       .then((res) => {
         this.labelSelectorDialog = false;
       })
@@ -1449,9 +1452,7 @@ export default class SceneDetails extends Vue {
     this.selectedMarkerActors = copy(this.actors);
 
     if (!this.selectedLabels.length) {
-      this.selectedLabels = scene.labels.map((l) =>
-        this.allLabels.findIndex((k) => k._id == l._id)
-      );
+      this.selectedLabels = scene.labels.map((l) => l._id);
     }
 
     // TODO: wait for player to mount, get event...?

@@ -164,7 +164,7 @@ export default class MarkerItem extends Vue {
 
   markerLabelSearchQuery = "";
   markerLabelSelectorDialog = false;
-  updateLabels: number[] = [];
+  updateLabels: string[] = [];
 
   updateMarker() {
     ApolloClient.mutate({
@@ -208,9 +208,7 @@ export default class MarkerItem extends Vue {
   }
 
   startEdit() {
-    this.updateLabels = this.value.labels.map((l) =>
-      this.labels.findIndex((k) => k._id == l._id)
-    ) as number[];
+    this.updateLabels = this.value.labels.map((l) => l._id);
     this.updateActors = copy(this.value.actors);
     this.updateDialog = true;
   }

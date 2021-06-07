@@ -504,8 +504,8 @@
     <v-dialog :persistent="addLoader" scrollable v-model="addLabelsDialog" max-width="400px">
       <v-card :loading="addLoader">
         <v-card-title
-          >Add {{ addLabelsIndices.length }}
-          {{ addLabelsIndices.length === 1 ? "label" : "labels" }}</v-card-title
+          >Add {{ addLabelIds.length }}
+          {{ addLabelIds.length === 1 ? "label" : "labels" }}</v-card-title
         >
 
         <v-text-field
@@ -521,11 +521,11 @@
           <LabelSelector
             :searchQuery="addLabelsSearchQuery"
             :items="allLabels"
-            v-model="addLabelsIndices"
+            v-model="addLabelIds"
           />
         </v-card-text>
         <v-card-actions>
-          <v-btn @click="addLabelsIndices = []" text class="text-none">Clear</v-btn>
+          <v-btn @click="addLabelIds = []" text class="text-none">Clear</v-btn>
           <v-spacer></v-spacer>
           <v-btn :loading="addLoader" class="text-none" color="primary" text @click="addLabels"
             >Commit</v-btn
@@ -542,8 +542,8 @@
     >
       <v-card :loading="subtractLoader">
         <v-card-title
-          >Subtract {{ subtractLabelsIndices.length }}
-          {{ subtractLabelsIndices.length === 1 ? "label" : "labels" }}</v-card-title
+          >Subtract {{ subtractLabelIds.length }}
+          {{ subtractLabelIds.length === 1 ? "label" : "labels" }}</v-card-title
         >
 
         <v-text-field
@@ -559,11 +559,11 @@
           <LabelSelector
             :searchQuery="subtractLabelsSearchQuery"
             :items="allLabels"
-            v-model="subtractLabelsIndices"
+            v-model="subtractLabelIds"
           />
         </v-card-text>
         <v-card-actions>
-          <v-btn @click="subtractLabelsIndices = []" text class="text-none">Clear</v-btn>
+          <v-btn @click="subtractLabelIds = []" text class="text-none">Clear</v-btn>
           <v-spacer></v-spacer>
           <v-btn
             :loading="subtractLoader"
@@ -725,7 +725,7 @@ export default class ActorList extends mixins(DrawerMixin) {
   createActorDialog = false;
   createActorName = "";
   createActorAliases = [] as string[];
-  createSelectedLabels = [] as number[];
+  createSelectedLabels: string[] = [];
   labelSelectorDialog = false;
   addActorLoader = false;
   deleteActorsLoader = false;
@@ -852,38 +852,29 @@ export default class ActorList extends mixins(DrawerMixin) {
   ];
 
   addLabelsDialog = false;
-  addLabelsIndices: number[] = [];
+  addLabelIds: string[] = [];
   addLabelsSearchQuery = "";
   addLoader = false;
 
   subtractLabelsDialog = false;
-  subtractLabelsIndices: number[] = [];
+  subtractLabelIds: string[] = [];
   subtractLabelsSearchQuery = "";
   subtractLoader = false;
 
-  get labelsToAdd(): ILabel[] {
-    return this.addLabelsIndices.map((i) => this.allLabels[i]).filter(Boolean);
-  }
-
-  get labelsToSubtract(): ILabel[] {
-    return this.subtractLabelsIndices.map((i) => this.allLabels[i]).filter(Boolean);
-  }
-
   async subtractLabels(): Promise<void> {
     try {
-      const labelIdsToSubtract = this.labelsToSubtract.map((l) => l._id);
       this.subtractLoader = true;
       for (let i = 0; i < this.selectedActors.length; i++) {
         const id = this.selectedActors[i];
         const actor = this.actors.find((sc) => sc._id === id);
         if (actor) {
-          await detachLabelsFromItem(id, labelIdsToSubtract);
+          await detachLabelsFromItem(id, this.subtractLabelIds);
         }
       }
       // Refresh page
       await this.loadPage();
       this.subtractLabelsDialog = false;
-      this.subtractLabelsIndices = [];
+      this.subtractLabelIds = [];
     } catch (error) {
       console.error(error);
     }
@@ -892,7 +883,6 @@ export default class ActorList extends mixins(DrawerMixin) {
 
   async addLabels(): Promise<void> {
     try {
-      const labelIdsToAdd = this.labelsToAdd.map((l) => l._id);
       this.addLoader = true;
 
       for (let i = 0; i < this.selectedActors.length; i++) {
@@ -900,13 +890,14 @@ export default class ActorList extends mixins(DrawerMixin) {
 
         const actor = this.actors.find((img) => img._id === id);
         if (actor) {
-          await attachLabelsToItem(id, labelIdsToAdd);
+          await attachLabelsToItem(id, this.addLabelIds);
         }
       }
 
       // Refresh page
       await this.loadPage();
       this.addLabelsDialog = false;
+      this.addLabelIds = [];
     } catch (error) {
       console.error(error);
     }
@@ -979,7 +970,7 @@ export default class ActorList extends mixins(DrawerMixin) {
       variables: {
         name: this.createActorName,
         aliases: this.createActorAliases,
-        labels: this.labelIDs(this.createSelectedLabels),
+        labels: this.createSelectedLabels,
       },
     })
       .then((res) => {
@@ -1021,12 +1012,8 @@ export default class ActorList extends mixins(DrawerMixin) {
     }
   }
 
-  labelIDs(indices: number[]) {
-    return indices.map((i) => this.allLabels[i]).map((l) => l._id);
-  }
-
-  labelNames(indices: number[]) {
-    return indices.map((i) => this.allLabels[i].name);
+  labelNames(ids: string[]) {
+    return ids.map((id) => this.allLabels.find((l) => l._id === id)?.name).filter(Boolean);
   }
 
   openCreateDialog() {
