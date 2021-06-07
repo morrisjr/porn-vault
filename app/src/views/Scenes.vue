@@ -210,7 +210,7 @@
                 <v-icon>mdi-label-off</v-icon>
               </v-btn>
             </template>
-            Remove labels
+            Subtract labels
           </v-tooltip>
           <v-tooltip bottom>
             <template #activator="{ on }">
