@@ -190,6 +190,19 @@
             <template #activator="{ on }">
               <v-btn
                 v-on="on"
+                @click="addLabelsDialog = true"
+                icon
+                :disabled="!selectedScenes.length"
+              >
+                <v-icon>mdi-label</v-icon>
+              </v-btn>
+            </template>
+            Add labels
+          </v-tooltip>
+          <v-tooltip bottom>
+            <template #activator="{ on }">
+              <v-btn
+                v-on="on"
                 @click="subtractLabelsDialog = true"
                 icon
                 :disabled="!selectedScenes.length"
@@ -451,6 +464,39 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog :persistent="addLoader" scrollable v-model="addLabelsDialog" max-width="400px">
+      <v-card :loading="addLoader">
+        <v-card-title
+          >Add {{ addLabelsIndices.length }}
+          {{ addLabelsIndices.length === 1 ? "label" : "labels" }}</v-card-title
+        >
+
+        <v-text-field
+          clearable
+          color="primary"
+          hide-details
+          class="px-5 mb-2"
+          label="Find labels..."
+          v-model="addLabelsSearchQuery"
+        />
+
+        <v-card-text style="max-height: 400px">
+          <LabelSelector
+            :searchQuery="addLabelsSearchQuery"
+            :items="allLabels"
+            v-model="addLabelsIndices"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-btn @click="addLabelsIndices = []" text class="text-none">Clear</v-btn>
+          <v-spacer></v-spacer>
+          <v-btn :loading="addLoader" class="text-none" color="primary" text @click="addLabels"
+            >Commit</v-btn
+          >
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-dialog
       :persistent="subtractLoader"
       scrollable
@@ -480,6 +526,7 @@
           />
         </v-card-text>
         <v-card-actions>
+          <v-btn @click="subtractLabelsIndices = []" text class="text-none">Clear</v-btn>
           <v-spacer></v-spacer>
           <v-btn
             :loading="subtractLoader"
@@ -518,7 +565,7 @@ import { Dictionary } from "vue-router/types/router";
 import { SearchStateManager, isQueryDifferent } from "../util/searchState";
 import { Scene } from "@/api/scene";
 import { pluginTaskModule } from "@/store/pluginTask";
-import { removeLabelFromItem } from "@/api/label";
+import { attachLabelsToItem, detachLabelsFromItem } from "@/api/label";
 
 @Component({
   components: {
@@ -744,10 +791,19 @@ export default class SceneList extends mixins(DrawerMixin) {
   deleteSceneFiles = false;
   deleteSceneImages = false;
 
+  addLabelsDialog = false;
+  addLabelsIndices: number[] = [];
+  addLabelsSearchQuery = "";
+  addLoader = false;
+
   subtractLabelsDialog = false;
   subtractLabelsIndices: number[] = [];
   subtractLabelsSearchQuery = "";
   subtractLoader = false;
+
+  get labelsToAdd(): ILabel[] {
+    return this.addLabelsIndices.map((i) => this.allLabels[i]).filter(Boolean);
+  }
 
   get labelsToSubtract(): ILabel[] {
     return this.subtractLabelsIndices.map((i) => this.allLabels[i]).filter(Boolean);
@@ -761,9 +817,7 @@ export default class SceneList extends mixins(DrawerMixin) {
         const id = this.selectedScenes[i];
         const scene = this.scenes.find((sc) => sc._id === id);
         if (scene) {
-          for (const labelId of labelIdsToSubtract) {
-            await removeLabelFromItem(id, labelId);
-          }
+          await detachLabelsFromItem(id, labelIdsToSubtract);
         }
       }
       // Refresh page
@@ -774,6 +828,29 @@ export default class SceneList extends mixins(DrawerMixin) {
       console.error(error);
     }
     this.subtractLoader = false;
+  }
+
+  async addLabels(): Promise<void> {
+    try {
+      const labelIdsToAdd = this.labelsToAdd.map((l) => l._id);
+      this.addLoader = true;
+
+      for (let i = 0; i < this.selectedScenes.length; i++) {
+        const id = this.selectedScenes[i];
+
+        const scene = this.scenes.find((img) => img._id === id);
+        if (scene) {
+          await attachLabelsToItem(id, labelIdsToAdd);
+        }
+      }
+
+      // Refresh page
+      await this.loadPage();
+      this.addLabelsDialog = false;
+    } catch (error) {
+      console.error(error);
+    }
+    this.addLoader = false;
   }
 
   labelClasses(label: ILabel) {

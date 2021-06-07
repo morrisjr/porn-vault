@@ -428,7 +428,7 @@ import ActorSelector from "@/components/ActorSelector.vue";
 import { isQueryDifferent, SearchStateManager } from "../util/searchState";
 import { Route } from "vue-router";
 import { Dictionary } from "vue-router/types/router";
-import { removeLabelFromItem } from "@/api/label";
+import { attachLabelsToItem, detachLabelsFromItem } from "@/api/label";
 
 @Component({
   components: {
@@ -622,34 +622,6 @@ export default class ImageList extends mixins(DrawerMixin) {
     return this.subtractLabelsIndices.map((i) => this.allLabels[i]).filter(Boolean);
   }
 
-  async addLabelsToImage(imageId: string, labelIds: string[]): Promise<void> {
-    await ApolloClient.mutate({
-      mutation: gql`
-        mutation($item: String!, $labels: [String!]!) {
-          attachLabels(item: $item, labels: $labels)
-        }
-      `,
-      variables: {
-        item: imageId,
-        labels: labelIds,
-      },
-    });
-  }
-
-  async removeLabelFromImage(imageId: string, labelId: string): Promise<void> {
-    await ApolloClient.mutate({
-      mutation: gql`
-        mutation($item: String!, $label: String!) {
-          removeLabel(item: $item, label: $label)
-        }
-      `,
-      variables: {
-        item: imageId,
-        label: labelId,
-      },
-    });
-  }
-
   async subtractLabels(): Promise<void> {
     try {
       const labelIdsToSubtract = this.labelsToSubtract.map((l) => l._id);
@@ -661,9 +633,7 @@ export default class ImageList extends mixins(DrawerMixin) {
         const image = this.images.find((img) => img._id === id);
 
         if (image) {
-          for (const labelId of labelIdsToSubtract) {
-            await removeLabelFromItem(id, labelId);
-          }
+          await detachLabelsFromItem(id, labelIdsToSubtract);
         }
       }
 
@@ -688,7 +658,7 @@ export default class ImageList extends mixins(DrawerMixin) {
         const image = this.images.find((img) => img._id === id);
 
         if (image) {
-          await this.addLabelsToImage(id, labelIdsToAdd);
+          await attachLabelsToItem(id, labelIdsToAdd);
         }
       }
 

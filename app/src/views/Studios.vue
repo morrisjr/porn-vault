@@ -137,6 +137,19 @@
             <template #activator="{ on }">
               <v-btn
                 v-on="on"
+                @click="addLabelsDialog = true"
+                icon
+                :disabled="!selectedStudios.length"
+              >
+                <v-icon>mdi-label</v-icon>
+              </v-btn>
+            </template>
+            Add labels
+          </v-tooltip>
+          <v-tooltip bottom>
+            <template #activator="{ on }">
+              <v-btn
+                v-on="on"
                 @click="subtractLabelsDialog = true"
                 icon
                 :disabled="!selectedStudios.length"
@@ -352,6 +365,39 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog :persistent="addLoader" scrollable v-model="addLabelsDialog" max-width="400px">
+      <v-card :loading="addLoader">
+        <v-card-title
+          >Add {{ addLabelsIndices.length }}
+          {{ addLabelsIndices.length === 1 ? "label" : "labels" }}</v-card-title
+        >
+
+        <v-text-field
+          clearable
+          color="primary"
+          hide-details
+          class="px-5 mb-2"
+          label="Find labels..."
+          v-model="addLabelsSearchQuery"
+        />
+
+        <v-card-text style="max-height: 400px">
+          <LabelSelector
+            :searchQuery="addLabelsSearchQuery"
+            :items="allLabels"
+            v-model="addLabelsIndices"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-btn @click="addLabelsIndices = []" text class="text-none">Clear</v-btn>
+          <v-spacer></v-spacer>
+          <v-btn :loading="addLoader" class="text-none" color="primary" text @click="addLabels"
+            >Commit</v-btn
+          >
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-dialog
       :persistent="subtractLoader"
       scrollable
@@ -381,6 +427,7 @@
           />
         </v-card-text>
         <v-card-actions>
+          <v-btn @click="subtractLabelsIndices = []" text class="text-none">Clear</v-btn>
           <v-spacer></v-spacer>
           <v-btn
             :loading="subtractLoader"
@@ -412,12 +459,12 @@ import { Studio } from "@/api/studio";
 import IStudio from "@/types/studio";
 import { pluginTaskModule } from "@/store/pluginTask";
 import LabelSelector from "@/components/LabelSelector.vue";
-import { removeLabelFromItem } from "@/api/label";
+import { attachLabelsToItem, detachLabelsFromItem } from "@/api/label";
 
 @Component({
   components: {
     StudioCard,
-    LabelSelector
+    LabelSelector,
   },
 })
 export default class StudioList extends mixins(DrawerMixin) {
@@ -595,10 +642,19 @@ export default class StudioList extends mixins(DrawerMixin) {
     } */
   ];
 
+  addLabelsDialog = false;
+  addLabelsIndices: number[] = [];
+  addLabelsSearchQuery = "";
+  addLoader = false;
+
   subtractLabelsDialog = false;
   subtractLabelsIndices: number[] = [];
   subtractLabelsSearchQuery = "";
   subtractLoader = false;
+
+  get labelsToAdd(): ILabel[] {
+    return this.addLabelsIndices.map((i) => this.allLabels[i]).filter(Boolean);
+  }
 
   get labelsToSubtract(): ILabel[] {
     return this.subtractLabelsIndices.map((i) => this.allLabels[i]).filter(Boolean);
@@ -612,9 +668,7 @@ export default class StudioList extends mixins(DrawerMixin) {
         const id = this.selectedStudios[i];
         const studio = this.studios.find((sc) => sc._id === id);
         if (studio) {
-          for (const labelId of labelIdsToSubtract) {
-            await removeLabelFromItem(id, labelId);
-          }
+          await detachLabelsFromItem(id, labelIdsToSubtract);
         }
       }
       // Refresh page
@@ -625,6 +679,29 @@ export default class StudioList extends mixins(DrawerMixin) {
       console.error(error);
     }
     this.subtractLoader = false;
+  }
+
+  async addLabels(): Promise<void> {
+    try {
+      const labelIdsToAdd = this.labelsToAdd.map((l) => l._id);
+      this.addLoader = true;
+
+      for (let i = 0; i < this.selectedStudios.length; i++) {
+        const id = this.selectedStudios[i];
+
+        const studio = this.studios.find((img) => img._id === id);
+        if (studio) {
+          await attachLabelsToItem(id, labelIdsToAdd);
+        }
+      }
+
+      // Refresh page
+      await this.loadPage();
+      this.addLabelsDialog = false;
+    } catch (error) {
+      console.error(error);
+    }
+    this.addLoader = false;
   }
 
   labelIDs(indices: number[]) {
