@@ -24,6 +24,8 @@ There are no code changes, so if you don't want any of my tags, just use the off
 
 Manage your ever-growing porn collection
 
+For more info, guides, etc. check the [official web page](https://porn-vault.github.io/porn-vault)
+
 [![Build server](https://github.com/porn-vault/porn-vault/actions/workflows/build-server.yml/badge.svg)](https://github.com/porn-vault/porn-vault/actions/workflows/build-server.yml)
 [![Build app](https://github.com/porn-vault/porn-vault/actions/workflows/build-app.yml/badge.svg)](https://github.com/porn-vault/porn-vault/actions/workflows/build-app.yml)
 [![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/pornvault)
