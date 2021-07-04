@@ -30,6 +30,8 @@ enum BuildTargets {
   LINUX = "node14-linux-x64",
   MAC = "node14-macos-x64",
   ARMV7 = "node14-linux-armv7",
+  ARM64 = "node14-linux-arm64",
+  HOST = "host",
 }
 
 const BuildTargetNames = {
@@ -38,6 +40,8 @@ const BuildTargetNames = {
   [BuildTargets.LINUX]: "linux",
   [BuildTargets.MAC]: "macos",
   [BuildTargets.ARMV7]: "armv7",
+  [BuildTargets.ARM64]: "arm64",
+  [BuildTargets.HOST]: "host",
 };
 
 const MAIN_TARGETS: BuildTargets[] = [BuildTargets.WINDOWS, BuildTargets.LINUX, BuildTargets.MAC];
@@ -163,6 +167,12 @@ export const zipMac = PlatformsFunctions[BuildTargets.MAC].zip;
 
 export const buildArmv7 = PlatformsFunctions[BuildTargets.ARMV7].build;
 export const zipArmv7 = PlatformsFunctions[BuildTargets.ARMV7].zip;
+
+export const buildArm64 = PlatformsFunctions[BuildTargets.ARM64].build;
+export const zipArm64 = PlatformsFunctions[BuildTargets.ARM64].zip;
+
+export const buildHost = PlatformsFunctions[BuildTargets.HOST].build;
+export const zipHost = PlatformsFunctions[BuildTargets.HOST].zip;
 
 export async function buildAll() {
   checkVersion();
