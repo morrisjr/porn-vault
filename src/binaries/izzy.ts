@@ -12,7 +12,10 @@ import { configPath } from "../utils/path";
 
 export let izzyProcess!: ChildProcess;
 
-export const izzyPath = configPath(type() === "Windows_NT" ? "izzy.exe" : "izzy");
+const osType = type();
+const osArch = arch();
+
+export const izzyPath = configPath(osType === "Windows_NT" ? "izzy.exe" : "izzy");
 
 export async function deleteIzzy(): Promise<void> {
   logger.verbose("Deleting izzy");
@@ -62,6 +65,18 @@ interface IGithubAsset {
   name: string;
 }
 
+const baseDownloadName: { [type: string]: string } = {
+  Windows_NT: "izzy.exe",
+  Linux: "izzy_linux",
+  Darwin: "izzy_mac",
+};
+
+const linuxArchDownloadSuffix: { [arch: string]: string } = {
+  x64: "",
+  arm: "-armv7",
+  arm65: "-arm64v8",
+};
+
 async function downloadIzzy() {
   logger.verbose("Fetching Izzy releases...");
   const releaseUrl = `https://api.github.com/repos/boi123212321/izzy/releases/latest`;
@@ -77,20 +92,17 @@ async function downloadIzzy() {
 
   const assets = (await Axios.get(assetsUrl)).data as IGithubAsset[];
 
-  const downloadName = {
-    Windows_NT: "izzy.exe",
-    Linux: "izzy_linux",
-    Darwin: "izzy_mac",
-  }[type()] as string;
-
-  if (arch() !== "x64") {
-    throw new Error(`Unsupported architecture ${arch()}`);
+  let downloadName = baseDownloadName[osType];
+  if (osType === "Linux") {
+    downloadName = `downloadName${linuxArchDownloadSuffix[osArch]}`;
+  } else if (osArch !== "x64") {
+    throw new Error(`Unsupported architecture ${osArch}`);
   }
 
   const asset = assets.find((as) => as.name === downloadName);
 
   if (!asset) {
-    throw new Error(`Izzy release not found: ${downloadName} for ${type()}`);
+    throw new Error(`Izzy release not found: ${downloadName} for ${osType}`);
   }
 
   // eslint-disable-next-line camelcase
