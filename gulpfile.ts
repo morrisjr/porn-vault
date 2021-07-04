@@ -1,5 +1,5 @@
 import { exec, ExecOptions } from "child_process";
-import { mkdirSync } from "fs";
+import { mkdir, rm } from "fs/promises";
 import { dest, src } from "gulp";
 import zip from "gulp-zip";
 import yargs from "yargs";
@@ -16,16 +16,10 @@ const gulpArgs = yargs.string("build-version").argv;
 
 const RELEASE_DIR = "./releases";
 
-const getOutDir = (pkgTarget: string) => {
-  const main = `${RELEASE_DIR}/${pkgTarget}`;
-  if (gulpArgs["build-version"]) {
-    return `${main}_${gulpArgs["build-version"]}`;
-  }
-  return main;
-};
+const TARGET_GENERIC_SOURCE = "generic";
 
-enum BuildTargets {
-  GENERIC = "node14",
+enum PkgBuildTargets {
+  NODE14 = "node14",
   WINDOWS = "node14-win-x64",
   LINUX = "node14-linux-x64",
   MAC = "node14-macos-x64",
@@ -34,26 +28,46 @@ enum BuildTargets {
   HOST = "host",
 }
 
-const BuildTargetNames = {
-  [BuildTargets.GENERIC]: "generic",
-  [BuildTargets.WINDOWS]: "windows",
-  [BuildTargets.LINUX]: "linux",
-  [BuildTargets.MAC]: "macos",
-  [BuildTargets.ARMV7]: "armv7",
-  [BuildTargets.ARM64]: "arm64",
-  [BuildTargets.HOST]: "host",
+type Target = PkgBuildTargets | typeof TARGET_GENERIC_SOURCE;
+
+const getOutDir = (pkgTarget: Target) => {
+  const main = `${RELEASE_DIR}/${pkgTarget}`;
+  if (gulpArgs["build-version"]) {
+    return `${main}_${gulpArgs["build-version"]}`;
+  }
+  return main;
 };
 
-const MAIN_TARGETS: BuildTargets[] = [BuildTargets.WINDOWS, BuildTargets.LINUX, BuildTargets.MAC];
+const BuildTargetNames = {
+  [TARGET_GENERIC_SOURCE]: "generic",
+  [PkgBuildTargets.NODE14]: "node14",
+  [PkgBuildTargets.WINDOWS]: "windows",
+  [PkgBuildTargets.LINUX]: "linux",
+  [PkgBuildTargets.MAC]: "macos",
+  [PkgBuildTargets.ARMV7]: "armv7",
+  [PkgBuildTargets.ARM64]: "arm64",
+  [PkgBuildTargets.HOST]: "host",
+};
+
+const MAIN_TARGETS: Target[] = [
+  TARGET_GENERIC_SOURCE,
+  PkgBuildTargets.WINDOWS,
+  PkgBuildTargets.LINUX,
+  PkgBuildTargets.MAC,
+];
 
 function checkVersion() {
   const buildVersion = gulpArgs["build-version"];
   if (!buildVersion) {
     console.log("WARN: did not receive version");
   } else if (buildVersion !== packageVersion) {
-    throw new Error(`argument build version "${buildVersion}" is not the same as the version in package.json: "${packageVersion}"`);
+    throw new Error(
+      `argument build version "${buildVersion}" is not the same as the version in package.json: "${packageVersion}"`
+    );
   } else if (packageVersion !== assetsVersion) {
-    throw new Error(`package.json version "${packageVersion}" is not the same as the version in assets/version.json: "${assetsVersion}"`);
+    throw new Error(
+      `package.json version "${packageVersion}" is not the same as the version in assets/version.json: "${assetsVersion}"`
+    );
   }
 }
 
@@ -93,23 +107,29 @@ async function transpileProd() {
   return execAsync("npm run transpile:prod");
 }
 
-async function packageServer(target: BuildTargets, outPath: string) {
+async function packageServer(target: PkgBuildTargets, outPath: string) {
   return execAsync(
     `npx pkg . --targets ${target} --options max_old_space_size=8192 --out-path ${outPath}`
   );
 }
 
-async function buildServer(pkgTarget: BuildTargets, outDir: string) {
+async function buildServer(pkgTarget: Target, outDir: string) {
   await runVersionScript();
   await transpileProd();
-  await packageServer(pkgTarget, outDir);
+  if (pkgTarget === TARGET_GENERIC_SOURCE) {
+    await copy("./build/**/*", outDir);
+  } else {
+    await packageServer(pkgTarget, outDir);
+  }
 }
-async function buildPlatform(pkgTarget: BuildTargets) {
+
+async function buildPlatform(pkgTarget: Target) {
   checkVersion();
 
   const outDir = getOutDir(pkgTarget);
 
-  mkdirSync(`${outDir}/app/dist`, { recursive: true });
+  await rm(outDir, { recursive: true, force: true });
+  await mkdir(`${outDir}/app/dist`, { recursive: true });
 
   await Promise.all([
     copy("./views/**/*", `${outDir}/views`),
@@ -122,7 +142,7 @@ async function buildPlatform(pkgTarget: BuildTargets) {
   ]);
 }
 
-async function zipRelease(buildTarget: BuildTargets) {
+async function zipRelease(buildTarget: Target) {
   checkVersion();
 
   const friendlyTargetName = BuildTargetNames[buildTarget];
@@ -140,49 +160,42 @@ async function zipRelease(buildTarget: BuildTargets) {
   });
 }
 
-const PlatformsFunctions = Object.values(BuildTargets).reduce((platforms, target) => {
-  platforms[target] = {
-    build: () => buildPlatform(target),
-    zip: () => zipRelease(target),
-  };
-  return platforms;
-}, {}) as {
-  [key in BuildTargets]: {
-    build: () => Promise<void>;
-    zip: () => Promise<void>;
-  };
-};
+export const buildGeneric = () => buildPlatform(TARGET_GENERIC_SOURCE);
+export const zipGeneric = () => zipRelease(TARGET_GENERIC_SOURCE);
 
-export const buildGeneric = PlatformsFunctions[BuildTargets.GENERIC].build;
-export const zipGeneric = PlatformsFunctions[BuildTargets.GENERIC].zip;
+export const buildNode14 = () => buildPlatform(PkgBuildTargets.NODE14);
+export const zipNode14 = () => zipRelease(PkgBuildTargets.NODE14);
 
-export const buildWindows = PlatformsFunctions[BuildTargets.WINDOWS].build;
-export const zipWindows = PlatformsFunctions[BuildTargets.WINDOWS].zip;
+export const buildWindows = () => buildPlatform(PkgBuildTargets.WINDOWS);
+export const zipWindows = () => zipRelease(PkgBuildTargets.WINDOWS);
 
-export const buildLinux = PlatformsFunctions[BuildTargets.LINUX].build;
-export const zipLinux = PlatformsFunctions[BuildTargets.LINUX].zip;
+export const buildLinux = () => buildPlatform(PkgBuildTargets.LINUX);
+export const zipLinux = () => zipRelease(PkgBuildTargets.LINUX);
 
-export const buildMac = PlatformsFunctions[BuildTargets.MAC].build;
-export const zipMac = PlatformsFunctions[BuildTargets.MAC].zip;
+export const buildMac = () => buildPlatform(PkgBuildTargets.MAC);
+export const zipMac = () => zipRelease(PkgBuildTargets.MAC);
 
-export const buildArmv7 = PlatformsFunctions[BuildTargets.ARMV7].build;
-export const zipArmv7 = PlatformsFunctions[BuildTargets.ARMV7].zip;
+export const buildArmv7 = () => buildPlatform(PkgBuildTargets.ARMV7);
+export const zipArmv7 = () => zipRelease(PkgBuildTargets.ARMV7);
 
-export const buildArm64 = PlatformsFunctions[BuildTargets.ARM64].build;
-export const zipArm64 = PlatformsFunctions[BuildTargets.ARM64].zip;
+export const buildArm64 = () => buildPlatform(PkgBuildTargets.ARM64);
+export const zipArm64 = () => zipRelease(PkgBuildTargets.ARM64);
 
-export const buildHost = PlatformsFunctions[BuildTargets.HOST].build;
-export const zipHost = PlatformsFunctions[BuildTargets.HOST].zip;
+export const buildHost = () => buildPlatform(PkgBuildTargets.HOST);
+export const zipHost = () => zipRelease(PkgBuildTargets.HOST);
 
 export async function buildAll() {
   checkVersion();
 
-  MAIN_TARGETS.map((pkgTarget) =>
-    mkdirSync(`${getOutDir(pkgTarget)}/app/dist`, { recursive: true })
+  await Promise.all(
+    MAIN_TARGETS.map(async (pkgTarget) => {
+      await rm(getOutDir(pkgTarget), { recursive: true, force: true });
+      await mkdir(`${getOutDir(pkgTarget)}/app/dist`, { recursive: true });
+    })
   );
 
   await Promise.all([
-    ...MAIN_TARGETS.flatMap((pkgTarget: string) => [
+    ...MAIN_TARGETS.flatMap((pkgTarget) => [
       copy("./views/**/*", `${getOutDir(pkgTarget)}/views`),
       copy("./assets/**/*", `${getOutDir(pkgTarget)}/assets`),
     ]),
@@ -195,12 +208,15 @@ export async function buildAll() {
     (async () => {
       await runVersionScript();
       await transpileProd();
+      await Promise.all(
+        MAIN_TARGETS.map((pkgTarget) =>
+          pkgTarget === TARGET_GENERIC_SOURCE
+            ? copy("./build/**/*", getOutDir(pkgTarget))
+            : packageServer(pkgTarget, getOutDir(pkgTarget))
+        )
+      );
     })(),
   ]);
-
-  await Promise.all(
-    MAIN_TARGETS.map((pkgTarget) => packageServer(pkgTarget, getOutDir(pkgTarget)))
-  );
 }
 
 export async function zipAll() {
