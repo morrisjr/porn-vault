@@ -7,10 +7,10 @@ ADD . /app
 RUN cd /app && \
     npm ci && \
     npm run install:app && \
-    npm run build:generic
+    npm run build:host
 
 FROM ghcr.io/linuxserver/baseimage-ubuntu:focal
-COPY --from=build-env /app/releases/node14 /
+COPY --from=build-env /app/releases/host /
 
 RUN apt-get update && apt-get  -y install ca-certificates ffmpeg &&  rm -rf /var/lib/apt/lists/*
 
