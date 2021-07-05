@@ -163,25 +163,25 @@ async function zipRelease(buildTarget: Target) {
 export const buildGeneric = () => buildPlatform(TARGET_GENERIC_SOURCE);
 export const zipGeneric = () => zipRelease(TARGET_GENERIC_SOURCE);
 
-export const buildNode14 = () => buildPlatform(PkgBuildTargets.NODE14);
+export const packageNode14 = () => buildPlatform(PkgBuildTargets.NODE14);
 export const zipNode14 = () => zipRelease(PkgBuildTargets.NODE14);
 
-export const buildWindows = () => buildPlatform(PkgBuildTargets.WINDOWS);
+export const packageWindows = () => buildPlatform(PkgBuildTargets.WINDOWS);
 export const zipWindows = () => zipRelease(PkgBuildTargets.WINDOWS);
 
-export const buildLinux = () => buildPlatform(PkgBuildTargets.LINUX);
+export const packageLinux = () => buildPlatform(PkgBuildTargets.LINUX);
 export const zipLinux = () => zipRelease(PkgBuildTargets.LINUX);
 
-export const buildMac = () => buildPlatform(PkgBuildTargets.MAC);
+export const packageMac = () => buildPlatform(PkgBuildTargets.MAC);
 export const zipMac = () => zipRelease(PkgBuildTargets.MAC);
 
-export const buildArmv7 = () => buildPlatform(PkgBuildTargets.ARMV7);
+export const packageArmv7 = () => buildPlatform(PkgBuildTargets.ARMV7);
 export const zipArmv7 = () => zipRelease(PkgBuildTargets.ARMV7);
 
-export const buildArm64 = () => buildPlatform(PkgBuildTargets.ARM64);
+export const packageArm64 = () => buildPlatform(PkgBuildTargets.ARM64);
 export const zipArm64 = () => zipRelease(PkgBuildTargets.ARM64);
 
-export const buildHost = () => buildPlatform(PkgBuildTargets.HOST);
+export const packageHost = () => buildPlatform(PkgBuildTargets.HOST);
 export const zipHost = () => zipRelease(PkgBuildTargets.HOST);
 
 export async function buildAll() {
