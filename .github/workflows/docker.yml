@@ -64,7 +64,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Start build container
         run: |
-          docker run -d --name build --user $(id -u):$(id -g) --mount type=bind,source="$(pwd)",target=/app,consistency=delegated -w /app node:14-buster tail -f /dev/null
+          docker run -d --name build --mount type=bind,source="$(pwd)",target=/app,consistency=delegated -w /app node:14-buster tail -f /dev/null
       - name: Install dependencies
         run: docker exec -t build /bin/bash -c "npm ci && npm run install:app"
       - name: Build
