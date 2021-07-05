@@ -1,5 +1,4 @@
 **/.git
-**/node_modules
 .github
 .vscode
 backups
@@ -11,5 +10,4 @@ izzy*
 library
 logs
 page
-releases
 tmp

@@ -41,4 +41,5 @@ if [ -n "${FILES}" ] && [ ! -f "/groupadd" ]; then
 	usermod -a -G root abc
 fi
 
-/porn-vault
+cd /app
+node index.js
