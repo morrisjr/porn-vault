@@ -167,7 +167,7 @@
                 <v-icon>mdi-database-sync</v-icon>
               </v-btn>
             </template>
-            Run plugins for selected actors
+            Run plugins for selected {{ (actorPlural || "").toLowerCase() }}
           </v-tooltip>
           <v-tooltip bottom>
             <template #activator="{ on }">
@@ -263,7 +263,7 @@
               <v-icon>mdi-database-sync</v-icon>
             </v-btn>
           </template>
-          <span>Run plugins for all actors in current search</span>
+          <span>Run plugins for all {{ (actorPlural || "").toLowerCase() }} in current search</span>
         </v-tooltip>
         <v-tooltip bottom>
           <template v-slot:activator="{ on }">
@@ -458,9 +458,9 @@
 
     <v-dialog v-model="deleteSelectedActorsDialog" max-width="400px">
       <v-card>
-        <v-card-title>Really delete {{ selectedActors.length }} actors?</v-card-title>
+        <v-card-title>Really delete {{ selectedActors.length }} {{ (actorPlural || "").toLowerCase() }}?</v-card-title>
         <v-card-text
-          >Scenes and images featuring the actors will stay in your collection.</v-card-text
+          >Scenes and images featuring the {{ (actorPlural || "").toLowerCase() }} will stay in your collection.</v-card-text
         >
         <v-card-actions>
           <v-spacer />
@@ -1058,7 +1058,7 @@ export default class ActorList extends mixins(DrawerMixin) {
     try {
       const res = await ApolloClient.mutate({
         mutation: gql`
-          mutation($id: String!) {
+          mutation ($id: String!) {
             runActorPlugins(id: $id) {
               ...ActorFragment
               labels {
@@ -1167,7 +1167,7 @@ export default class ActorList extends mixins(DrawerMixin) {
     try {
       await ApolloClient.mutate({
         mutation: gql`
-          mutation($ids: [String!]!) {
+          mutation ($ids: [String!]!) {
             removeActors(ids: $ids)
           }
         `,
