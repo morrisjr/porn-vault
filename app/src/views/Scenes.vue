@@ -65,7 +65,7 @@
           :items="allLabels"
         />
 
-        <Divider icon="mdi-account">Actors</Divider>
+        <Divider icon="mdi-account">{{ actorPlural }}</Divider>
 
         <ActorSelector
           :value="searchState.selectedActors"
@@ -699,7 +699,7 @@ export default class SceneList extends mixins(DrawerMixin) {
       value: "numViews",
     },
     {
-      text: "# actors",
+      text: `# ${this.actorPlural?.toLowerCase() ?? ""}`,
       value: "numActors",
     },
     {
@@ -813,7 +813,7 @@ export default class SceneList extends mixins(DrawerMixin) {
     try {
       ApolloClient.mutate({
         mutation: gql`
-          mutation($ids: [String!]!, $deleteImages: Boolean, $deleteFile: Boolean) {
+          mutation ($ids: [String!]!, $deleteImages: Boolean, $deleteFile: Boolean) {
             removeScenes(ids: $ids, deleteImages: $deleteImages, deleteFile: $deleteFile)
           }
         `,
@@ -875,7 +875,7 @@ export default class SceneList extends mixins(DrawerMixin) {
     this.addSceneLoader = true;
     ApolloClient.mutate({
       mutation: gql`
-        mutation($name: String!, $labels: [String!], $actors: [String!]) {
+        mutation ($name: String!, $labels: [String!], $actors: [String!]) {
           addScene(name: $name, labels: $labels, actors: $actors) {
             ...SceneFragment
             actors {
@@ -998,7 +998,7 @@ export default class SceneList extends mixins(DrawerMixin) {
     try {
       const res = await ApolloClient.mutate({
         mutation: gql`
-          mutation($id: String!) {
+          mutation ($id: String!) {
             runScenePlugins(id: $id) {
               ...SceneFragment
               actors {
@@ -1113,7 +1113,7 @@ export default class SceneList extends mixins(DrawerMixin) {
   async fetchPage(page: number, take = 24, random?: boolean, seed?: string) {
     const result = await ApolloClient.query({
       query: gql`
-        query($query: SceneSearchQuery!, $seed: String) {
+        query ($query: SceneSearchQuery!, $seed: String) {
           getScenes(query: $query, seed: $seed) {
             items {
               ...SceneFragment

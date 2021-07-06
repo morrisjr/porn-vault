@@ -3,7 +3,7 @@ import { FfprobeData } from "fluent-ffmpeg";
 
 import { getConfig } from "../../config";
 import { ApplyActorLabelsEnum, ApplyStudioLabelsEnum } from "../../config/schema";
-import { imageCollection, sceneCollection } from "../../database";
+import { collections } from "../../database";
 import { extractActors, extractLabels } from "../../extractor";
 import { onSceneCreate } from "../../plugins/events/scene";
 import { removeSceneFromQueue } from "../../queue/processing";
@@ -50,7 +50,7 @@ async function runScenePlugins(id: string): Promise<Scene | null> {
 
     await Scene.setLabels(scene, labels);
     await Scene.setActors(scene, actors);
-    await sceneCollection.upsert(scene._id, scene);
+    await collections.scenes.upsert(scene._id, scene);
     await indexScenes([scene]);
     await result.commit();
   }
@@ -157,7 +157,7 @@ export default {
     }
 
     await Scene.setLabels(scene, labels);
-    await sceneCollection.upsert(scene._id, scene);
+    await collections.scenes.upsert(scene._id, scene);
     logger.verbose(`Scene '${sceneName}' done.`);
     return scene;
   },
@@ -267,7 +267,7 @@ export default {
           scene.customFields = opts.customFields;
         }
 
-        await sceneCollection.upsert(scene._id, scene);
+        await collections.scenes.upsert(scene._id, scene);
         updatedScenes.push(scene);
       }
     }
@@ -302,7 +302,7 @@ export default {
         } else {
           await Image.iterateByScene(scene._id, async (image) => {
             image.scene = null;
-            await imageCollection.upsert(image._id, image);
+            await collections.images.upsert(image._id, image);
             await indexImages([image]);
           });
           logger.verbose(`Removed scene ${scene._id} from images`);
@@ -346,7 +346,7 @@ export default {
       ffprobe = await Scene.runFFProbe(scene);
       logger.silly(`Scene ${scene._id} metadata is now ${formatMessage(scene.meta)}`);
 
-      await sceneCollection.upsert(scene._id, scene);
+      await collections.scenes.upsert(scene._id, scene);
     } catch (err) {
       handleError(`Could not extract metadata of ${scene._id}`, err);
     }

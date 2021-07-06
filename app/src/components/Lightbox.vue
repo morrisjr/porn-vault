@@ -119,7 +119,9 @@
           </v-col>
         </v-row>
         <div class="text-center mt-2">
-          <v-btn small text @click="openEditActorsDialog">Edit actors</v-btn>
+          <v-btn small text @click="openEditActorsDialog">
+            Edit {{ (actorPlural || "").toLowerCase() }}
+          </v-btn>
         </div>
 
         <v-divider class="mt-4"></v-divider>
@@ -153,9 +155,10 @@
       <v-card>
         <v-card-title>Really delete image?</v-card-title>
         <v-card-text>
-          <v-alert type="error"
-            >This will absolutely annihilate the original source file on disk</v-alert
-          >Actors and scenes featuring this image will stay in your collection.
+          <v-alert type="error">
+            This will absolutely annihilate the original source file on disk
+          </v-alert>
+          {{ actorPlural }} and scenes featuring this image will stay in your collection.
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -174,7 +177,7 @@
 
     <v-dialog v-model="editActorsDialog" max-width="400px">
       <v-card>
-        <v-card-title>Edit image actors</v-card-title>
+        <v-card-title>Edit image {{ (actorPlural || "").toLowerCase() }}</v-card-title>
         <v-card-text>
           <ActorSelector v-model="editActors" />
         </v-card-text>
@@ -200,6 +203,7 @@ import IActor from "../types/actor";
 import SceneSelector from "../components/SceneSelector.vue";
 import { Touch } from "vuetify/lib/directives";
 import hotkeys from "hotkeys-js";
+import { contextModule } from "@/store/context";
 
 @Component({
   components: {
@@ -228,6 +232,10 @@ export default class Lightbox extends Vue {
   editScene = null as { _id: string; name: string } | null;
 
   removeDialog = false;
+
+  get actorPlural() {
+    return contextModule.actorPlural;
+  }
 
   get sidebarCss() {
     return {
@@ -306,7 +314,7 @@ export default class Lightbox extends Vue {
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!, $opts: ImageUpdateOpts!) {
+        mutation ($ids: [String!]!, $opts: ImageUpdateOpts!) {
           updateImages(ids: $ids, opts: $opts) {
             _id
           }
@@ -334,7 +342,7 @@ export default class Lightbox extends Vue {
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!, $opts: ImageUpdateOpts!) {
+        mutation ($ids: [String!]!, $opts: ImageUpdateOpts!) {
           updateImages(ids: $ids, opts: $opts) {
             _id
           }
@@ -391,7 +399,7 @@ export default class Lightbox extends Vue {
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!, $opts: ImageUpdateOpts!) {
+        mutation ($ids: [String!]!, $opts: ImageUpdateOpts!) {
           updateImages(ids: $ids, opts: $opts) {
             rating
           }
@@ -419,7 +427,7 @@ export default class Lightbox extends Vue {
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!, $opts: ImageUpdateOpts!) {
+        mutation ($ids: [String!]!, $opts: ImageUpdateOpts!) {
           updateImages(ids: $ids, opts: $opts) {
             favorite
           }
@@ -451,7 +459,7 @@ export default class Lightbox extends Vue {
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!, $opts: ImageUpdateOpts!) {
+        mutation ($ids: [String!]!, $opts: ImageUpdateOpts!) {
           updateImages(ids: $ids, opts: $opts) {
             bookmark
           }
@@ -484,7 +492,7 @@ export default class Lightbox extends Vue {
     this.labelEditLoader = true;
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!, $opts: ImageUpdateOpts!) {
+        mutation ($ids: [String!]!, $opts: ImageUpdateOpts!) {
           updateImages(ids: $ids, opts: $opts) {
             labels {
               _id

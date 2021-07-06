@@ -133,7 +133,7 @@
           :items="allLabels"
         />
 
-        <Divider icon="mdi-account">Actors</Divider>
+        <Divider icon="mdi-account">{{ actorPlural }}</Divider>
 
         <ActorSelector
           :value="searchState.selectedImages"
@@ -393,6 +393,10 @@ import { attachLabelsToItem, detachLabelsFromItem } from "@/api/label";
   },
 })
 export default class ImageList extends mixins(DrawerMixin) {
+  get actorPlural() {
+    return contextModule.actorPlural;
+  }
+
   addNewItem(image: IImage) {
     this.images.unshift(image);
   }
@@ -708,7 +712,7 @@ export default class ImageList extends mixins(DrawerMixin) {
   removeImage(index: number) {
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!) {
+        mutation ($ids: [String!]!) {
           removeImages(ids: $ids)
         }
       `,
@@ -747,7 +751,7 @@ export default class ImageList extends mixins(DrawerMixin) {
   async fetchPage(page: number, take = 24, random?: boolean, seed?: string) {
     const result = await ApolloClient.query({
       query: gql`
-        query($query: ImageSearchQuery!, $seed: String) {
+        query ($query: ImageSearchQuery!, $seed: String) {
           getImages(query: $query, seed: $seed) {
             numItems
             numPages

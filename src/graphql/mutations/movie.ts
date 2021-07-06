@@ -1,4 +1,4 @@
-import { movieCollection } from "../../database";
+import { collections } from "../../database";
 import { onMovieCreate } from "../../plugins/events/movie";
 import { indexMovies, removeMovie } from "../../search/movie";
 import LabelledItem from "../../types/labelled_item";
@@ -60,7 +60,7 @@ export default {
       logger.error(error);
     }
 
-    await movieCollection.upsert(movie._id, movie);
+    await collections.movies.upsert(movie._id, movie);
     await indexMovies([movie]);
 
     return movie;
@@ -143,7 +143,7 @@ export default {
           movie.customFields = opts.customFields;
         }
 
-        await movieCollection.upsert(movie._id, movie);
+        await collections.movies.upsert(movie._id, movie);
         updatedMovies.push(movie);
       }
     }

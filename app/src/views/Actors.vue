@@ -1,8 +1,7 @@
 <template>
   <v-container fluid>
     <BindFavicon />
-    <BindTitle value="Actors" />
-
+    <BindTitle @value="actorPlural" />
     <v-navigation-drawer v-if="showSidenav" style="z-index: 14" v-model="drawer" clipped app>
       <v-container>
         <v-btn
@@ -221,7 +220,10 @@
       <div class="mb-2 d-flex align-center">
         <div class="mr-3">
           <span class="display-1 font-weight-bold mr-2">{{ fetchLoader ? "-" : numResults }}</span>
-          <span class="title font-weight-regular">actors found</span>
+          <span class="title font-weight-regular">
+            <template v-if="numResults === 1">{{ actorSingular.toLowerCase() }}</template>
+            <template v-else>{{ actorPlural.toLowerCase() }}</template> found
+          </span>
         </div>
         <v-tooltip bottom>
           <template v-slot:activator="{ on }">
@@ -229,7 +231,7 @@
               <v-icon>mdi-plus</v-icon>
             </v-btn>
           </template>
-          <span>Add actor</span>
+          <span>Add {{ actorSingular.toLowerCase() }}</span>
         </v-tooltip>
         <v-tooltip bottom>
           <template v-slot:activator="{ on }">
@@ -237,7 +239,7 @@
               <v-icon>mdi-file-import</v-icon>
             </v-btn>
           </template>
-          <span>Bulk add actors</span>
+          <span>Bulk add {{ actorPlural.toLowerCase() }}</span>
         </v-tooltip>
         <v-tooltip bottom>
           <template v-slot:activator="{ on }">
@@ -245,7 +247,7 @@
               <v-icon>mdi-shuffle-variant</v-icon>
             </v-btn>
           </template>
-          <span>Get random actor</span>
+          <span>Get random {{ actorSingular.toLowerCase() }}</span>
         </v-tooltip>
         <v-tooltip bottom>
           <template v-slot:activator="{ on }">
@@ -361,7 +363,7 @@
 
     <v-dialog v-model="createActorDialog" max-width="400px">
       <v-card :loading="addActorLoader">
-        <v-card-title>Add new actor/actress</v-card-title>
+        <v-card-title>Add new {{ actorSingular.toLowerCase() }}</v-card-title>
         <v-card-text>
           <v-form v-model="validCreation">
             <v-text-field
@@ -425,7 +427,7 @@
 
     <v-dialog :persistent="bulkLoader" scrollable v-model="bulkImportDialog" max-width="400px">
       <v-card :loading="bulkLoader">
-        <v-card-title>Bulk import actor names</v-card-title>
+        <v-card-title>Bulk import {{ actorSingular.toLowerCase() }} names</v-card-title>
 
         <v-card-text style="max-height: 400px">
           <v-textarea
@@ -433,9 +435,9 @@
             v-model="actorsBulkText"
             auto-grow
             :rows="3"
-            placeholder="Actor names"
+            @placeholder="actorSingular.toLowerCase() + ' names'"
             persistent-hint
-            hint="1 actor name per line"
+            @hint="'1 ' + actorSingular.toLowerCase() + ' name per line'"
           ></v-textarea>
         </v-card-text>
         <v-divider />
@@ -448,7 +450,7 @@
             color="primary"
             class="text-none"
             :disabled="!actorsBulkImport.length"
-            >Add {{ actorsBulkImport.length }} actors</v-btn
+            >Add {{ actorsBulkImport.length }} {{ actorPlural.toLowerCase() }}</v-btn
           >
         </v-card-actions>
       </v-card>
@@ -559,6 +561,14 @@ export default class ActorList extends mixins(DrawerMixin) {
 
   get showSidenav() {
     return contextModule.showSidenav;
+  }
+
+  get actorSingular() {
+    return contextModule.actorSingular;
+  }
+
+  get actorPlural() {
+    return contextModule.actorPlural;
   }
 
   rerollSeed() {
@@ -676,7 +686,7 @@ export default class ActorList extends mixins(DrawerMixin) {
   addActorLoader = false;
   deleteActorsLoader = false;
 
-  actorNameRules = [(v) => (!!v && !!v.length) || "Invalid actor name"];
+  actorNameRules = [(v) => (!!v && !!v.length) || "Invalid name"];
 
   @Watch("$route")
   onRouteChange(to: Route, from: Route) {
@@ -734,14 +744,14 @@ export default class ActorList extends mixins(DrawerMixin) {
       {
         relevance: "Sorts by relevance",
         addedOn: "Sorts by creation date",
-        rating: "Sorts by actor rating",
+        rating: `Sorts by ${this.actorSingular?.toLowerCase() ?? ""} rating`,
         averageRating: "Sort by average scene rating",
         score: "Sorts by computed score",
         numScenes: "Sorts by number of scenes",
         numViews: "Sorts by number of views",
-        age: "Sorts by actor age",
+        bornOn: `Sorts by ${this.actorSingular?.toLowerCase() ?? ""} age`,
         bookmark: "Sorts by bookmark date",
-        $shuffle: "Shuffles actors",
+        $shuffle: `Shuffles ${this.actorPlural?.toLowerCase() ?? ""}`,
       }[this.searchState.sortBy] || "Missing description"
     );
   }
@@ -852,7 +862,7 @@ export default class ActorList extends mixins(DrawerMixin) {
     return new Promise<void>((resolve, reject) => {
       ApolloClient.mutate({
         mutation: gql`
-          mutation($name: String!) {
+          mutation ($name: String!) {
             addActor(name: $name) {
               ...ActorFragment
               labels {
@@ -890,7 +900,7 @@ export default class ActorList extends mixins(DrawerMixin) {
     this.addActorLoader = true;
     ApolloClient.mutate({
       mutation: gql`
-        mutation($name: String!, $aliases: [String!], $labels: [String!]) {
+        mutation ($name: String!, $aliases: [String!], $labels: [String!]) {
           addActor(name: $name, aliases: $aliases, labels: $labels) {
             ...ActorFragment
             labels {
@@ -1200,7 +1210,7 @@ export default class ActorList extends mixins(DrawerMixin) {
 
     const result = await ApolloClient.query({
       query: gql`
-        query($query: ActorSearchQuery!, $seed: String) {
+        query ($query: ActorSearchQuery!, $seed: String) {
           getActors(query: $query, seed: $seed) {
             items {
               ...ActorFragment

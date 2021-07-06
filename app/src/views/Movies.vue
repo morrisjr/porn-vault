@@ -65,7 +65,7 @@
           :items="allLabels"
         />
 
-        <Divider icon="mdi-account">Actors</Divider>
+        <Divider icon="mdi-account">{{ actorPlural }}</Divider>
 
         <ActorSelector
           :value="searchState.selectedActors"
@@ -423,6 +423,10 @@ import { pluginTaskModule } from "@/store/pluginTask";
   },
 })
 export default class MovieList extends mixins(DrawerMixin) {
+  get actorPlural() {
+    return contextModule.actorPlural;
+  }
+
   get showSidenav() {
     return contextModule.showSidenav;
   }
@@ -627,7 +631,7 @@ export default class MovieList extends mixins(DrawerMixin) {
       value: "numScenes",
     },
     {
-      text: "# actors",
+      text: `# ${this.actorPlural?.toLowerCase() ?? ""}`,
       value: "numActors",
     },
     {
@@ -644,7 +648,7 @@ export default class MovieList extends mixins(DrawerMixin) {
     return new Promise((resolve, reject) => {
       ApolloClient.mutate({
         mutation: gql`
-          mutation($name: String!) {
+          mutation ($name: String!) {
             addMovie(name: $name) {
               ...MovieFragment
               actors {
@@ -675,7 +679,7 @@ export default class MovieList extends mixins(DrawerMixin) {
     this.addMovieLoader = true;
     ApolloClient.mutate({
       mutation: gql`
-        mutation($name: String!, $scenes: [String!]) {
+        mutation ($name: String!, $scenes: [String!]) {
           addMovie(name: $name, scenes: $scenes) {
             ...MovieFragment
             actors {
@@ -917,7 +921,7 @@ export default class MovieList extends mixins(DrawerMixin) {
   async fetchPage(page: number, take = 24, random?: boolean, seed?: string) {
     const result = await ApolloClient.query({
       query: gql`
-        query($query: MovieSearchQuery!, $seed: String) {
+        query ($query: MovieSearchQuery!, $seed: String) {
           getMovies(query: $query, seed: $seed) {
             items {
               ...MovieFragment
