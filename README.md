@@ -14,7 +14,8 @@ There are no code changes, so if you don't want any of my tags, just use the off
 | edge      | The latest release (release candidates included) |
 | `version` | A specific porn-vault release                    |
 
-[Read the docker instructions here](https://porn-vault.github.io/porn-vault/guides/docker.html). This document details how to locally build an image, but the instructions for the parameters are the same when pulling an image.
+🚨 Make sure to install Elasticsearch !  
+**[Read the docker instructions here](https://porn-vault.github.io/porn-vault/guides/docker.html)**.  
 
 🚨 Alpine images are no longer being built from 0.27.0-rc.3 because I couldn't get vaapi devices working (permissions problem?). Anyone with the know-how is welcome to help!
 
