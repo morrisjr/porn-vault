@@ -29,6 +29,8 @@ export default gql`
     type: CustomFieldType!
     values: [String!]
     unit: String
+    highlightedWebsite: Boolean
+    icon: String
   }
 
   extend type Mutation {
@@ -38,6 +40,9 @@ export default gql`
       type: CustomFieldType!
       values: [String!]
       unit: String
+      unit: String
+      highlightedWebsite: Boolean
+      icon: String
     ): CustomField!
 
     updateCustomField(id: String!, name: String, values: [String!], unit: String): CustomField!

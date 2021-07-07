@@ -52,6 +52,14 @@
                   </template>
                 </v-hover>
 
+                <div class="my-2 d-flex justify-center">
+                  <HighlightedWebsiteGroup
+                    :fields="currentActor.availableFields"
+                    :value="editCustomFields"
+                    target="ACTORS"
+                  ></HighlightedWebsiteGroup>
+                </div>
+
                 <Rating @change="rate" :value="currentActor.rating" class="my-2 text-center" />
 
                 <div class="pa-2">
@@ -706,6 +714,9 @@ import { contextModule } from "@/store/context";
 import CustomFieldSelector from "@/components/CustomFieldSelector.vue";
 import Collabs from "@/components/Collabs.vue";
 import { ICollabActor } from "@/types/actor";
+import { CustomField, CustomFieldTarget } from "@/types/custom_field";
+import { getHighlightedWebsiteFields } from "@/util/custom_field";
+import HighlightedWebsiteGroup from "@/components/HighlightedWebsiteGroup.vue";
 
 interface ICropCoordinates {
   left: number;
@@ -730,6 +741,7 @@ interface ICropResult {
     MovieCard,
     CircleStencil,
     Collabs,
+    HighlightedWebsiteGroup,
   },
   beforeRouteLeave(_to, _from, next) {
     actorModule.setCurrent(null);
@@ -835,6 +847,14 @@ export default class ActorDetails extends Vue {
     return `/api/media/image/${this.currentActor.hero._id}?password=${localStorage.getItem(
       "password"
     )}`;
+  }
+
+  get highlightedWebsiteFields(): CustomField[] {
+    if (!this.currentActor) {
+      return [];
+    }
+
+    return getHighlightedWebsiteFields(this.currentActor.availableFields, CustomFieldTarget.ACTORS);
   }
 
   loadMoviePage() {

@@ -1,4 +1,5 @@
 import IActor from "./actor";
+import { CustomField } from "./custom_field";
 
 export interface SceneSource {
   label: string;
@@ -53,13 +54,7 @@ export default interface IScene {
   watches: number[];
   streamLinks: string[];
   customFields: { [key: string]: any };
-  availableFields: {
-    _id: string;
-    name: string;
-    values?: string[];
-    type: string;
-    unit: string | null;
-  }[];
+  availableFields: CustomField[];
   availableStreams: {
     label: string;
     mimeType?: string;

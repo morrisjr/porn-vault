@@ -18,6 +18,9 @@ export default gql`
       type
       values
       unit
+      highlightedWebsite
+      icon
+      target
     }
     nationality {
       name

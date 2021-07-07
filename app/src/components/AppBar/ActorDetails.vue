@@ -19,6 +19,14 @@
       <v-icon>{{ currentActor.bookmark ? "mdi-bookmark-check" : "mdi-bookmark-outline" }}</v-icon>
     </v-btn>
 
+    <v-divider vertical class="mx-2"></v-divider>
+
+    <HighlightedWebsiteGroup
+      :fields="currentActor.availableFields"
+      :value="currentActor.customFields"
+      target="ACTORS"
+    ></HighlightedWebsiteGroup>
+
     <v-spacer></v-spacer>
 
     <v-btn icon @click="openEditDialog">
@@ -103,10 +111,12 @@ import gql from "graphql-tag";
 import CustomFieldSelector from "../CustomFieldSelector.vue";
 import countries from "../../util/countries";
 import { contextModule } from "@/store/context";
+import HighlightedWebsiteGroup from "@/components/HighlightedWebsiteGroup.vue";
 
 @Component({
   components: {
     CustomFieldSelector,
+    HighlightedWebsiteGroup,
   },
 })
 export default class ActorToolbar extends Vue {

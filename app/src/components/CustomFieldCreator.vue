@@ -49,17 +49,41 @@
               hint="Objects the field is applicable to"
               :rules="(v) => !!v.length || 'Required'"
             />
-            <v-text-field
+            <v-checkbox
+              v-if="createFieldType === 'STRING'"
               color="primary"
-              placeholder="Unit (e.g. 'inches', optional)"
+              v-model="createFieldHighlighedWebsite"
+              persistent-hint
+              hint="Will display the links in the appbar and beside the primary metadata"
+              label="Highlighted website"
+            />
+            <v-text-field
+              v-if="createFieldType != 'BOOLEAN' && !createFieldHighlighedWebsite"
+              class="mt-4"
+              color="primary"
               v-model="createFieldUnit"
-              hide-details
-              v-if="createFieldType != 'BOOLEAN'"
+              placeholder="inches, cm"
+              persistent-hint
+              hint="Optional"
+              label="Unit"
+            />
+            <v-text-field
+              v-if="createFieldType === 'STRING' && createFieldHighlighedWebsite"
+              class="mt-4"
+              color="primary"
+              placeholder="mdi-instagram"
+              v-model="createFieldIcon"
+              label="Website icon"
+              persistent-hint
+              hint="See https://materialdesignicons.com"
+              :append-icon="/mdi-\w+/.test(createFieldIcon) ? createFieldIcon : 'mdi-link-variant'"
             />
             <v-combobox
+              class="mt-4"
+              label="Preset values"
               chips
               v-if="createFieldType.includes('SELECT')"
-              placeholder="Preset values"
+              placeholder="any string value"
               color="primary"
               clearable
               multiple
@@ -149,8 +173,10 @@ export default class CustomFieldCreator extends Vue {
       text: "Albums"
     } */
   ];
-  createFieldValues = [] as string[];
-  createFieldUnit = null as string | null;
+  createFieldValues: string[] = [];
+  createFieldHighlighedWebsite: boolean = false;
+  createFieldUnit: string | null = null;
+  createFieldIcon: string | null = null;
 
   fieldNameRules = [(v) => (!!v && !!v.length) || "Invalid field name"];
 
@@ -165,12 +191,14 @@ export default class CustomFieldCreator extends Vue {
     setTimeout(() => {
       ApolloClient.mutate({
         mutation: gql`
-          mutation(
+          mutation (
             $name: String!
             $values: [String!]
             $type: CustomFieldType!
             $unit: String
             $target: [CustomFieldTarget!]!
+            $highlightedWebsite: Boolean
+            $icon: String
           ) {
             createCustomField(
               name: $name
@@ -178,6 +206,8 @@ export default class CustomFieldCreator extends Vue {
               type: $type
               unit: $unit
               target: $target
+              highlightedWebsite: $highlightedWebsite
+              icon: $icon
             ) {
               _id
               name
@@ -194,6 +224,8 @@ export default class CustomFieldCreator extends Vue {
           values: this.createFieldValues,
           unit: this.createFieldUnit,
           target: this.createFieldTarget,
+          highlightedWebsite: this.createFieldHighlighedWebsite,
+          icon: this.createFieldIcon,
         },
       })
         .then((res) => {
@@ -202,6 +234,8 @@ export default class CustomFieldCreator extends Vue {
           this.createFieldValues = [];
           this.createDialog = false;
           this.createFieldUnit = null;
+          this.createFieldHighlighedWebsite = false;
+          this.createFieldIcon = "";
         })
         .finally(() => {
           this.isCreating = false;
@@ -210,26 +244,15 @@ export default class CustomFieldCreator extends Vue {
   }
 
   get typeHint() {
-    switch (this.createFieldType) {
-      case "STRING":
-        return "Arbitrary string value (e.g. social media link)";
-        break;
-      case "NUMBER":
-        return "Some number (integer or float) (e.g. height in cm)";
-        break;
-      case "BOOLEAN":
-        return "Checkbox (e.g. retired yes/no)";
-        break;
-      case "SINGLE_SELECT":
-        return "Set of values with one possible selected value (e.g. ethnicity)";
-        break;
-      case "MULTI_SELECT":
-        return "Set of values with more than one possible value (e.g. hair color)";
-        break;
-      default:
-        return "Oops?";
-        break;
-    }
+    return (
+      {
+        STRING: "Arbitrary string value (e.g. social media link)",
+        NUMBER: "Some number (integer or float) (e.g. height in cm)",
+        BOOLEAN: "Checkbox (e.g. retired yes/no)",
+        SINGLE_SELECT: "Set of values with one possible selected value (e.g. ethnicity)",
+        MULTI_SELECT: "Set of values with more than one possible value (e.g. hair color)",
+      }[this.createFieldType as string] || "Oops?"
+    );
   }
 
   openCreateDialog() {
@@ -261,5 +284,4 @@ export default class CustomFieldCreator extends Vue {
 }
 </script>
 
-<style lang="scss" scoped>
-</style>
+<style lang="scss" scoped></style>

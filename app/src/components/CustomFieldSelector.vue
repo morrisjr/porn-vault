@@ -92,7 +92,7 @@
         />
         <v-tooltip bottom v-else>
           <template #activator="{ on }">
-            <div
+            <component
               style="width: 70%"
               v-on="on"
               :class="{
@@ -100,9 +100,11 @@
                 'empty med--text': !innerValue[field._id],
                 'body-2': !!innerValue[field._id],
               }"
+              :is="stringComponent(field)"
+              v-bind="hrefProps(field)"
             >
               {{ innerValue[field._id] || "(no value)" }}
-            </div>
+            </component>
           </template>
           {{ innerValue[field._id] || "(no value)" }}
         </v-tooltip>
@@ -145,11 +147,12 @@
 
 <script lang="ts">
 import { Component, Vue, Prop, Watch } from "vue-property-decorator";
+import { CustomField } from "@/types/custom_field";
 
 @Component
 export default class CustomFieldSelector extends Vue {
   @Prop({ default: () => ({}) }) value!: any;
-  @Prop() fields!: any;
+  @Prop() fields!: CustomField;
   @Prop({ default: 12 }) cols!: number;
   @Prop({ default: 6 }) sm!: number;
   @Prop({ default: 4 }) md!: number;
@@ -167,6 +170,23 @@ export default class CustomFieldSelector extends Vue {
   onInnerValueChange(newVal: any) {
     this.$emit("input", this.innerValue);
     this.$emit("change");
+  }
+
+  stringComponent(field: CustomField): string {
+    const value = this.value[field._id];
+    return value && /https?:\/\//.test(value) ? "a" : "div";
+  }
+
+  hrefProps(field: CustomField): object {
+    if (this.stringComponent(field) !== "a") {
+      return {};
+    }
+    const value = this.value[field._id];
+
+    return {
+      href: value,
+      target: "_blank",
+    };
   }
 }
 </script>

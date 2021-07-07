@@ -52,12 +52,16 @@ export default {
       type,
       values,
       unit,
+      highlightedWebsite,
+      icon,
     }: {
       name: string;
       target: CustomFieldTarget[];
       type: CustomFieldType;
       values?: string[] | null;
       unit: string | null;
+      highlightedWebsite: boolean | null;
+      icon: string | null;
     }
   ): Promise<CustomField> {
     const field = new CustomField(name, target, type);
@@ -72,6 +76,14 @@ export default {
       } else {
         throw new Error("Values have to be defined for select fields");
       }
+    }
+
+    if (type === CustomFieldType.STRING) {
+      if (highlightedWebsite) {
+        field.highlightedWebsite = highlightedWebsite;
+      }
+
+      field.icon = icon;
     }
 
     await collections.customFields.upsert(field._id, field);

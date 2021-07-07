@@ -25,6 +25,8 @@ export default class CustomField {
   type: CustomFieldType;
   target: CustomFieldTarget[];
   unit = null as string | null;
+  highlightedWebsite: boolean = false;
+  icon: null | string = null;
 
   constructor(name: string, target: CustomFieldTarget[], type: CustomFieldType) {
     this._id = `cf_${generateHash()}`;
