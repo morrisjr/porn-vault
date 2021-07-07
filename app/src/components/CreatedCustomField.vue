@@ -107,6 +107,7 @@ export default class CreatedCustomField extends Vue {
             type
             values
             unit
+            target
           }
         }
       `,
