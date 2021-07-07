@@ -10,62 +10,135 @@
       :lg="lg"
       :xl="xl"
     >
-      <v-subheader class="text-truncate" style="width: 125px">{{ field.name }}</v-subheader>
+      <v-tooltip bottom>
+        <template #activator="{ on }">
+          <div v-on="on" class="text-truncate subtitle-1" style="width: 30%">
+            {{ field.name }}
+          </div>
+        </template>
+        {{ field.name }}
+      </v-tooltip>
 
-      <v-checkbox
-        class="mt-0"
-        v-if="field.type == 'BOOLEAN'"
-        v-model="innerValue[field._id]"
-        @change="onInnerValueChange"
-        color="primary"
-        hide-details
-        :label="innerValue[field._id] === true ? 'Yes' : 'No'"
-      />
+      <template v-if="field.type === 'BOOLEAN'">
+        <v-checkbox
+          style="width: 70%"
+          class="mt-0"
+          v-model="innerValue[field._id]"
+          @change="onInnerValueChange"
+          color="primary"
+          hide-details
+          :label="innerValue[field._id] === true ? 'Yes' : 'No'"
+          :readonly="readonly"
+          :ripple="!readonly"
+        />
+      </template>
+      <template v-else-if="field.type.includes('SELECT')">
+        <v-select
+          style="width: 70%"
+          v-if="!readonly"
+          solo
+          flat
+          single-line
+          :multiple="field.type === 'MULTI_SELECT'"
+          color="primary"
+          :placeholder="field.name"
+          v-model="innerValue[field._id]"
+          :items="field.values"
+          @change="onInnerValueChange"
+          hide-details
+          :suffix="field.unit"
+          clearable
+        />
+        <v-tooltip bottom v-else>
+          <template #activator="{ on }">
+            <div
+              style="width: 70%"
+              v-on="on"
+              :class="{
+                'readonly-field select text-truncate': true,
+                multiple: field.type === 'MULTI_SELECT',
+                'empty med--text': !innerValue[field._id],
+                'body-2': !!innerValue[field._id],
+              }"
+            >
+              {{
+                innerValue[field._id]
+                  ? `${innerValue[field._id].join(", ")} ${field.unit ? field.unit : ""}`
+                  : "(no value)"
+              }}
+            </div>
+          </template>
+          {{
+            innerValue[field._id]
+              ? `${innerValue[field._id].join(", ")} ${field.unit ? field.unit : ""}`
+              : "(no value)"
+          }}
+        </v-tooltip>
+      </template>
 
-      <v-select
-        style="width: 100%"
-        solo
-        flat
-        single-line
-        :multiple="field.type == 'MULTI_SELECT'"
-        color="primary"
-        v-else-if="field.type.includes('SELECT')"
-        :placeholder="field.name"
-        v-model="innerValue[field._id]"
-        :items="field.values"
-        @change="onInnerValueChange"
-        hide-details
-        :suffix="field.unit"
-        clearable
-      />
+      <template v-else-if="field.type === 'STRING'">
+        <v-text-field
+          style="width: 70%"
+          v-if="!readonly"
+          solo
+          flat
+          single-line
+          :placeholder="field.name"
+          v-model="innerValue[field._id]"
+          @input="onInnerValueChange"
+          hide-details
+          color="primary"
+          :suffix="field.unit"
+        />
+        <v-tooltip bottom v-else>
+          <template #activator="{ on }">
+            <div
+              style="width: 70%"
+              v-on="on"
+              :class="{
+                'readonly-field string text-truncate': true,
+                'empty med--text': !innerValue[field._id],
+                'body-2': !!innerValue[field._id],
+              }"
+            >
+              {{ innerValue[field._id] || "(no value)" }}
+            </div>
+          </template>
+          {{ innerValue[field._id] || "(no value)" }}
+        </v-tooltip>
+      </template>
 
-      <v-text-field
-        style="width: 100%"
-        solo
-        v-else-if="field.type == 'STRING'"
-        flat
-        single-line
-        :placeholder="field.name"
-        v-model="innerValue[field._id]"
-        @input="onInnerValueChange"
-        hide-details
-        color="primary"
-        :suffix="field.unit"
-      />
-
-      <v-text-field
-        style="width: 100%"
-        solo
-        v-else-if="field.type == 'NUMBER'"
-        flat
-        single-line
-        :placeholder="field.name"
-        v-model.number="innerValue[field._id]"
-        @input="onInnerValueChange"
-        hide-details
-        color="primary"
-        :suffix="field.unit"
-      />
+      <template v-else-if="field.type === 'NUMBER'">
+        <v-text-field
+          style="width: 70%"
+          v-if="!readonly"
+          solo
+          flat
+          single-line
+          :placeholder="field.name"
+          v-model.number="innerValue[field._id]"
+          @input="onInnerValueChange"
+          hide-details
+          color="primary"
+          :suffix="field.unit"
+        />
+        <v-tooltip bottom v-else>
+          <template #activator="{ on }">
+            <div
+              style="width: 70%"
+              v-on="on"
+              :class="{
+                'readonly-field number text-truncate': true,
+                'empty med--text': !innerValue[field._id],
+                'body-2': !!innerValue[field._id],
+              }"
+            >
+              {{ innerValue[field._id] || "(no value)" }} {{ field.unit }}
+            </div>
+          </template>
+          {{ innerValue[field._id] || "(no value)" }} {{ field.unit }}
+        </v-tooltip>
+      </template>
     </v-col>
   </v-row>
 </template>
@@ -80,8 +153,9 @@ export default class CustomFieldSelector extends Vue {
   @Prop({ default: 12 }) cols!: number;
   @Prop({ default: 6 }) sm!: number;
   @Prop({ default: 4 }) md!: number;
-  @Prop({ default: 3 }) lg!: number;
+  @Prop({ default: 4 }) lg!: number;
   @Prop({ default: 3 }) xl!: number;
+  @Prop({ default: false }) readonly!: boolean;
 
   innerValue = JSON.parse(JSON.stringify(this.value));
 
@@ -98,4 +172,9 @@ export default class CustomFieldSelector extends Vue {
 </script>
 
 <style lang="scss" scoped>
+.string {
+  &.empty {
+    font-size: 14px;
+  }
+}
 </style>

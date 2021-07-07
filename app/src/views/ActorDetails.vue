@@ -117,12 +117,13 @@
                     </span>
                     <span v-else>You haven't watched {{ currentActor.name }} yet!</span>
                   </v-tooltip>
-                  <div class="py-1">
-                    Avg. scene rating: <b>{{ (currentActor.averageRating / 2).toFixed(1) }}</b>
+                  <div class="py-1 d-flex align-center">
+                    Avg. scene rating:
+                    <b class="ml-1">{{ (currentActor.averageRating / 2).toFixed(1) }}</b>
                     <v-icon small>mdi-star</v-icon>
                   </div>
-                  <div class="py-1">
-                    PV score: <b>{{ currentActor.score.toFixed(1) }}</b>
+                  <div class="py-1 d-flex align-center">
+                    PV score: <b class="ml-1">{{ currentActor.score.toFixed(1) }}</b>
                     <v-tooltip right>
                       <template v-slot:activator="{ on }">
                         <v-icon style="font-size: 20px" class="ml-1" v-on="on"
@@ -157,7 +158,7 @@
                       text
                       class="text-none"
                       @click="attachUnmatchedScenes"
-                      >Find unmatched scenes</v-btn
+                      >Rematch scenes</v-btn
                     >
                   </div>
                 </div>
@@ -165,7 +166,7 @@
             </v-row>
           </v-col>
           <v-col cols="12" sm="8" md="9" lg="10" xl="10">
-            <div class="mb-2">
+            <div class="mb-2" v-if="currentActor.description || collabs.length">
               <div v-if="currentActor.description">
                 <div class="d-flex align-center">
                   <v-icon>mdi-text</v-icon>
@@ -176,8 +177,57 @@
                 </div>
               </div>
 
-              <Collabs class="mb-3" :name="currentActor.name" :collabs="collabs" />
+              <Collabs
+                v-if="collabs.length"
+                class="mb-3"
+                :name="currentActor.name"
+                :collabs="collabs"
+              />
             </div>
+            <div class="mb-2">
+              <div class="d-flex">
+                <div class="d-flex align-center">
+                  <v-icon>mdi-card-account-details</v-icon>
+                  <v-subheader>Metadata</v-subheader>
+                </div>
+
+                <div style="margin-left: auto">
+                  <template v-if="enableCustomFieldEditing">
+                    <v-btn class="text-none" color="warning" text @click="resetCustomFieldEdits">
+                      Cancel
+                    </v-btn>
+                    <v-btn
+                      class="text-none"
+                      color="primary"
+                      text
+                      @click="updateCustomFields"
+                      :disabled="!hasUpdatedFields"
+                    >
+                      Save
+                      <v-icon right small> mdi-content-save </v-icon>
+                    </v-btn>
+                  </template>
+                  <v-btn
+                    v-else
+                    class="text-none"
+                    color="primary"
+                    text
+                    @click="enableCustomFieldEditing = true"
+                  >
+                    <v-icon left small> mdi-pencil </v-icon>
+                    Edit
+                  </v-btn>
+                </div>
+              </div>
+
+              <CustomFieldSelector
+                :fields="currentActor.availableFields"
+                v-model="editCustomFields"
+                @change="hasUpdatedFields = true"
+                :readonly="!enableCustomFieldEditing"
+              />
+            </div>
+
             <v-tabs
               v-model="activeTab"
               background-color="transparent"
@@ -185,29 +235,11 @@
               centered
               grow
             >
-              <v-tab>Metadata</v-tab>
               <v-tab>Scenes</v-tab>
               <v-tab>Movies</v-tab>
               <v-tab>Images</v-tab>
             </v-tabs>
             <div class="pa-2" v-if="activeTab == 0">
-              <div class="text-center py-2">
-                <v-btn
-                  class="text-none"
-                  color="primary"
-                  text
-                  @click="updateCustomFields"
-                  :disabled="!hasUpdatedFields"
-                  >Update</v-btn
-                >
-              </div>
-              <CustomFieldSelector
-                :fields="currentActor.availableFields"
-                v-model="editCustomFields"
-                @change="hasUpdatedFields = true"
-              />
-            </div>
-            <div class="pa-2" v-if="activeTab == 1">
               <v-row>
                 <v-col cols="12">
                   <h1 v-if="numScenes >= 0" class="text-center font-weight-light">
@@ -241,7 +273,7 @@
                 </v-col>
               </v-row>
             </div>
-            <div class="pa-2" v-if="activeTab == 2">
+            <div class="pa-2" v-if="activeTab == 1">
               <h1 v-if="numMovies >= 0" class="text-center font-weight-light">
                 {{ numMovies }} movie features
               </h1>
@@ -271,7 +303,7 @@
                 >
               </div>
             </div>
-            <div class="pa-2" v-if="activeTab == 3">
+            <div class="pa-2" v-if="activeTab == 2">
               <div>
                 <div v-if="numImages >= 0" class="d-flex align-center">
                   <v-spacer></v-spacer>
@@ -759,12 +791,15 @@ export default class ActorDetails extends Vue {
   uploadDialog = false;
   isUploading = false;
 
+  originalCustomFields = {} as any;
   editCustomFields = {} as any;
   hasUpdatedFields = false;
 
   sceneLoader = false;
   pluginLoader = false;
   attachUnmatchedScenesLoader = false;
+
+  enableCustomFieldEditing = false;
 
   labelSearchQuery = "";
 
@@ -840,7 +875,7 @@ export default class ActorDetails extends Vue {
 
     const result = await ApolloClient.query({
       query: gql`
-        query($query: MovieSearchQuery!) {
+        query ($query: MovieSearchQuery!) {
           getMovies(query: $query) {
             numItems
             items {
@@ -882,7 +917,7 @@ export default class ActorDetails extends Vue {
 
     const result = await ApolloClient.query({
       query: gql`
-        query($query: SceneSearchQuery!) {
+        query ($query: SceneSearchQuery!) {
           getScenes(query: $query) {
             numItems
             items {
@@ -920,7 +955,7 @@ export default class ActorDetails extends Vue {
 
     const result = await ApolloClient.query({
       query: gql`
-        query($query: ImageSearchQuery!) {
+        query ($query: ImageSearchQuery!) {
           getImages(query: $query) {
             numItems
             items {
@@ -972,7 +1007,7 @@ export default class ActorDetails extends Vue {
     this.pluginLoader = true;
     ApolloClient.mutate({
       mutation: gql`
-        mutation($id: String!) {
+        mutation ($id: String!) {
           runActorPlugins(id: $id) {
             ...ActorFragment
             averageRating
@@ -1009,7 +1044,8 @@ export default class ActorDetails extends Vue {
     })
       .then((res) => {
         actorModule.setCurrent(res.data.runActorPlugins);
-        this.editCustomFields = res.data.runActorPlugins.customFields;
+        this.originalCustomFields = res.data.runActorPlugins.customFields;
+        this.editCustomFields = JSON.parse(JSON.stringify(this.originalCustomFields));
       })
       .catch((err) => {
         console.error(err);
@@ -1025,7 +1061,7 @@ export default class ActorDetails extends Vue {
     this.attachUnmatchedScenesLoader = true;
     ApolloClient.mutate({
       mutation: gql`
-        mutation($id: String!) {
+        mutation ($id: String!) {
           attachActorToUnmatchedScenes(id: $id) {
             ...ActorFragment
             averageRating
@@ -1086,12 +1122,17 @@ export default class ActorDetails extends Vue {
       });
   }
 
+  resetCustomFieldEdits(): void {
+    this.editCustomFields = JSON.parse(JSON.stringify(this.originalCustomFields));
+    this.enableCustomFieldEditing = false;
+  }
+
   updateCustomFields() {
     if (!this.currentActor) return;
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!, $opts: ActorUpdateOpts!) {
+        mutation ($ids: [String!]!, $opts: ActorUpdateOpts!) {
           updateActors(ids: $ids, opts: $opts) {
             customFields
           }
@@ -1105,8 +1146,11 @@ export default class ActorDetails extends Vue {
       },
     })
       .then((res) => {
-        actorModule.setCustomFields(res.data.updateActors[0].customFields);
+        this.originalCustomFields = res.data.updateActors[0].customFields;
+        this.editCustomFields = JSON.parse(JSON.stringify(this.originalCustomFields));
+        actorModule.setCustomFields(this.editCustomFields);
         this.hasUpdatedFields = false;
+        this.enableCustomFieldEditing = false;
       })
       .catch((err) => {
         console.error(err);
@@ -1210,7 +1254,7 @@ export default class ActorDetails extends Vue {
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation(
+        mutation (
           $file: Upload!
           $name: String
           $crop: Crop
@@ -1272,7 +1316,7 @@ export default class ActorDetails extends Vue {
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation(
+        mutation (
           $file: Upload!
           $name: String
           $crop: Crop
@@ -1334,7 +1378,7 @@ export default class ActorDetails extends Vue {
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation(
+        mutation (
           $file: Upload!
           $name: String
           $crop: Crop
@@ -1396,7 +1440,7 @@ export default class ActorDetails extends Vue {
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation(
+        mutation (
           $file: Upload!
           $name: String
           $crop: Crop
@@ -1462,7 +1506,7 @@ export default class ActorDetails extends Vue {
   removeImage(index: number) {
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!) {
+        mutation ($ids: [String!]!) {
           removeImages(ids: $ids)
         }
       `,
@@ -1497,7 +1541,7 @@ export default class ActorDetails extends Vue {
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!, $opts: ActorUpdateOpts!) {
+        mutation ($ids: [String!]!, $opts: ActorUpdateOpts!) {
           updateActors(ids: $ids, opts: $opts) {
             avatar {
               _id
@@ -1525,7 +1569,7 @@ export default class ActorDetails extends Vue {
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!, $opts: ActorUpdateOpts!) {
+        mutation ($ids: [String!]!, $opts: ActorUpdateOpts!) {
           updateActors(ids: $ids, opts: $opts) {
             hero {
               _id
@@ -1554,7 +1598,7 @@ export default class ActorDetails extends Vue {
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!, $opts: ActorUpdateOpts!) {
+        mutation ($ids: [String!]!, $opts: ActorUpdateOpts!) {
           updateActors(ids: $ids, opts: $opts) {
             altThumbnail {
               _id
@@ -1582,7 +1626,7 @@ export default class ActorDetails extends Vue {
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!, $opts: ActorUpdateOpts!) {
+        mutation ($ids: [String!]!, $opts: ActorUpdateOpts!) {
           updateActors(ids: $ids, opts: $opts) {
             thumbnail {
               _id
@@ -1610,7 +1654,7 @@ export default class ActorDetails extends Vue {
 
     return ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!, $opts: ActorUpdateOpts!) {
+        mutation ($ids: [String!]!, $opts: ActorUpdateOpts!) {
           updateActors(ids: $ids, opts: $opts) {
             labels {
               _id
@@ -1704,7 +1748,7 @@ export default class ActorDetails extends Vue {
 
     ApolloClient.mutate({
       mutation: gql`
-        mutation($ids: [String!]!, $opts: ActorUpdateOpts!) {
+        mutation ($ids: [String!]!, $opts: ActorUpdateOpts!) {
           updateActors(ids: $ids, opts: $opts) {
             rating
           }
@@ -1772,7 +1816,7 @@ export default class ActorDetails extends Vue {
   loadCollabs() {
     ApolloClient.query({
       query: gql`
-        query($id: String!) {
+        query ($id: String!) {
           getActorById(id: $id) {
             collabs {
               _id
@@ -1799,7 +1843,7 @@ export default class ActorDetails extends Vue {
   onLoad() {
     ApolloClient.query({
       query: gql`
-        query($id: String!) {
+        query ($id: String!) {
           getActorById(id: $id) {
             ...ActorFragment
             averageRating
@@ -1835,7 +1879,8 @@ export default class ActorDetails extends Vue {
       },
     }).then((res) => {
       actorModule.setCurrent(res.data.getActorById);
-      this.editCustomFields = res.data.getActorById.customFields;
+      this.originalCustomFields = res.data.getActorById.customFields;
+      this.editCustomFields = JSON.parse(JSON.stringify(this.originalCustomFields));
     });
   }
 
