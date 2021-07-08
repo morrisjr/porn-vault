@@ -6,7 +6,8 @@ import { collections } from "../database";
 import { CopyMP4Transcoder } from "../transcode/copyMp4";
 import { MP4Transcoder } from "../transcode/mp4";
 import { SceneStreamTypes, TranscodeOptions } from "../transcode/transcoder";
-import { WebmTranscoder } from "../transcode/webm";
+import { VP8Transcoder } from "../transcode/vp8";
+import { VP9Transcoder } from "../transcode/vp9";
 import Scene from "../types/scene";
 import { handleError, logger } from "../utils/logger";
 
@@ -104,7 +105,8 @@ router.get("/:scene", async (req, res, next) => {
   const TranscoderClass = {
     [SceneStreamTypes.MP4_DIRECT]: CopyMP4Transcoder,
     [SceneStreamTypes.MP4_TRANSCODE]: MP4Transcoder,
-    [SceneStreamTypes.WEBM_TRANSCODE]: WebmTranscoder,
+    [SceneStreamTypes.VP8_TRANSCODE]: VP8Transcoder,
+    [SceneStreamTypes.VP9_TRANSCODE]: VP9Transcoder,
   }[streamType];
   if (!TranscoderClass) {
     return res.sendStatus(400);

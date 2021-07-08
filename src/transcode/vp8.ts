@@ -2,7 +2,7 @@ import { getConfig } from "../config";
 import { FFProbeAudioCodecs, FFProbeVideoCodecs } from "../ffmpeg/ffprobe";
 import { BasicTranscoder, FFmpegOption, TranscodeOptions } from "./transcoder";
 
-export class WebmTranscoder extends BasicTranscoder {
+export class VP8Transcoder extends BasicTranscoder {
   validateRequirements(): true | Error {
     return true;
   }
@@ -12,7 +12,7 @@ export class WebmTranscoder extends BasicTranscoder {
   }
 
   videoEncoder(): string {
-    return "libvpx-vp9";
+    return "libvpx";
   }
 
   audioEncoder(): string {
