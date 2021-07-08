@@ -174,67 +174,99 @@
             </v-row>
           </v-col>
           <v-col cols="12" sm="8" md="9" lg="10" xl="10">
-            <div class="mb-2" v-if="currentActor.description || collabs.length">
-              <div v-if="currentActor.description">
-                <div class="d-flex align-center">
-                  <v-icon>mdi-text</v-icon>
-                  <v-subheader>Description</v-subheader>
-                </div>
-                <div class="pa-2 med--text" v-if="currentActor.description">
-                  {{ currentActor.description }}
-                </div>
-              </div>
+            <v-expansion-panels multiple flat v-model="actorDetailsOpenPanels">
+              <v-expansion-panel
+                v-show="!!currentActor.description"
+                value="description"
+                style="background-color: transparent"
+              >
+                <v-expansion-panel-header>
+                  <div class="d-flex align-center">
+                    <v-icon left>mdi-text</v-icon>
+                    <span class="subtitle-2 med--text">Description</span>
+                  </div>
+                </v-expansion-panel-header>
+                <v-expansion-panel-content>
+                  <div class="pa-2 med--text">
+                    {{ currentActor.description }}
+                  </div>
+                </v-expansion-panel-content>
+              </v-expansion-panel>
+              <v-expansion-panel
+                value="metadata"
+                style="background-color: transparent"
+              >
+                <v-expansion-panel-header v-slot:default="{ open }">
+                  <!-- Match default button height so the panel doesn't snap when -->
+                  <!-- not rendering the button -->
+                  <div class="d-flex" style="height: 36px">
+                    <div class="d-flex align-center">
+                      <v-icon left>mdi-card-account-details</v-icon>
+                      <span class="subtitle-2 med--text">Metadata</span>
+                    </div>
 
-              <Collabs
-                v-if="collabs.length"
-                class="mb-3"
-                :name="currentActor.name"
-                :collabs="collabs"
-              />
-            </div>
-            <div class="mb-2">
-              <div class="d-flex">
-                <div class="d-flex align-center">
-                  <v-icon>mdi-card-account-details</v-icon>
-                  <v-subheader>Metadata</v-subheader>
-                </div>
+                    <v-fade-transition>
+                      <div style="margin-left: auto" v-if="open">
+                        <template v-if="enableCustomFieldEditing">
+                          <v-btn
+                            class="text-none"
+                            color="warning"
+                            text
+                            @click.stop="resetCustomFieldEdits"
+                          >
+                            Cancel
+                          </v-btn>
+                          <v-btn
+                            class="text-none"
+                            color="primary"
+                            text
+                            @click.stop="updateCustomFields"
+                            :disabled="!hasUpdatedFields"
+                          >
+                            Save
+                            <v-icon right small> mdi-content-save </v-icon>
+                          </v-btn>
+                        </template>
+                        <v-btn
+                          v-else
+                          class="text-none"
+                          color="primary"
+                          text
+                          @click.stop="enableCustomFieldEditing = true"
+                        >
+                          <v-icon left small> mdi-pencil </v-icon>
+                          Edit
+                        </v-btn>
+                      </div>
+                    </v-fade-transition>
+                  </div>
+                </v-expansion-panel-header>
+                <v-expansion-panel-content>
+                  <CustomFieldSelector
+                    :fields="currentActor.availableFields"
+                    v-model="editCustomFields"
+                    @change="hasUpdatedFields = true"
+                    :readonly="!enableCustomFieldEditing"
+                  />
+                </v-expansion-panel-content>
+              </v-expansion-panel>
 
-                <div style="margin-left: auto">
-                  <template v-if="enableCustomFieldEditing">
-                    <v-btn class="text-none" color="warning" text @click="resetCustomFieldEdits">
-                      Cancel
-                    </v-btn>
-                    <v-btn
-                      class="text-none"
-                      color="primary"
-                      text
-                      @click="updateCustomFields"
-                      :disabled="!hasUpdatedFields"
-                    >
-                      Save
-                      <v-icon right small> mdi-content-save </v-icon>
-                    </v-btn>
-                  </template>
-                  <v-btn
-                    v-else
-                    class="text-none"
-                    color="primary"
-                    text
-                    @click="enableCustomFieldEditing = true"
-                  >
-                    <v-icon left small> mdi-pencil </v-icon>
-                    Edit
-                  </v-btn>
-                </div>
-              </div>
-
-              <CustomFieldSelector
-                :fields="currentActor.availableFields"
-                v-model="editCustomFields"
-                @change="hasUpdatedFields = true"
-                :readonly="!enableCustomFieldEditing"
-              />
-            </div>
+              <v-expansion-panel
+                v-show="!!collabs.length"
+                value="collabs"
+                style="background-color: transparent"
+              >
+                <v-expansion-panel-header>
+                  <div class="d-flex align-center">
+                    <v-icon left>mdi-account-group</v-icon>
+                    <span class="subtitle-2 med--text ml-2">Collaborations</span>
+                  </div>
+                </v-expansion-panel-header>
+                <v-expansion-panel-content>
+                  <Collabs :name="currentActor.name" :collabs="collabs" />
+                </v-expansion-panel-content>
+              </v-expansion-panel>
+            </v-expansion-panels>
 
             <v-tabs
               v-model="activeTab"
@@ -849,12 +881,13 @@ export default class ActorDetails extends Vue {
     )}`;
   }
 
-  get highlightedWebsiteFields(): ICustomField[] {
-    if (!this.currentActor) {
-      return [];
-    }
+  set actorDetailsOpenPanels(val: number[]) {
+    localStorage.setItem("pm_actorDetailsOpenPanels", JSON.stringify(val));
+    contextModule.setActorDetailsOpenPanels(val);
+  }
 
-    return getHighlightedWebsiteFields(this.currentActor.availableFields, CustomFieldTarget.ACTORS);
+  get actorDetailsOpenPanels() {
+    return contextModule.actorDetailsOpenPanels;
   }
 
   loadMoviePage() {

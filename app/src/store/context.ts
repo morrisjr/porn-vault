@@ -23,6 +23,7 @@ class ContextModule extends VuexModule {
   fillActorCards = true;
   actorSingular = "Actor";
   actorPlural = "Actors";
+  actorDetailsOpenPanels: number[] = [];
 
   // UI > MOVIES
   defaultDVDShow3d = true;
@@ -48,11 +49,6 @@ class ContextModule extends VuexModule {
   }
 
   @Mutation
-  toggleActorCardStyle(bool: boolean) {
-    this.fillActorCards = bool;
-  }
-
-  @Mutation
   toggleCardLabels(bool: boolean) {
     this.showCardLabels = bool;
   }
@@ -73,13 +69,30 @@ class ContextModule extends VuexModule {
   }
 
   @Mutation
-  setActorAspectRatio(val: number) {
-    this.actorAspectRatio = val;
+  setScenePreviewOnMouseHover(val: boolean) {
+    this.scenePreviewOnMouseHover = val;
   }
 
   @Mutation
-  setScenePreviewOnMouseHover(val: boolean) {
-    this.scenePreviewOnMouseHover = val;
+  setSceneSeekBackward(val: number) {
+    this.sceneSeekBackward = val;
+  }
+
+  @Mutation
+  setSceneSeekForward(val: number) {
+    this.sceneSeekForward = val;
+  }
+
+  // ACTORS
+
+  @Mutation
+  toggleActorCardStyle(bool: boolean) {
+    this.fillActorCards = bool;
+  }
+
+  @Mutation
+  setActorAspectRatio(val: number) {
+    this.actorAspectRatio = val;
   }
 
   @Mutation
@@ -93,13 +106,8 @@ class ContextModule extends VuexModule {
   }
 
   @Mutation
-  setSceneSeekBackward(val: number) {
-    this.sceneSeekBackward = val;
-  }
-
-  @Mutation
-  setSceneSeekForward(val: number) {
-    this.sceneSeekForward = val;
+  setActorDetailsOpenPanels(val: number[]) {
+    this.actorDetailsOpenPanels = val;
   }
 
   // MOVIES

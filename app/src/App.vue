@@ -296,16 +296,12 @@ export default class App extends Vue {
       contextModule.toggleExperimental(true);
     }
 
-    const actorSingularLocalStorage = localStorage.getItem(
-      "pm_actorSingular"
-    );
+    const actorSingularLocalStorage = localStorage.getItem("pm_actorSingular");
     if (actorSingularLocalStorage) {
       contextModule.setActorSingular(actorSingularLocalStorage);
     }
 
-    const actorPluralLocalStorage = localStorage.getItem(
-      "pm_actorPlural"
-    );
+    const actorPluralLocalStorage = localStorage.getItem("pm_actorPlural");
     if (actorPluralLocalStorage) {
       contextModule.setActorPlural(actorPluralLocalStorage);
     }
@@ -313,6 +309,17 @@ export default class App extends Vue {
     const defaultDVDShow3dFromLocalStorage = localStorage.getItem("pm_defaultDVDShow3d");
     if (defaultDVDShow3dFromLocalStorage) {
       contextModule.toggleDefaultDVDShow3d(defaultDVDShow3dFromLocalStorage === "true");
+    }
+
+    let defaultActorDetailsOpenPanelsFromLocalStorage = localStorage.getItem("pm_actorDetailsOpenPanels");
+    if (defaultActorDetailsOpenPanelsFromLocalStorage) {
+      let val: number[] = [];
+      try {
+        val = JSON.parse(defaultActorDetailsOpenPanelsFromLocalStorage) as number[];
+      } catch (err) {
+        val = [];
+      }
+      contextModule.setActorDetailsOpenPanels(val);
     }
   }
 
