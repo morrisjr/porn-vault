@@ -1,5 +1,7 @@
 import gql from "graphql-tag";
 
+import CustomFieldFragment from "./custom_field";
+
 export default gql`
   fragment SceneFragment on Scene {
     _id
@@ -38,11 +40,8 @@ export default gql`
     path
     customFields
     availableFields {
-      _id
-      name
-      type
-      values
-      unit
+      ...CustomFieldFragment
     }
   }
+  ${CustomFieldFragment}
 `;

@@ -15,7 +15,7 @@ export enum CustomFieldTarget {
   ALBUMS = "ALBUMS",
 }
 
-export interface CustomField {
+export interface ICustomField {
   _id: string;
   name: string;
   values: string[] | null;

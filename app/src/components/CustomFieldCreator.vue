@@ -58,16 +58,6 @@
               label="Highlighted website"
             />
             <v-text-field
-              v-if="createFieldType != 'BOOLEAN' && !createFieldHighlighedWebsite"
-              class="mt-4"
-              color="primary"
-              v-model="createFieldUnit"
-              placeholder="inches, cm"
-              persistent-hint
-              hint="Optional"
-              label="Unit"
-            />
-            <v-text-field
               v-if="createFieldType === 'STRING' && createFieldHighlighedWebsite"
               class="mt-4"
               color="primary"
@@ -77,6 +67,16 @@
               persistent-hint
               hint="See https://materialdesignicons.com"
               :append-icon="/mdi-\w+/.test(createFieldIcon) ? createFieldIcon : 'mdi-link-variant'"
+            />
+            <v-text-field
+              v-if="createFieldType != 'BOOLEAN' && !createFieldHighlighedWebsite"
+              class="mt-4"
+              color="primary"
+              v-model="createFieldUnit"
+              placeholder="inches, cm"
+              persistent-hint
+              hint="Optional"
+              label="Unit"
             />
             <v-combobox
               class="mt-4"
@@ -109,6 +109,7 @@ import { Component, Vue } from "vue-property-decorator";
 import ApolloClient from "../apollo";
 import gql from "graphql-tag";
 import CreatedCustomField from "./CreatedCustomField.vue";
+import CustomFieldFragment from "@/fragments/custom_field";
 
 @Component({
   components: {
@@ -209,14 +210,10 @@ export default class CustomFieldCreator extends Vue {
               highlightedWebsite: $highlightedWebsite
               icon: $icon
             ) {
-              _id
-              name
-              type
-              values
-              unit
-              target
+              ...CustomFieldFragment
             }
           }
+          ${CustomFieldFragment}
         `,
         variables: {
           name: this.createFieldName,
@@ -264,14 +261,10 @@ export default class CustomFieldCreator extends Vue {
       query: gql`
         {
           getCustomFields {
-            _id
-            name
-            type
-            values
-            unit
-            target
+            ...CustomFieldFragment
           }
         }
+        ${CustomFieldFragment}
       `,
     })
       .then((res) => {

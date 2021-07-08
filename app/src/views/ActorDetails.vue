@@ -714,7 +714,7 @@ import { contextModule } from "@/store/context";
 import CustomFieldSelector from "@/components/CustomFieldSelector.vue";
 import Collabs from "@/components/Collabs.vue";
 import { ICollabActor } from "@/types/actor";
-import { CustomField, CustomFieldTarget } from "@/types/custom_field";
+import { ICustomField, CustomFieldTarget } from "@/types/custom_field";
 import { getHighlightedWebsiteFields } from "@/util/custom_field";
 import HighlightedWebsiteGroup from "@/components/HighlightedWebsiteGroup.vue";
 
@@ -849,7 +849,7 @@ export default class ActorDetails extends Vue {
     )}`;
   }
 
-  get highlightedWebsiteFields(): CustomField[] {
+  get highlightedWebsiteFields(): ICustomField[] {
     if (!this.currentActor) {
       return [];
     }

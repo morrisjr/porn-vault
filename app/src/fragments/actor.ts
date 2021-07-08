@@ -1,5 +1,7 @@
 import gql from "graphql-tag";
 
+import CustomFieldFragment from "./custom_field";
+
 export default gql`
   fragment ActorFragment on Actor {
     _id
@@ -13,14 +15,7 @@ export default gql`
     bookmark
     customFields
     availableFields {
-      _id
-      name
-      type
-      values
-      unit
-      highlightedWebsite
-      icon
-      target
+      ...CustomFieldFragment
     }
     nationality {
       name
@@ -28,4 +23,5 @@ export default gql`
       nationality
     }
   }
+  ${CustomFieldFragment}
 `;

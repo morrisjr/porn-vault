@@ -13,17 +13,17 @@
 
 <script lang="ts">
 import { Component, Vue, Prop } from "vue-property-decorator";
-import { CustomField, CustomFieldTarget } from "@/types/custom_field";
+import { ICustomField, CustomFieldTarget } from "@/types/custom_field";
 import { getHighlightedWebsiteFields } from "@/util/custom_field";
 
 @Component
 export default class HighlightedWebsiteGroup extends Vue {
   @Prop({ default: () => ({}) }) value!: any;
-  @Prop() fields!: CustomField[];
+  @Prop() fields!: ICustomField[];
   @Prop({ default: "" }) target!: CustomFieldTarget | null;
   @Prop({ default: "mdi-link-variant" }) fallbackIcon!: string;
 
-  get websiteFields(): CustomField[] {
+  get websiteFields(): ICustomField[] {
     return getHighlightedWebsiteFields(this.fields, this.target);
   }
 }

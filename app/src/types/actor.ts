@@ -1,4 +1,4 @@
-import { CustomField } from "./custom_field";
+import { ICustomField } from "./custom_field";
 
 type AttachedImage = {
   _id: string;
@@ -42,7 +42,7 @@ export default interface IActor {
     color?: string | null;
   } | null;
   customFields: { _id: string; name: string; values?: string[]; type: string };
-  availableFields: CustomField[];
+  availableFields: ICustomField[];
   nationality: {
     name: string;
     alpha2: string;

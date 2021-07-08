@@ -1,10 +1,10 @@
 import { CustomFieldTarget } from "./../types/custom_field";
-import { CustomField, CustomFieldType } from "@/types/custom_field";
+import { ICustomField, CustomFieldType } from "@/types/custom_field";
 
 export const getHighlightedWebsiteFields = (
-  availableFields: CustomField[],
+  availableFields: ICustomField[],
   target: CustomFieldTarget | null = null
-): CustomField[] =>
+): ICustomField[] =>
   availableFields.filter(
     (field) =>
       field.type === CustomFieldType.STRING &&

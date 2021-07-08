@@ -147,12 +147,12 @@
 
 <script lang="ts">
 import { Component, Vue, Prop, Watch } from "vue-property-decorator";
-import { CustomField } from "@/types/custom_field";
+import { ICustomField } from "@/types/custom_field";
 
 @Component
 export default class CustomFieldSelector extends Vue {
   @Prop({ default: () => ({}) }) value!: any;
-  @Prop() fields!: CustomField;
+  @Prop() fields!: ICustomField;
   @Prop({ default: 12 }) cols!: number;
   @Prop({ default: 6 }) sm!: number;
   @Prop({ default: 4 }) md!: number;
@@ -172,12 +172,12 @@ export default class CustomFieldSelector extends Vue {
     this.$emit("change");
   }
 
-  stringComponent(field: CustomField): string {
+  stringComponent(field: ICustomField): string {
     const value = this.value[field._id];
     return value && /https?:\/\//.test(value) ? "a" : "div";
   }
 
-  hrefProps(field: CustomField): object {
+  hrefProps(field: ICustomField): object {
     if (this.stringComponent(field) !== "a") {
       return {};
     }
