@@ -21,7 +21,8 @@ export const TEST_VIDEOS = {
     streamTypes: [
       SceneStreamTypes.DIRECT,
       SceneStreamTypes.MP4_TRANSCODE,
-      SceneStreamTypes.WEBM_TRANSCODE,
+      SceneStreamTypes.VP9_TRANSCODE,
+      SceneStreamTypes.VP8_TRANSCODE,
     ],
   },
   WEBM_VP8: {
@@ -43,7 +44,8 @@ export const TEST_VIDEOS = {
     streamTypes: [
       SceneStreamTypes.DIRECT,
       SceneStreamTypes.MP4_TRANSCODE,
-      SceneStreamTypes.WEBM_TRANSCODE,
+      SceneStreamTypes.VP9_TRANSCODE,
+      SceneStreamTypes.VP8_TRANSCODE,
     ],
   },
   WEBM_VP9: {
@@ -65,7 +67,8 @@ export const TEST_VIDEOS = {
     streamTypes: [
       SceneStreamTypes.DIRECT,
       SceneStreamTypes.MP4_TRANSCODE,
-      SceneStreamTypes.WEBM_TRANSCODE,
+      SceneStreamTypes.VP9_TRANSCODE,
+      SceneStreamTypes.VP8_TRANSCODE,
     ],
   },
   MKV_H264: {
@@ -88,7 +91,8 @@ export const TEST_VIDEOS = {
       SceneStreamTypes.DIRECT,
       SceneStreamTypes.MP4_DIRECT,
       SceneStreamTypes.MP4_TRANSCODE,
-      SceneStreamTypes.WEBM_TRANSCODE,
+      SceneStreamTypes.VP9_TRANSCODE,
+      SceneStreamTypes.VP8_TRANSCODE,
     ],
   },
   AVI: {
@@ -110,7 +114,8 @@ export const TEST_VIDEOS = {
     streamTypes: [
       SceneStreamTypes.DIRECT,
       SceneStreamTypes.MP4_TRANSCODE,
-      SceneStreamTypes.WEBM_TRANSCODE,
+      SceneStreamTypes.VP9_TRANSCODE,
+      SceneStreamTypes.VP8_TRANSCODE,
     ],
   },
   MOV: {
@@ -132,7 +137,8 @@ export const TEST_VIDEOS = {
     streamTypes: [
       SceneStreamTypes.DIRECT,
       SceneStreamTypes.MP4_TRANSCODE,
-      SceneStreamTypes.WEBM_TRANSCODE,
+      SceneStreamTypes.VP9_TRANSCODE,
+      SceneStreamTypes.VP8_TRANSCODE,
     ],
   },
   WMV: {
@@ -154,7 +160,8 @@ export const TEST_VIDEOS = {
     streamTypes: [
       SceneStreamTypes.DIRECT,
       SceneStreamTypes.MP4_TRANSCODE,
-      SceneStreamTypes.WEBM_TRANSCODE,
+      SceneStreamTypes.VP9_TRANSCODE,
+      SceneStreamTypes.VP8_TRANSCODE,
     ],
   },
 };
