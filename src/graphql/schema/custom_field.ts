@@ -45,7 +45,14 @@ export default gql`
       icon: String
     ): CustomField!
 
-    updateCustomField(id: String!, name: String, values: [String!], unit: String): CustomField!
+    updateCustomField(
+      id: String!
+      name: String
+      values: [String!]
+      unit: String
+      highlightedWebsite: Boolean
+      icon: String
+    ): CustomField!
 
     removeCustomField(id: String!): Boolean!
   }

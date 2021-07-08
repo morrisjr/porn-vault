@@ -9,11 +9,15 @@ export default {
       name,
       values,
       unit,
+      highlightedWebsite,
+      icon,
     }: {
       id: string;
       name?: string | null;
       values?: string[] | null;
       unit?: string | null;
+      highlightedWebsite: boolean | null;
+      icon: string | null;
     }
   ): Promise<CustomField> {
     const field = await CustomField.getById(id);
@@ -29,6 +33,14 @@ export default {
 
       if (field.unit !== undefined) {
         field.unit = unit || null;
+      }
+
+      if (field.type === CustomFieldType.STRING) {
+        if (highlightedWebsite) {
+          field.highlightedWebsite = highlightedWebsite;
+        }
+
+        field.icon = icon;
       }
 
       await collections.customFields.upsert(field._id, field);
