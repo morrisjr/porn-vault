@@ -28,7 +28,7 @@ async function runMoviePlugins(id: string): Promise<Movie | null> {
   if (movie) {
     movie = await onMovieCreate(movie, "movieCustom");
 
-    await movieCollection.upsert(movie._id, movie);
+    await collections.movies.upsert(movie._id, movie);
     await indexMovies([movie]);
   }
 

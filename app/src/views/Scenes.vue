@@ -796,6 +796,10 @@ export default class SceneList extends mixins(DrawerMixin) {
     return "";
   }
 
+  get actorPlural() {
+    return contextModule.actorPlural;
+  }
+
   get showCardLabels() {
     return contextModule.showCardLabels;
   }

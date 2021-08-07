@@ -54,6 +54,16 @@
             </template>
             Subtract labels
           </v-tooltip>
+
+          <v-btn @click="addActorsDialog = true" icon v-if="selectedImages.length">
+            <v-tooltip bottom>
+              <template v-slot:activator="{ on, attrs }">
+                <v-icon v-bind="attrs" v-on="on">mdi-account-plus</v-icon>
+              </template>
+              <span>Add {{ (actorPlural || "").toLowerCase() }} to selected images</span>
+            </v-tooltip>
+          </v-btn>
+
           <v-tooltip bottom>
             <template #activator="{ on }">
               <v-btn
@@ -136,10 +146,18 @@
         <Divider icon="mdi-account">{{ actorPlural }}</Divider>
 
         <ActorSelector
-          :value="searchState.selectedImages"
-          @input="searchStateManager.onValueChanged('selectedImages', $event)"
+          :value="searchState.selectedActors"
+          @input="searchStateManager.onValueChanged('selectedActors', $event)"
           :multiple="true"
+          :disabled="searchState.showEmptyField === 'actors'"
         />
+
+        <v-checkbox
+          v-model="searchState.showEmptyField"
+          value="actors"
+          @change="searchStateManager.onValueChanged('showEmptyField', $event)"
+          :label="`Filter by images with no tagged ${(actorPlural || '').toLowerCase()}`"
+        ></v-checkbox>
 
         <Divider icon="mdi-sort">Sort</Divider>
 
@@ -161,7 +179,7 @@
           solo
           flat
           single-line
-          :disabled="searchState.sortBy == 'relevance' || searchState.sortBy == '$shuffle'"
+          :disabled="searchState.sortBy === 'relevance' || searchState.sortBy === '$shuffle'"
           hide-details
           color="primary"
           item-text="text"
@@ -349,6 +367,29 @@
       </template>
     </LabelSelectorDialog>
 
+    <v-dialog :persistent="addLoader" scrollable v-model="addActorsDialog" max-width="400px">
+      <v-card :loading="addLoader">
+        <v-card-title
+          >Add {{ addActorsIndices.length }} {{ (actorPlural || "").toLowerCase() }} to selected
+          images</v-card-title
+        >
+        <v-card-text style="max-height: 400px">
+          <ActorSelector v-model="addActors" />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            :loading="addLoader"
+            class="text-none"
+            color="primary"
+            text
+            @click="addActorsToImages"
+            >Add</v-btn
+          >
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <transition name="fade">
       <Lightbox
         @update="updateImage"
@@ -430,9 +471,10 @@ export default class ImageList extends mixins(DrawerMixin) {
     bookmarksOnly: boolean;
     ratingFilter: number;
     selectedLabels: { include: string[]; exclude: string[] };
-    selectedImages: IActor[];
+    selectedActors: IActor[];
     sortBy: string;
     sortDir: string;
+    showEmptyField: string;
   }>({
     localStorageNamer: (key: string) => `pm_image${key[0].toUpperCase()}${key.substr(1)}`,
     props: {
@@ -443,7 +485,7 @@ export default class ImageList extends mixins(DrawerMixin) {
       favoritesOnly: { default: () => false },
       bookmarksOnly: { default: () => false },
       ratingFilter: { default: () => 0 },
-      selectedImages: {
+      selectedActors: {
         default: () => [],
         serialize: (actors: IActor[]) =>
           JSON.stringify(
@@ -460,6 +502,7 @@ export default class ImageList extends mixins(DrawerMixin) {
       sortDir: {
         default: () => "desc",
       },
+      showEmptyField: { default: () => "" },
     },
   });
 
@@ -478,7 +521,7 @@ export default class ImageList extends mixins(DrawerMixin) {
   allLabels = [] as ILabel[];
 
   get selectedActorIds() {
-    return this.searchState.selectedImages.map((ac) => ac._id);
+    return this.searchState.selectedActors.map((ac) => ac._id);
   }
 
   @Watch("$route")
@@ -564,10 +607,35 @@ export default class ImageList extends mixins(DrawerMixin) {
   addLabelsDialog = false;
   addLabelIds: string[] = [];
   addLoader = false;
+  addActorsDialog = false;
+  addActorsIndices: number[] = [];
+  addActors = [] as IActor[];
 
   subtractLabelsDialog = false;
   subtractLabelIds: string[] = [];
   subtractLoader = false;
+
+  async addActorsToImage(image: IImage): Promise<void> {
+    // get array of existing actor ids of the current image
+    const existingActorIds = image.actors.map((a) => a._id);
+    const newActorIds = this.addActors.map((a) => a._id).concat(existingActorIds);
+
+    await ApolloClient.mutate({
+      mutation: gql`
+        mutation ($ids: [String!]!, $opts: ImageUpdateOpts!) {
+          updateImages(ids: $ids, opts: $opts) {
+            _id
+          }
+        }
+      `,
+      variables: {
+        ids: [image._id],
+        opts: {
+          actors: newActorIds,
+        },
+      },
+    });
+  }
 
   async subtractLabels(): Promise<void> {
     try {
@@ -615,6 +683,30 @@ export default class ImageList extends mixins(DrawerMixin) {
       console.error(error);
     }
     this.addLoader = false;
+  }
+
+  async addActorsToImages(): Promise<void> {
+    try {
+      this.addLoader = true;
+
+      for (let i = 0; i < this.selectedImages.length; i++) {
+        const id = this.selectedImages[i];
+        const image = this.images.find((img) => img._id == id);
+
+        if (image) {
+          await this.addActorsToImage(image);
+        }
+      }
+
+      // Refresh page
+      await this.loadPage();
+      this.addLoader = false;
+    } catch (error) {
+      console.error(error);
+    }
+
+    this.addLoader = false;
+    this.addActorsDialog = false;
   }
 
   isImageSelected(id: string) {
@@ -689,7 +781,7 @@ export default class ImageList extends mixins(DrawerMixin) {
     try {
       await ApolloClient.mutate({
         mutation: gql`
-          mutation($ids: [String!]!) {
+          mutation ($ids: [String!]!) {
             removeImages(ids: $ids)
           }
         `,
@@ -800,6 +892,7 @@ export default class ImageList extends mixins(DrawerMixin) {
           bookmark: this.searchState.bookmarksOnly,
           rating: this.searchState.ratingFilter,
           actors: this.selectedActorIds,
+          emptyField: this.searchState.showEmptyField,
         },
         seed: seed || localStorage.getItem("pm_seed") || "default",
       },
@@ -815,6 +908,10 @@ export default class ImageList extends mixins(DrawerMixin) {
   loadPage() {
     this.fetchLoader = true;
     this.selectedImages = [];
+
+    if (this.searchState.showEmptyField === "actors") {
+      this.searchState.selectedActors = [];
+    }
 
     return this.fetchPage(this.searchState.page)
       .then((result) => {
