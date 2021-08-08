@@ -282,13 +282,7 @@ const VOLUME_INCREMENT_PERCENTAGE = 0.05;
 const PREVIEW_START_OFFSET = 0.02;
 
 const PLAYBACK_RATES = JSON.parse(localStorage.getItem(LS_PLAYBACK_RATE_VALUES) || "null") ?? [
-  2.0,
-  1.5,
-  1.25,
-  1,
-  0.75,
-  0.5,
-  0.25,
+  2.0, 1.5, 1.25, 1, 0.75, 0.5, 0.25,
 ];
 
 const TOUCH_DOUBLE_TAP_TIME = 300;
@@ -477,7 +471,7 @@ export default class VideoPlayer extends Vue {
   currentSource(): SceneSource | undefined {
     // We can type this as SceneSource, since we passed the whole object
     // on player creation
-    return (this.player?.currentSource() as unknown) as SceneSource;
+    return this.player?.currentSource() as unknown as SceneSource;
   }
 
   currentStreamType(): string | undefined {
@@ -799,6 +793,7 @@ export default class VideoPlayer extends Vue {
     let resumeAfterReset = false;
 
     if (
+      currentSource.mimeType === "application/x-mpegURL" ||
       !currentSource.transcode ||
       (this.transcodeOffset < time &&
         this.bufferedRanges.find((range) => range.start <= time && range.end >= time))
@@ -806,6 +801,9 @@ export default class VideoPlayer extends Vue {
       // If we are not transcoding, or if the time is already buffered
       // seek directly to the time. Subtract the transcode offset since the
       // player doesn't know the real start time
+      // The exception is for hls transcodes: the player can intelligently
+      // request the proper segment. Since the segments are small enough,
+      // it doesn't matter if the seek is in the middle of a segment
       this.player.currentTime(time - this.transcodeOffset);
     } else {
       // Else we are transcoding, and the time isn't buffered.

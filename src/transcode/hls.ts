@@ -10,15 +10,15 @@ export class HLSTranscoder extends MP4Transcoder {
     let segmentStart = start;
 
     const segments: string[][] = [];
-    const digits = duration / SEGMENT_DURATION / 10;
+    const digits = Math.max(Math.ceil(duration / SEGMENT_DURATION / 10), 0);
     while (timeLeft) {
       const segmentLength = timeLeft < SEGMENT_DURATION ? timeLeft : SEGMENT_DURATION;
 
       segments.push([
-        `#EXTINF:${segmentLength.toFixed(1)},`,
+        `#EXTINF:${segmentLength.toFixed(6)},`,
         `${segmentBaseUrl}/hls/segment_${segments.length
           .toString()
-          .padStart(Math.max(digits, 0), "0")}.ts?start=${segmentStart}`,
+          .padStart(digits, "0")}.ts?start=${segmentStart}`,
       ]);
 
       segmentStart += segmentLength;
@@ -26,12 +26,12 @@ export class HLSTranscoder extends MP4Transcoder {
     }
 
     return `#EXTM3U
-    #EXT-X-PLAYLIST-TYPE:VOD
-    #EXT-X-TARGETDURATION:${SEGMENT_DURATION}
-    #EXT-X-VERSION:4
-    #EXT-X-MEDIA-SEQUENCE:0
-    ${segments.flat().join("\n")}
-    #EXT-X-ENDLIST`;
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-TARGETDURATION:${SEGMENT_DURATION}
+#EXT-X-VERSION:4
+#EXT-X-MEDIA-SEQUENCE:0
+${segments.flat().join("\n")}
+#EXT-X-ENDLIST`;
   }
 
   mimeType(): string {
@@ -40,7 +40,10 @@ export class HLSTranscoder extends MP4Transcoder {
 
   getTranscodeOptions(): TranscodeOptions {
     const opts = super.getTranscodeOptions();
-    opts.outputOptions.push("-f mpegts", `-t ${SEGMENT_DURATION}`);
+    opts.inputOptions.push(`-t ${SEGMENT_DURATION}`);
+    // Copy timestamps so that start of a segment uses the same
+    // timestamp instead of starting at 0
+    opts.outputOptions.push("-copyts", "-f mpegts");
     return opts;
   }
 }
