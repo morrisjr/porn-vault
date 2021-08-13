@@ -1,35 +1,8 @@
-import ffmpeg from "fluent-ffmpeg";
-import { existsSync } from "fs";
-import path from "path";
-
+import { setFfmpegBinaryPaths, validateFFMPEGPaths } from "../binaries/ffmpeg";
 import { IConfig } from "../config/schema";
 import { checkUnusedPlugins, prevalidatePlugins } from "../plugins/validate";
 import { logger } from "../utils/logger";
 import { isRegExp } from "../utils/types";
-
-export function validateFFMPEGPaths(config: IConfig): void {
-  if (config.binaries.ffmpeg) {
-    const found = existsSync(config.binaries.ffmpeg);
-    if (!found) {
-      throw new Error(
-        `FFMPEG binary not found at "${config.binaries.ffmpeg}" for "config.binaries.ffmpeg"`
-      );
-    }
-  } else {
-    throw new Error(`No FFMPEG path defined in config.json for "config.binaries.ffmpeg"`);
-  }
-
-  if (config.binaries.ffprobe) {
-    const found = existsSync(config.binaries.ffprobe);
-    if (!found) {
-      throw new Error(
-        `FFPROBE binary not found at "${config.binaries.ffprobe}" for "config.binaries.ffprobe"`
-      );
-    }
-  } else {
-    throw new Error(`No FFPROBE path defined in config.json for "config.binaries.ffprobe"`);
-  }
-}
 
 /**
  * Does extra validation on the config.
@@ -56,13 +29,5 @@ export function validateConfigExtra(config: IConfig): void {
   }
 
   validateFFMPEGPaths(config);
-
-  const ffmpegPath = path.resolve(config.binaries.ffmpeg);
-  const ffprobePath = path.resolve(config.binaries.ffprobe);
-
-  ffmpeg.setFfmpegPath(ffmpegPath);
-  ffmpeg.setFfprobePath(ffprobePath);
-
-  logger.verbose(`FFMPEG set to "${ffmpegPath}"`);
-  logger.verbose(`FFPROBE set to "${ffprobePath}"`);
+  setFfmpegBinaryPaths(config);
 }

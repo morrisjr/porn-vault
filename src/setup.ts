@@ -3,7 +3,7 @@ import inquirer from "inquirer";
 import { sha512 } from "js-sha512";
 import * as path from "path";
 
-import { getFFMpegURL, getFFProbeURL } from "./binaries/ffmpeg-download";
+import { getFFMpegURL, getFFProbeURL } from "./binaries/ffmpeg";
 import defaultConfig from "./config/default";
 import { IConfig } from "./config/schema";
 import { downloadFile } from "./utils/download";
