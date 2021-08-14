@@ -1,7 +1,7 @@
 import Axios from "axios";
 import https from "https";
-import Jimp from "jimp";
 
+import { ImageMagick } from "./binaries/imagemagick";
 import { IConfig } from "./config/schema";
 import Image from "./types/image";
 import Scene, { ThumbnailFile } from "./types/scene";
@@ -50,9 +50,11 @@ export async function queueLoop(config: IConfig): Promise<void> {
             image.scene = queueHead._id;
             image.meta.size = stats.size;
 
-            const jimpImage = await Jimp.read(image.path);
-            image.meta.dimensions.width = jimpImage.bitmap.width;
-            image.meta.dimensions.height = jimpImage.bitmap.height;
+            const _imageSize = await ImageMagick(image.path).sizeAsync();
+            if (_imageSize) {
+              image.meta.dimensions.width = _imageSize.width;
+              image.meta.dimensions.height = _imageSize.height;
+            }
 
             thumbs.push(image);
             data.preview = image._id;

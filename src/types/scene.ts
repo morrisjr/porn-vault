@@ -1,10 +1,9 @@
 import ffmpeg, { FfprobeData } from "fluent-ffmpeg";
 import { existsSync, statSync } from "fs";
-import Jimp from "jimp";
-import mergeImg from "merge-img";
 import path, { basename, resolve } from "path";
 import asyncPool from "tiny-async-pool";
 
+import { ImageMagick } from "../binaries/imagemagick";
 import { getConfig } from "../config";
 import { collections } from "../database";
 import { extractActors, extractLabels, extractMovies, extractStudios } from "../extractor";
@@ -575,18 +574,17 @@ export default class Scene {
 
       logger.debug(`Creating preview strip for ${scene._id}...`);
 
-      const img = (await mergeImg(files)) as Jimp;
+      const myImg = ImageMagick(files[0]);
+      myImg.append(files.slice(1), true);
 
       const file = path.join(libraryPath("previews/"), `${scene._id}.jpg`);
 
       logger.debug(`Writing to file ${file}...`);
 
-      img.write(file, async () => {
-        logger.debug("Finished generating preview.");
-
-        await rimrafAsync(tmpFolder);
-        resolve(file);
-      });
+      await myImg.writeAsync(file);
+      logger.debug("Finished generating preview.");
+      await rimrafAsync(tmpFolder);
+      resolve(file);
     });
   }
 

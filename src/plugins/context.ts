@@ -3,7 +3,6 @@ import boxen from "boxen";
 import ffmpeg from "fluent-ffmpeg";
 import * as fs from "fs";
 import inquirer from "inquirer";
-import jimp from "jimp";
 import moment from "moment";
 import ora from "ora";
 import * as os from "os";
@@ -14,6 +13,7 @@ import * as util from "util";
 import YAML from "yaml";
 import * as zod from "zod";
 
+import { ImageMagick } from "../binaries/imagemagick";
 import Image from "../types/image";
 import { downloadFile } from "../utils/download";
 import { logger } from "../utils/logger";
@@ -26,7 +26,7 @@ export const modules = {
   $ffmpeg: ffmpeg,
   $fs: fs,
   $inquirer: inquirer,
-  $jimp: jimp,
+  $imagemagick: ImageMagick,
   $loader: ora,
   $moment: moment,
   $os: os,

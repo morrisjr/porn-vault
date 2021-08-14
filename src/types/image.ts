@@ -1,7 +1,7 @@
-import Jimp from "jimp";
 import Vibrant from "node-vibrant";
 import { resolve } from "path";
 
+import { ImageMagick } from "../binaries/imagemagick";
 import { collections } from "../database";
 import { searchImages } from "../search/image";
 import { unlinkAsync } from "../utils/fs/async";
@@ -206,10 +206,14 @@ export default class Image {
     ) {
       return false;
     }
-    const jimpImage = await Jimp.read(image.path);
-    image.meta.dimensions.width = jimpImage.bitmap.width;
-    image.meta.dimensions.height = jimpImage.bitmap.height;
-    return true;
+    const _imageSize = await ImageMagick(image.path).sizeAsync();
+    if (_imageSize) {
+      image.meta.dimensions.width = _imageSize.width;
+      image.meta.dimensions.height = _imageSize.height;
+      return true;
+    }
+
+    return false;
   }
 
   constructor(name: string) {

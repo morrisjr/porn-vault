@@ -33,6 +33,7 @@ ffmpeg.exe
 ffprobe.exe
 izzy
 izzy.exe
+/imagemagick
 config.test.json
 config.test.yaml
 config\.old\.yaml

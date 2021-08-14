@@ -1,5 +1,4 @@
-import Jimp from "jimp";
-
+import { ImageMagick } from "./binaries/imagemagick";
 import { izzyVersion, resetIzzy, spawnIzzy } from "./binaries/izzy";
 import { collectionDefinitions, collections, loadStore } from "./database";
 import { applyExitHooks } from "./exit";
@@ -50,18 +49,21 @@ export async function generateImageThumbnails(): Promise<void> {
         continue;
       }
       i++;
-      const jimpImage = await Jimp.read(image.path!);
+      const _image = ImageMagick(image.path!);
       // Small image thumbnail
       logger.verbose(
         `${i}/${amountImagesToBeProcessed}: Creating image thumbnail for ${image._id}`
       );
-      if (jimpImage.bitmap.width > jimpImage.bitmap.height && jimpImage.bitmap.width > 320) {
-        jimpImage.resize(320, Jimp.AUTO);
-      } else if (jimpImage.bitmap.height > 320) {
-        jimpImage.resize(Jimp.AUTO, 320);
+      const _imageSize = await _image.sizeAsync();
+      if (_imageSize) {
+        if (_imageSize.width > _imageSize.height && _imageSize.width > 320) {
+          _image.resize(320);
+        } else if (_imageSize.height > 320) {
+          _image.resize(null, 320);
+        }
       }
       image.thumbPath = libraryPath(`thumbnails/images/${image._id}.jpg`);
-      await jimpImage.writeAsync(image.thumbPath);
+      await _image.writeAsync(image.thumbPath);
       await collections.images.upsert(image._id, image);
     } catch (error) {
       handleError(`${image._id} (${image.path}) failed`, error);

@@ -1,6 +1,6 @@
 import { createWriteStream, ReadStream } from "fs";
-import Jimp from "jimp";
 
+import { ImageMagick } from "../../binaries/imagemagick";
 import { getConfig } from "../../config";
 import { ApplyActorLabelsEnum } from "../../config/schema";
 import { collections } from "../../database";
@@ -138,27 +138,31 @@ export default {
         args.crop.height = Math.round(args.crop.height);
       }
 
-      const _image = await Jimp.read(outPath);
-      image.hash = _image.hash();
+      const _image = ImageMagick(outPath);
+      const _imageSize = await _image.sizeAsync();
+      // TODO: jimp
+      // image.hash = _image.hash();
 
       if (args.crop) {
         logger.verbose(`Cropping image...`);
         _image.crop(args.crop.left, args.crop.top, args.crop.width, args.crop.height);
         image.meta.dimensions.width = args.crop.width;
         image.meta.dimensions.height = args.crop.height;
-      } else {
-        image.meta.dimensions.width = _image.bitmap.width;
-        image.meta.dimensions.height = _image.bitmap.height;
+      } else if (_imageSize) {
+        image.meta.dimensions.width = _imageSize.width;
+        image.meta.dimensions.height = _imageSize.height;
       }
 
       if (args.compress === true) {
         logger.verbose("Resizing image to thumbnail size");
         const MAX_SIZE = config.processing.imageCompressionSize;
 
-        if (_image.bitmap.width > _image.bitmap.height && _image.bitmap.width > MAX_SIZE) {
-          _image.resize(MAX_SIZE, Jimp.AUTO);
-        } else if (_image.bitmap.height > MAX_SIZE) {
-          _image.resize(Jimp.AUTO, MAX_SIZE);
+        if (_imageSize) {
+          if (_imageSize.width > _imageSize.height && _imageSize.width > MAX_SIZE) {
+            _image.resize(MAX_SIZE);
+          } else if (_imageSize.height > MAX_SIZE) {
+            _image.resize(null, MAX_SIZE);
+          }
         }
       }
 
@@ -168,10 +172,12 @@ export default {
         image.thumbPath = libraryPath(`thumbnails/images/${image._id}.jpg`);
         logger.verbose("Creating image thumbnail");
         // Small image thumbnail
-        if (_image.bitmap.width > _image.bitmap.height && _image.bitmap.width > 320) {
-          _image.resize(320, Jimp.AUTO);
-        } else if (_image.bitmap.height > 320) {
-          _image.resize(Jimp.AUTO, 320);
+        if (_imageSize) {
+          if (_imageSize.width > _imageSize.height && _imageSize.width > 320) {
+            _image.resize(320);
+          } else if (_imageSize.height > 320) {
+            _image.resize(null, 320);
+          }
         }
         await _image.writeAsync(image.thumbPath);
       }

@@ -1,6 +1,8 @@
-import Jimp from "jimp";
+import { Dimensions } from "gm";
+import ora = require("ora");
 import { basename } from "path";
 
+import { ImageMagick } from "../binaries/imagemagick";
 import { getConfig } from "../config";
 import { collections } from "../database";
 import { extractActors, extractLabels, extractScenes } from "../extractor";
@@ -10,7 +12,6 @@ import Scene from "../types/scene";
 import { walk } from "../utils/fs/async";
 import { handleError, logger } from "../utils/logger";
 import { libraryPath } from "../utils/path";
-import ora = require("ora");
 
 const VIDEO_EXTENSIONS = [
   ".m4v",
@@ -88,12 +89,15 @@ async function processImage(imagePath: string, readImage = true, generateThumb =
     const image = new Image(imageName);
     image.path = imagePath;
 
-    let jimpImage: Jimp | undefined;
+    let _imageSize: Dimensions | undefined;
     if (readImage) {
-      jimpImage = await Jimp.read(imagePath);
-      image.meta.dimensions.width = jimpImage.bitmap.width;
-      image.meta.dimensions.height = jimpImage.bitmap.height;
-      image.hash = jimpImage.hash();
+      _imageSize = await ImageMagick(imagePath).sizeAsync();
+      if (_imageSize) {
+        image.meta.dimensions.width = _imageSize.width;
+        image.meta.dimensions.height = _imageSize.height;
+      }
+      // TODO: jimp
+      // image.hash = jimpImage.hash();
     }
 
     // Extract scene
@@ -112,18 +116,21 @@ async function processImage(imagePath: string, readImage = true, generateThumb =
     await Image.setLabels(image, [...new Set(extractedLabels)]);
 
     if (generateThumb) {
-      if (!jimpImage) {
-        jimpImage = await Jimp.read(imagePath);
+      const imImage = ImageMagick(imagePath);
+      if (!_imageSize) {
+        _imageSize = await imImage.sizeAsync();
       }
       // Small image thumbnail
       logger.verbose("Creating image thumbnail");
-      if (jimpImage.bitmap.width > jimpImage.bitmap.height && jimpImage.bitmap.width > 320) {
-        jimpImage.resize(320, Jimp.AUTO);
-      } else if (jimpImage.bitmap.height > 320) {
-        jimpImage.resize(Jimp.AUTO, 320);
+      if (_imageSize) {
+        if (_imageSize.width > _imageSize.height && _imageSize.width > 320) {
+          imImage.resize(320);
+        } else if (_imageSize.height > 320) {
+          imImage.resize(null, 320);
+        }
       }
       image.thumbPath = libraryPath(`thumbnails/images/${image._id}.jpg`);
-      await jimpImage.writeAsync(image.thumbPath);
+      await imImage.writeAsync(image.thumbPath);
     }
 
     await collections.images.upsert(image._id, image);
