@@ -50,7 +50,7 @@ export async function queueLoop(config: IConfig): Promise<void> {
             image.scene = queueHead._id;
             image.meta.size = stats.size;
 
-            const _imageSize = await ImageMagick(image.path).sizeAsync();
+            const _imageSize = await ImageMagick(image.path).size();
             if (_imageSize) {
               image.meta.dimensions.width = _imageSize.width;
               image.meta.dimensions.height = _imageSize.height;

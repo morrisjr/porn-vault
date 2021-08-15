@@ -4,6 +4,7 @@ import path, { basename, resolve } from "path";
 import asyncPool from "tiny-async-pool";
 
 import { ImageMagick } from "../binaries/imagemagick";
+import { IM } from "../binaries/imagemagick/cli";
 import { getConfig } from "../config";
 import { collections } from "../database";
 import { extractActors, extractLabels, extractMovies, extractStudios } from "../extractor";
@@ -575,13 +576,13 @@ export default class Scene {
       logger.debug(`Creating preview strip for ${scene._id}...`);
 
       const myImg = ImageMagick(files[0]);
-      myImg.append(files.slice(1), true);
+      myImg.append(files.slice(1), IM.AppendDirection.HORIZONTAL);
 
       const file = path.join(libraryPath("previews/"), `${scene._id}.jpg`);
 
       logger.debug(`Writing to file ${file}...`);
 
-      await myImg.writeAsync(file);
+      await myImg.write(file);
       logger.debug("Finished generating preview.");
       await rimrafAsync(tmpFolder);
       resolve(file);

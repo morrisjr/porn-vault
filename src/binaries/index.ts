@@ -1,5 +1,5 @@
 import { logger } from "../utils/logger";
-import { ensureImageMagickExists } from "./imagemagick";
+import { ensureImageMagickExists } from "./imagemagick/ensure";
 import { ensureIzzyExists } from "./izzy";
 
 export async function ensureBinaries(): Promise<void> {

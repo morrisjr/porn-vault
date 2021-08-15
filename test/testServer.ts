@@ -6,7 +6,8 @@ import path from "path";
 import sinon from "sinon";
 
 import { createVault } from "../src/app";
-import { getFFMpegURL, getFFProbeURL } from "../src/binaries/ffmpeg-download";
+import { getFFMpegURL, getFFProbeURL } from "../src/binaries/ffmpeg";
+import { ensureImageMagickExists } from "../src/binaries/imagemagick/ensure";
 import { ensureIzzyExists, izzyVersion, resetIzzy, spawnIzzy } from "../src/binaries/izzy";
 import { getConfig, loadTestConfig, resetLoadedConfig } from "../src/config";
 import defaultConfig from "../src/config/default";
@@ -125,6 +126,7 @@ export async function startTestServer(
       await downloadFFLibs(config);
     }
     await ensureIzzyExists();
+    await ensureImageMagickExists();
     console.log("Downloaded binaries");
 
     vault = createVault();

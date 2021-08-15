@@ -49,7 +49,7 @@ export default {
 
     // Pre 0.27 compatibility: add image dimensions on demand and save to db
     if (image.path && (!image.meta.dimensions.height || !image.meta.dimensions.width)) {
-      const _imageSize = await ImageMagick(image.path).sizeAsync();
+      const _imageSize = await ImageMagick(image.path).size();
       if (_imageSize) {
         image.meta.dimensions.width = _imageSize.width;
         image.meta.dimensions.height = _imageSize.height;

@@ -206,7 +206,7 @@ export default class Image {
     ) {
       return false;
     }
-    const _imageSize = await ImageMagick(image.path).sizeAsync();
+    const _imageSize = await ImageMagick(image.path).size();
     if (_imageSize) {
       image.meta.dimensions.width = _imageSize.width;
       image.meta.dimensions.height = _imageSize.height;

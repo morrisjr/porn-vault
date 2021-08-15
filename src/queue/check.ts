@@ -1,8 +1,8 @@
-import { Dimensions } from "gm";
 import ora = require("ora");
 import { basename } from "path";
 
 import { ImageMagick } from "../binaries/imagemagick";
+import { IM } from "../binaries/imagemagick/cli";
 import { getConfig } from "../config";
 import { collections } from "../database";
 import { extractActors, extractLabels, extractScenes } from "../extractor";
@@ -89,15 +89,13 @@ async function processImage(imagePath: string, readImage = true, generateThumb =
     const image = new Image(imageName);
     image.path = imagePath;
 
-    let _imageSize: Dimensions | undefined;
+    let _imageSize: IM.Dimensions;
     if (readImage) {
-      _imageSize = await ImageMagick(imagePath).sizeAsync();
+      _imageSize = await ImageMagick(imagePath).size();
       if (_imageSize) {
         image.meta.dimensions.width = _imageSize.width;
         image.meta.dimensions.height = _imageSize.height;
       }
-      // TODO: jimp
-      // image.hash = jimpImage.hash();
     }
 
     // Extract scene
@@ -118,19 +116,19 @@ async function processImage(imagePath: string, readImage = true, generateThumb =
     if (generateThumb) {
       const imImage = ImageMagick(imagePath);
       if (!_imageSize) {
-        _imageSize = await imImage.sizeAsync();
+        _imageSize = await imImage.size();
       }
       // Small image thumbnail
       logger.verbose("Creating image thumbnail");
       if (_imageSize) {
         if (_imageSize.width > _imageSize.height && _imageSize.width > 320) {
-          imImage.resize(320);
+          imImage.resize(320, null);
         } else if (_imageSize.height > 320) {
           imImage.resize(null, 320);
         }
       }
       image.thumbPath = libraryPath(`thumbnails/images/${image._id}.jpg`);
-      await imImage.writeAsync(image.thumbPath);
+      await imImage.write(image.thumbPath);
     }
 
     await collections.images.upsert(image._id, image);

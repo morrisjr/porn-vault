@@ -139,9 +139,7 @@ export default {
       }
 
       const _image = ImageMagick(outPath);
-      const _imageSize = await _image.sizeAsync();
-      // TODO: jimp
-      // image.hash = _image.hash();
+      const _imageSize = await _image.size();
 
       if (args.crop) {
         logger.verbose(`Cropping image...`);
@@ -159,14 +157,14 @@ export default {
 
         if (_imageSize) {
           if (_imageSize.width > _imageSize.height && _imageSize.width > MAX_SIZE) {
-            _image.resize(MAX_SIZE);
+            _image.resize(MAX_SIZE, null);
           } else if (_imageSize.height > MAX_SIZE) {
             _image.resize(null, MAX_SIZE);
           }
         }
       }
 
-      await _image.writeAsync(sourcePath);
+      await _image.write(sourcePath);
 
       if (!isBlacklisted(image.name)) {
         image.thumbPath = libraryPath(`thumbnails/images/${image._id}.jpg`);
@@ -174,12 +172,12 @@ export default {
         // Small image thumbnail
         if (_imageSize) {
           if (_imageSize.width > _imageSize.height && _imageSize.width > 320) {
-            _image.resize(320);
+            _image.resize(320, null);
           } else if (_imageSize.height > 320) {
             _image.resize(null, 320);
           }
         }
-        await _image.writeAsync(image.thumbPath);
+        await _image.write(image.thumbPath);
       }
 
       logger.verbose(`Image processing done.`);

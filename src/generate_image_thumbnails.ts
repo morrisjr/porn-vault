@@ -54,16 +54,16 @@ export async function generateImageThumbnails(): Promise<void> {
       logger.verbose(
         `${i}/${amountImagesToBeProcessed}: Creating image thumbnail for ${image._id}`
       );
-      const _imageSize = await _image.sizeAsync();
+      const _imageSize = await _image.size();
       if (_imageSize) {
         if (_imageSize.width > _imageSize.height && _imageSize.width > 320) {
-          _image.resize(320);
+          _image.resize(320, null);
         } else if (_imageSize.height > 320) {
           _image.resize(null, 320);
         }
       }
       image.thumbPath = libraryPath(`thumbnails/images/${image._id}.jpg`);
-      await _image.writeAsync(image.thumbPath);
+      await _image.write(image.thumbPath);
       await collections.images.upsert(image._id, image);
     } catch (error) {
       handleError(`${image._id} (${image.path}) failed`, error);
